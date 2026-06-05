@@ -323,24 +323,22 @@ if (nextPhase === "rolling") {
   setRollingStartedAt(round.rolling_starts_at);
   setShouldPlayLiveDiceSequence(shouldShowPhysicalDiceSequence);
 
-  if (hasBackendTimeline) {
-      const visibleBackendResultNames = convertBackendResultKeysToMyanmarNames(
-        getVisibleBackendResultKeysForRolling(round)
-      );
-
-      setDiceResult(visibleBackendResultNames);
-      lastDiceSoundCountRef.current = visibleBackendResultNames.length;
-    } else {
-      setShouldPlayLiveDiceSequence(false);
-
-      const visibleBackendResultNames = convertBackendResultKeysToMyanmarNames(
-        getVisibleBackendResultKeysForRolling(round)
-      );
-
-      setDiceResult(visibleBackendResultNames);
-      lastDiceSoundCountRef.current = visibleBackendResultNames.length;
+  if (shouldShowPhysicalDiceSequence) {
+    if (phaseRef.current !== "rolling" || roundIdRef.current !== round.id) {
+      setDiceResult([]);
+      lastDiceSoundCountRef.current = 0;
     }
+  } else {
+    setShouldPlayLiveDiceSequence(false);
+
+    const visibleBackendResultNames = convertBackendResultKeysToMyanmarNames(
+      getVisibleBackendResultKeysForRolling(round)
+    );
+
+    setDiceResult(visibleBackendResultNames);
+    lastDiceSoundCountRef.current = visibleBackendResultNames.length;
   }
+}
 
   if (nextPhase === "result") {
     setShouldPlayLiveDiceSequence(false);
@@ -416,32 +414,6 @@ if (nextPhase === "rolling") {
         : matchCount > 0
           ? "Win"
           : "No Match";
-
-  const commandBarTitle =
-    phase === "betting"
-      ? "BETTING OPEN"
-      : phase === "closed"
-        ? "BETS CLOSED"
-        : phase === "rolling"
-          ? "DICE ROLLING"
-          : phase === "result" && matchCount > 0
-            ? "WIN RESULT"
-            : phase === "result"
-              ? "RESULT REVEALED"
-              : "ENTERING ROOM";
-
-  const commandBarNote =
-    phase === "betting"
-      ? activeBet
-        ? `${activeBet.animalNameMm} locked · ${formatMMK(activeBet.amount)} MMK`
-        : "Choose your animal and place your bet before the timer ends."
-      : phase === "closed"
-        ? "No more bets. Watch the table."
-        : phase === "rolling"
-          ? "Dice are rolling. Result will come from the table."
-          : phase === "result" && diceResult.length > 0
-            ? `Result: ${diceResult.join(" • ")} · ${settlementStatus}`
-            : "Preparing next round.";
 
   const displayCountdown = Math.max(0, countdown);
 
@@ -881,7 +853,7 @@ useEffect(() => {
 
         <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.85rem] border border-amber-300/22 bg-gradient-to-b from-[#3a0707]/76 via-[#140202]/74 to-black/93 p-2.5 shadow-[0_0_50px_rgba(127,29,29,0.4),inset_0_0_34px_rgba(251,191,36,0.065),inset_0_1px_0_rgba(251,191,36,0.12)] backdrop-blur-sm">
           {showTopPanel ? (
-            <div className={`shrink-0 rounded-[1.35rem] border p-2 shadow-xl shadow-black/35 backdrop-blur-md ${commandBarClass}`}>
+            <div className={`shrink-0 rounded-[1.15rem] border p-1.5 shadow-xl shadow-black/35 backdrop-blur-md ${commandBarClass}`}>
               {showResultBoardPanel ? (
                 <div
                   className={`rounded-2xl border p-2.5 shadow-xl shadow-black/35 ${
@@ -1048,39 +1020,25 @@ useEffect(() => {
                   ) : null}
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  <div className="rounded-2xl border border-white/10 bg-black/35 px-3 py-2.5">
-                    <p className="text-[9px] font-black uppercase tracking-[0.28em] text-amber-200/60">
-                      Live Table
-                    </p>
-                    <p className="mt-1 text-base font-black text-white">
-                      {commandBarTitle}
-                    </p>
-                    <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/55">
-                      {commandBarNote}
-                    </p>
-                  </div>
+<div className="grid grid-cols-2 gap-2">
+  <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-right">
+    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-amber-200/60">
+      Timer
+    </p>
+    <p className="mt-0.5 text-2xl font-black text-white">
+      {timerLabel}
+    </p>
+  </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-right">
-                      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-amber-200/60">
-                        Timer
-                      </p>
-                      <p className="mt-1 text-2xl font-black text-white">
-                        {timerLabel}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-2.5 text-right">
-                      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-100/55">
-                        Balance
-                      </p>
-                      <p className="mt-1 text-lg font-black text-emerald-100">
-                        {formatMMK(walletBalance)} MMK
-                      </p>
-                    </div>
-                  </div>
-                </div>
+  <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-right">
+    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-100/55">
+      Balance
+    </p>
+    <p className="mt-0.5 text-lg font-black text-emerald-100">
+      {formatMMK(walletBalance)} MMK
+    </p>
+  </div>
+</div>
               )}
             </div>
           ) : null}

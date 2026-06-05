@@ -5611,3 +5611,29 @@ Next recommended chapter:
 Goal:
 
 Execute final local/demo/deploy readiness steps without changing the locked Six Animal MVP unless a real blocker appears.
+
+Chapter 75.8 Final Demo Lock / Stop-Tweaking Rule passes.
+
+Nagani Traditional Six Animal MVP/demo is deployed and production smoke-tested.
+
+Locked accepted state:
+- GitHub push completed.
+- Vercel deployment completed.
+- Production environment variables verified.
+- Supabase production room verified.
+- Cron runner verified.
+- Admin routes verified.
+- Public demo routes verified.
+- Production full round smoke test passed.
+- Production refresh/reconnect test passed.
+- Client-safe demo handoff note completed.
+
+Stop-tweaking rule:
+Do not change Six Animal table, dice, physics, backend timing, wallet logic, admin monitor, result detection, result board, settlement UI, or betting flow unless fixing a confirmed production/demo blocker.
+
+Accepted limitations:
+- Current table is procedural MVP fallback.
+- Custom royal table GLB is pending.
+- Current dice are MVP/demo-ready, not final AAA dice.
+- Sound/audio remains skipped.
+- Thirty Six parity is not current focus.

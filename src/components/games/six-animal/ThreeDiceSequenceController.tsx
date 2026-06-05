@@ -17,6 +17,7 @@ const EXPECTED_DICE_RESULT_COUNT = 3;
 
 const LIVE_DICE_REVEAL_MS = 5200;
 const LIVE_DICE_BETWEEN_MS = 900;
+const LIVE_DICE_CAPTURE_HOLD_MS = 900;
 
 function getLiveDiceRevealAtMs(index: number) {
   return LIVE_DICE_REVEAL_MS * (index + 1) + LIVE_DICE_BETWEEN_MS * index;
@@ -66,7 +67,8 @@ export default function ThreeDiceSequenceController({
 
   const capturedDieNumbersRef = useRef<Set<number>>(new Set());
   const completionSentRef = useRef(false);
-  const lastRunKeyRef = useRef<number | null>(null);
+const lastSequenceKeyRef = useRef<string | null>(null);
+const liveCaptureTimerRef = useRef<number | null>(null);
 
   const onProgressRef = useRef(onProgress);
   const backendResultKey = serverRngResults.join("|");
@@ -77,7 +79,7 @@ const hasBackendLiveResults =
 const isLiveReconnectDisplay =
   !enabled && Boolean(rollingStartedAt) && hasBackendLiveResults;
 
-const shouldUseBackendTimeline = enabled || isLiveReconnectDisplay;
+const shouldUseBackendTimeline = isLiveReconnectDisplay;
 
 const stageMountedDiceRackMode: MountedDiceRackMode = isLiveReconnectDisplay
   ? "sequence"
@@ -118,22 +120,49 @@ useEffect(() => {
   if (!enabled && !isLiveReconnectDisplay) {
     setSequenceRunning(false);
     lastBackendResultKeyRef.current = null;
+
+    if (liveCaptureTimerRef.current) {
+      window.clearTimeout(liveCaptureTimerRef.current);
+      liveCaptureTimerRef.current = null;
+    }
+
     return;
   }
 
-  if (lastRunKeyRef.current === runKey && !isLiveReconnectDisplay) return;
+  const sequenceKey = `${runKey}|${backendTimelineKey}|${
+    enabled ? "live" : "reconnect"
+  }`;
 
-  lastRunKeyRef.current = runKey;
+  if (lastSequenceKeyRef.current === sequenceKey && !isLiveReconnectDisplay) {
+    return;
+  }
+
+  lastSequenceKeyRef.current = sequenceKey;
   completionSentRef.current = false;
   capturedDieNumbersRef.current.clear();
   lastBackendResultKeyRef.current = null;
+
+  if (liveCaptureTimerRef.current) {
+    window.clearTimeout(liveCaptureTimerRef.current);
+    liveCaptureTimerRef.current = null;
+  }
 
   setCapturedResults([]);
   setActiveDieIndex(0);
   setSettled(false);
   setFaceResult(null);
-  setSequenceRunning(false);
-}, [enabled, runKey, isLiveReconnectDisplay]);
+  setSequenceRunning(enabled && hasBackendLiveResults);
+
+  if (enabled && hasBackendLiveResults) {
+    setResetKey((value) => value + 1);
+  }
+}, [
+  enabled,
+  runKey,
+  isLiveReconnectDisplay,
+  backendTimelineKey,
+  hasBackendLiveResults,
+]);
 
 useEffect(() => {
   if (!shouldUseBackendTimeline || !hasBackendLiveResults) {
@@ -237,13 +266,63 @@ useEffect(() => {
   rollingStartedAt,
 ]);
 
-  useEffect(() => {
-    if (!enabled || !settled || !faceResult) return;
+useEffect(() => {
+  if (!enabled || !sequenceRunning || !settled || !faceResult) return;
+  if (!hasBackendLiveResults) return;
 
-    // Live room authority rule:
-    // physical dice face detection is ignored in production room mode.
-    // Backend result slots are injected only from serverRngResults.
-  }, [enabled, settled, faceResult]);
+  const dieNumber = activeDieIndex + 1;
+
+  if (capturedDieNumbersRef.current.has(dieNumber)) return;
+
+  const label = getServerTargetAnimal(activeDieIndex);
+  if (!label) return;
+
+  if (liveCaptureTimerRef.current) {
+    window.clearTimeout(liveCaptureTimerRef.current);
+  }
+
+  liveCaptureTimerRef.current = window.setTimeout(() => {
+    capturedDieNumbersRef.current.add(dieNumber);
+
+    setCapturedResults((current) => {
+      const withoutDuplicate = current.filter(
+        (result) => result.dieNumber !== dieNumber
+      );
+
+      return [
+        ...withoutDuplicate,
+        createBackendCapturedResult(label, dieNumber),
+      ].sort((a, b) => a.dieNumber - b.dieNumber);
+    });
+
+    setSettled(false);
+    setFaceResult(null);
+
+    if (activeDieIndex < EXPECTED_DICE_RESULT_COUNT - 1) {
+      setActiveDieIndex(activeDieIndex + 1);
+      setResetKey((value) => value + 1);
+    } else {
+      setSequenceRunning(false);
+    }
+
+    liveCaptureTimerRef.current = null;
+  }, LIVE_DICE_CAPTURE_HOLD_MS);
+
+  return () => {
+    if (liveCaptureTimerRef.current) {
+      window.clearTimeout(liveCaptureTimerRef.current);
+      liveCaptureTimerRef.current = null;
+    }
+  };
+}, [
+  enabled,
+  sequenceRunning,
+  settled,
+  faceResult,
+  activeDieIndex,
+  hasBackendLiveResults,
+  backendResultKey,
+]);
 
     useEffect(() => {
     if (capturedResults.length === 0) return;
