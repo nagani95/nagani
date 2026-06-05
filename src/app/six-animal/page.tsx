@@ -520,9 +520,9 @@ const isRollingReconnectView = false;
 const showSettlementSheet =
   showFinalResultPanel && showSettlementMoment && Boolean(activeBet);
 
-  const showLiveRoundRefreshNotice =
+const shouldConfirmBrowserRefresh =
   !showRoomIntro &&
-  !showSettlementSheet &&
+  !isWaitingForNextRound &&
   (phase === "closed" || phase === "rolling" || phase === "result");
 
   const mountedDiceRackMode: MountedDiceRackMode =
@@ -786,6 +786,23 @@ useEffect(() => {
 
   return () => window.clearInterval(timer);
 }, [phase, phaseTargetAt]);
+
+useEffect(() => {
+  if (!shouldConfirmBrowserRefresh) {
+    return;
+  }
+
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    event.preventDefault();
+    event.returnValue = "";
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [shouldConfirmBrowserRefresh]);
 
   function handleThreeDiceComplete(
   payload: ThreeDiceRoundPayload,
@@ -1316,26 +1333,6 @@ const isCurrent =
     <p className="mt-0.5 text-[10px] font-bold text-white/55">
       Restoring current live dice state
     </p>
-  </div>
-) : null}
-
-{showLiveRoundRefreshNotice ? (
-  <div className="pointer-events-none absolute inset-x-3 bottom-3 z-40 mx-auto max-w-[390px] overflow-hidden rounded-[1.25rem] border border-amber-300/24 bg-[linear-gradient(145deg,rgba(45,7,3,0.86),rgba(5,1,1,0.82),rgba(52,12,5,0.68))] p-3 text-center shadow-2xl shadow-black/70 backdrop-blur-xl">
-    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.14),transparent_64%)]" />
-
-    <div className="relative z-10">
-      <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-200/70">
-        Live Round In Progress
-      </p>
-
-      <p className="mt-1 text-xs font-black text-white">
-        Please stay on this table
-      </p>
-
-      <p className="mt-1 text-[10px] font-bold leading-relaxed text-white/55">
-        If you refresh or leave now, your bet stays safe and you will rejoin at the next betting round.
-      </p>
-    </div>
   </div>
 ) : null}
 
