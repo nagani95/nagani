@@ -20,7 +20,7 @@ import type { SixAnimalKey } from "@/types/games";
 const ROOM_BACKGROUND = naganiAssets.sixAnimal.room.palaceBgV1;
 
 const RESULT_REVEAL_DELAY_MS = 2000;
-const LIVE_DICE_REVEAL_TIMELINE_MS = [5200, 11300, 17400];
+const SETTLEMENT_MOMENT_MS = 3000;
 
 const ROOM_SOUND_ENABLED = false;
 
@@ -70,24 +70,6 @@ function getRoundPhaseTargetAt(round: LiveSixAnimalRound) {
 
 function getLiveRoundCountdown(round: LiveSixAnimalRound) {
   return secondsUntil(getRoundPhaseTargetAt(round));
-}
-
-function getElapsedMsSince(targetIso: string | null | undefined) {
-  if (!targetIso) return 0;
-
-  return Math.max(0, Date.now() - new Date(targetIso).getTime());
-}
-
-function getVisibleBackendResultKeysForRolling(round: LiveSixAnimalRound) {
-  const resultAnimals = round.result_animals || [];
-  if (resultAnimals.length === 0) return [];
-
-  const elapsedMs = getElapsedMsSince(round.rolling_starts_at);
-  const visibleCount = LIVE_DICE_REVEAL_TIMELINE_MS.filter(
-    (revealAt) => elapsedMs >= revealAt
-  ).length;
-
-  return resultAnimals.slice(0, visibleCount);
 }
 
 function mapLiveRoundPhase(round: LiveSixAnimalRound): RoundPhase {
@@ -158,18 +140,6 @@ function getAnimalByNameMm(nameMm: string) {
   return SIX_ANIMAL_OPTIONS.find((animal) => animal.nameMm === nameMm);
 }
 
-function getAnimalNameMmByKey(key: string) {
-  return SIX_ANIMAL_OPTIONS.find((animal) => animal.key === key)?.nameMm ?? null;
-}
-
-function convertBackendResultKeysToMyanmarNames(resultAnimals: string[] | null) {
-  if (!resultAnimals) return [];
-
-  return resultAnimals
-    .map(getAnimalNameMmByKey)
-    .filter((nameMm): nameMm is string => Boolean(nameMm));
-}
-
 function convertBackendBetToActiveBet(
   bet: LiveSixAnimalBet,
   roundNumber: number
@@ -201,21 +171,28 @@ export default function SixAnimalPage() {
   const [phaseTargetAt, setPhaseTargetAt] = useState<string | null>(null);
   const [rollingStartedAt, setRollingStartedAt] = useState<string | null>(null);
   const [roundNumber, setRoundNumber] = useState(1208);
-  const [diceResult, setDiceResult] = useState<string[]>([]);
-  const [threeDiceRunKey, setThreeDiceRunKey] = useState(0);
+const [diceResult, setDiceResult] = useState<string[]>([]);
+const [isVisualDiceComplete, setIsVisualDiceComplete] = useState(false);
+const [visualCompleteRoundId, setVisualCompleteRoundId] = useState<string | null>(null);
+const [visualActiveRoundId, setVisualActiveRoundId] = useState<string | null>(null);
+const [threeDiceRunKey, setThreeDiceRunKey] = useState(0);
   const [shouldPlayLiveDiceSequence, setShouldPlayLiveDiceSequence] =
     useState(false);
   const soundEnabled = ROOM_SOUND_ENABLED;
   const [showRoomIntro, setShowRoomIntro] = useState(true);
   const [activeBet, setActiveBet] = useState<ActiveBet | null>(null);
+  const [showSettlementMoment, setShowSettlementMoment] = useState(false);
+const [settlementWaitingRoundId, setSettlementWaitingRoundId] =
+  useState<string | null>(null);
   
   // --- QUEUING STATES ---
   const [isWaitingForNextRound, setIsWaitingForNextRound] = useState(false);
 const [isQuitting, setIsQuitting] = useState(false);
 const [joinedRoundId, setJoinedRoundId] = useState<string | null>(null);
 
-  const resultRevealTimerRef = useRef<number | null>(null);
-  const lastDiceSoundCountRef = useRef(0);
+const resultRevealTimerRef = useRef<number | null>(null);
+const settlementMomentTimerRef = useRef<number | null>(null);
+const lastDiceSoundCountRef = useRef(0);
 
   // Refs for Realtime Websocket closures to prevent stale state
 const phaseRef = useRef(phase);
@@ -223,26 +200,85 @@ const roundIdRef = useRef(roundId);
 const isQuittingRef = useRef(isQuitting);
 const joinedRoundIdRef = useRef<string | null>(null);
 const shouldPlayLiveDiceSequenceRef = useRef(false);
+const diceResultRef = useRef<string[]>([]);
+const isVisualDiceCompleteRef = useRef(false);
+const visualCompleteRoundIdRef = useRef<string | null>(null);
+const visualStartedRoundIdRef = useRef<string | null>(null);
+const visualActiveRoundIdRef = useRef<string | null>(null);
+const settlementWaitingRoundIdRef = useRef<string | null>(null);
 
-  async function applyLiveRound(round: LiveSixAnimalRound) {
+function clearVisibleDiceRoundState() {
+  setDiceResult([]);
+  diceResultRef.current = [];
+
+  setIsVisualDiceComplete(false);
+  isVisualDiceCompleteRef.current = false;
+
+  setVisualCompleteRoundId(null);
+  visualCompleteRoundIdRef.current = null;
+
+visualStartedRoundIdRef.current = null;
+setVisualActiveRoundId(null);
+visualActiveRoundIdRef.current = null;
+
+if (settlementMomentTimerRef.current) {
+  window.clearTimeout(settlementMomentTimerRef.current);
+  settlementMomentTimerRef.current = null;
+}
+
+setShowSettlementMoment(false);
+setSettlementWaitingRoundId(null);
+settlementWaitingRoundIdRef.current = null;
+
+lastDiceSoundCountRef.current = 0;
+}
+
+async function applyLiveRound(round: LiveSixAnimalRound) {
   const nextPhase = mapLiveRoundPhase(round);
   const nextTargetAt = getRoundPhaseTargetAt(round);
   const nextCountdown = getLiveRoundCountdown(round);
 
-    const backendBet = await fetchCurrentUserBetForRound(round.id);
+  const isSwitchingRound =
+    Boolean(roundIdRef.current) && roundIdRef.current !== round.id;
+
+  if (isSwitchingRound) {
+    clearVisibleDiceRoundState();
+    setShouldPlayLiveDiceSequence(false);
+    setActiveBet(null);
+  }
+
+  roundIdRef.current = round.id;
+
+  const backendBet = await fetchCurrentUserBetForRound(round.id);
   const restoredActiveBet = backendBet
     ? convertBackendBetToActiveBet(backendBet, round.round_number)
     : null;
 
-  const hasBackendBet = Boolean(restoredActiveBet);
-  const hasJoinedRound = joinedRoundIdRef.current === round.id || hasBackendBet;
-  const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
-  const isLateJoinToInProgressRound = !hasJoinedRound && !isJoinableBettingRound;
+const hasJoinedCurrentBrowserRound = joinedRoundIdRef.current === round.id;
+const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
+const isRefreshOrLateJoinToInProgressRound =
+  !isJoinableBettingRound && !hasJoinedCurrentBrowserRound;
 
-  if (restoredActiveBet) {
-    setJoinedRoundId(round.id);
-    setActiveBet(restoredActiveBet);
-  }
+if (isRefreshOrLateJoinToInProgressRound) {
+  clearVisibleDiceRoundState();
+  setShouldPlayLiveDiceSequence(false);
+  setRoundId(round.id);
+  setRoundNumber(round.round_number);
+  setPhase("loading");
+  setPhaseTargetAt(null);
+  setRollingStartedAt(null);
+  setCountdown(0);
+  setIsWaitingForNextRound(true);
+  setServerRngResults([]);
+  setActiveBet(null);
+  return;
+}
+
+if (restoredActiveBet) {
+  joinedRoundIdRef.current = round.id;
+  setJoinedRoundId(round.id);
+  setActiveBet(restoredActiveBet);
+}
 
   if (
     isQuittingRef.current &&
@@ -254,38 +290,48 @@ const shouldPlayLiveDiceSequenceRef = useRef(false);
     return;
   }
 
-  if (isLateJoinToInProgressRound) {
-    setRoundId(round.id);
-    setRoundNumber(round.round_number);
-    setPhase("loading");
-    setPhaseTargetAt(null);
-    setRollingStartedAt(null);
-    setCountdown(0);
-    setIsWaitingForNextRound(true);
-    setServerRngResults(round.result_animals || []);
-    setDiceResult([]);
-    setActiveBet(null);
-    lastDiceSoundCountRef.current = 0;
-    return;
-  }
+if (isJoinableBettingRound) {
+  joinedRoundIdRef.current = round.id;
+  setJoinedRoundId(round.id);
+}
 
-  if (isJoinableBettingRound) {
-    setJoinedRoundId(round.id);
-  }
+const hasBackendDiceTimeline =
+  Boolean(round.rolling_starts_at) &&
+  (round.result_animals || []).length === SIX_ANIMAL_RULES.diceCount;
 
-  setRoundId(round.id);
-  setRoundNumber(round.round_number);
-  setPhase(nextPhase);
-  setPhaseTargetAt(nextTargetAt);
-  setRollingStartedAt(round.rolling_starts_at);
-  setCountdown(nextCountdown);
-  setIsWaitingForNextRound(false);
+const hasCompleteVisualDiceResult =
+  visualCompleteRoundIdRef.current === round.id &&
+  isVisualDiceCompleteRef.current &&
+  diceResultRef.current.length === SIX_ANIMAL_RULES.diceCount;
+
+const shouldHoldLocalVisualRollingPhase =
+  (nextPhase === "rolling" || nextPhase === "result") &&
+  hasBackendDiceTimeline &&
+  !hasCompleteVisualDiceResult;
+
+const displayPhase: RoundPhase = shouldHoldLocalVisualRollingPhase
+  ? "rolling"
+  : nextPhase;
+
+roundIdRef.current = round.id;
+phaseRef.current = displayPhase;
+
+setRoundId(round.id);
+setRoundNumber(round.round_number);
+setPhase(displayPhase);
+setPhaseTargetAt(displayPhase === "rolling" ? null : nextTargetAt);
+setRollingStartedAt(round.rolling_starts_at);
+setCountdown(nextCountdown);
+const shouldKeepLocalWaitingScreen =
+  nextPhase === "result" && settlementWaitingRoundIdRef.current === round.id;
+
+setIsWaitingForNextRound(shouldKeepLocalWaitingScreen);
 
   if (nextPhase === "betting") {
-    setShouldPlayLiveDiceSequence(false);
-    setRollingStartedAt(null);
-    setServerRngResults([]);
-    setDiceResult([]);
+setShouldPlayLiveDiceSequence(false);
+clearVisibleDiceRoundState();
+setRollingStartedAt(null);
+setServerRngResults([]);
 
     if (!restoredActiveBet) {
       setActiveBet(null);
@@ -294,10 +340,11 @@ const shouldPlayLiveDiceSequenceRef = useRef(false);
     lastDiceSoundCountRef.current = 0;
   }
 
-  if (nextPhase === "closed") {
-    setShouldPlayLiveDiceSequence(false);
-    setServerRngResults(round.result_animals || []);
-  }
+if (nextPhase === "closed") {
+  setShouldPlayLiveDiceSequence(false);
+  clearVisibleDiceRoundState();
+  setServerRngResults(round.result_animals || []);
+}
 
 if (nextPhase === "rolling") {
   const backendResultKeys = round.result_animals || [];
@@ -305,68 +352,83 @@ if (nextPhase === "rolling") {
     Boolean(round.rolling_starts_at) &&
     backendResultKeys.length === SIX_ANIMAL_RULES.diceCount;
 
-  const shouldStartPhysicalDiceSequence =
+  const shouldRunLocalDiceFlow =
     hasBackendTimeline &&
-    phaseRef.current === "closed" &&
-    roundIdRef.current === round.id;
-
-  const shouldKeepPhysicalDiceSequence =
-    hasBackendTimeline &&
-    phaseRef.current === "rolling" &&
     roundIdRef.current === round.id &&
-    shouldPlayLiveDiceSequenceRef.current;
-
-  const shouldShowPhysicalDiceSequence =
-    shouldStartPhysicalDiceSequence || shouldKeepPhysicalDiceSequence;
+    !isVisualDiceCompleteRef.current;
 
   setServerRngResults(backendResultKeys);
   setRollingStartedAt(round.rolling_starts_at);
-  setShouldPlayLiveDiceSequence(shouldShowPhysicalDiceSequence);
+  setShouldPlayLiveDiceSequence(shouldRunLocalDiceFlow);
 
-  if (shouldShowPhysicalDiceSequence) {
-    if (phaseRef.current !== "rolling" || roundIdRef.current !== round.id) {
-      setDiceResult([]);
-      lastDiceSoundCountRef.current = 0;
-    }
-  } else {
-    setShouldPlayLiveDiceSequence(false);
-
-    const visibleBackendResultNames = convertBackendResultKeysToMyanmarNames(
-      getVisibleBackendResultKeysForRolling(round)
-    );
-
-    setDiceResult(visibleBackendResultNames);
-    lastDiceSoundCountRef.current = visibleBackendResultNames.length;
+if (shouldRunLocalDiceFlow) {
+  if (visualStartedRoundIdRef.current !== round.id) {
+    visualStartedRoundIdRef.current = round.id;
+visualActiveRoundIdRef.current = round.id;
+setVisualActiveRoundId(round.id);
+    setIsVisualDiceComplete(false);
+    isVisualDiceCompleteRef.current = false;
+    setVisualCompleteRoundId(null);
+    visualCompleteRoundIdRef.current = null;
+    setDiceResult([]);
+    diceResultRef.current = [];
+    lastDiceSoundCountRef.current = 0;
+    setThreeDiceRunKey((value) => value + 1);
   }
+
+  return;
 }
 
-  if (nextPhase === "result") {
-    setShouldPlayLiveDiceSequence(false);
-    setServerRngResults(round.result_animals || []);
-
-    const backendResultNames = convertBackendResultKeysToMyanmarNames(
-      round.result_animals
-    );
-
-    if (backendResultNames.length === SIX_ANIMAL_RULES.diceCount) {
-      setDiceResult(backendResultNames);
-    }
-  }
+  return;
 }
 
-  useEffect(() => {
-    phaseRef.current = phase;
-    roundIdRef.current = roundId;
-    isQuittingRef.current = isQuitting;
-    joinedRoundIdRef.current = joinedRoundId;
-    shouldPlayLiveDiceSequenceRef.current = shouldPlayLiveDiceSequence;
-  }, [
-    phase,
-    roundId,
-    isQuitting,
-    joinedRoundId,
-    shouldPlayLiveDiceSequence,
-  ]);
+if (nextPhase === "result") {
+  const backendResultKeys = round.result_animals || [];
+  const hasBackendTimeline =
+    Boolean(round.rolling_starts_at) &&
+    backendResultKeys.length === SIX_ANIMAL_RULES.diceCount;
+
+const hasCompleteVisualDiceResult =
+  visualCompleteRoundIdRef.current === round.id &&
+  isVisualDiceCompleteRef.current &&
+  diceResultRef.current.length === SIX_ANIMAL_RULES.diceCount;
+
+  const shouldContinueLocalDiceFlow =
+    hasBackendTimeline &&
+    roundIdRef.current === round.id &&
+    !hasCompleteVisualDiceResult;
+
+  setServerRngResults(backendResultKeys);
+  setRollingStartedAt(round.rolling_starts_at);
+  setShouldPlayLiveDiceSequence(shouldContinueLocalDiceFlow);
+
+  return;
+}
+}
+
+useEffect(() => {
+  phaseRef.current = phase;
+  roundIdRef.current = roundId;
+  isQuittingRef.current = isQuitting;
+  joinedRoundIdRef.current = joinedRoundId;
+shouldPlayLiveDiceSequenceRef.current = shouldPlayLiveDiceSequence;
+diceResultRef.current = diceResult;
+isVisualDiceCompleteRef.current = isVisualDiceComplete;
+visualCompleteRoundIdRef.current = visualCompleteRoundId;
+visualActiveRoundIdRef.current = visualActiveRoundId;
+settlementWaitingRoundIdRef.current = settlementWaitingRoundId;
+}, [
+  phase,
+  roundId,
+  isQuitting,
+  joinedRoundId,
+  shouldPlayLiveDiceSequence,
+  diceResult,
+  isVisualDiceComplete,
+  visualCompleteRoundId,
+  visualActiveRoundId,
+  settlementWaitingRoundId,
+]);
 
   const selectedOption = useMemo(() => {
     return SIX_ANIMAL_OPTIONS.find((animal) => animal.key === selectedAnimal);
@@ -435,17 +497,33 @@ if (nextPhase === "rolling") {
             ? "border-emerald-300/30 bg-emerald-400/15"
             : "border-amber-300/25 bg-black/35";
   
-  const showRollingResultPanel = phase === "rolling";
-  const showFinalResultPanel = phase === "result" && diceResult.length > 0;
-  const showResultBoardPanel = showRollingResultPanel || showFinalResultPanel;
+const hasCompleteDiceResult =
+  diceResult.length === SIX_ANIMAL_RULES.diceCount;
 
-    const isRollingReconnectView =
-    phase === "rolling" && !shouldPlayLiveDiceSequence;
+const showFinalResultPanel =
+  phase === "result" &&
+  hasCompleteDiceResult &&
+  isVisualDiceComplete &&
+  visualCompleteRoundId === roundId;
+
+const isResultPhaseVisualGuard =
+  phase === "result" && !showFinalResultPanel;
+
+const showRollingResultPanel = phase === "rolling" || isResultPhaseVisualGuard;
+const showResultBoardPanel = showRollingResultPanel || showFinalResultPanel;
+
+const isRollingReconnectView = false;
 
   const showTopPanel = phase === "betting";
   const showFloatingClosedPanel = phase === "closed";
   const showFloatingResultBoard = showResultBoardPanel;
-  const showSettlementSheet = showFinalResultPanel && Boolean(activeBet);
+const showSettlementSheet =
+  showFinalResultPanel && showSettlementMoment && Boolean(activeBet);
+
+  const showLiveRoundRefreshNotice =
+  !showRoomIntro &&
+  !showSettlementSheet &&
+  (phase === "closed" || phase === "rolling" || phase === "result");
 
   const mountedDiceRackMode: MountedDiceRackMode =
     phase === "betting" || phase === "closed"
@@ -455,15 +533,17 @@ if (nextPhase === "rolling") {
         : "empty";
 
 const effectiveMountedDiceRackMode: MountedDiceRackMode =
-  phase === "rolling"
+  phase === "rolling" || isResultPhaseVisualGuard
     ? "sequence"
     : mountedDiceRackMode;
 
-  const activeBetAnimal = activeBet
-    ? getAnimalByNameMm(activeBet.animalNameMm)
-    : null;
+const activeBetAnimal = activeBet
+  ? getAnimalByNameMm(activeBet.animalNameMm)
+  : null;
 
-  const isResultWin = phase === "result" && Boolean(activeBet) && matchCount > 0;
+const activeBetDisplayName = activeBetAnimal?.name ?? activeBet?.animalNameMm ?? "";
+
+const isResultWin = phase === "result" && Boolean(activeBet) && matchCount > 0;
 
   const resultStatusLabel = !activeBet
     ? "Table Result"
@@ -679,13 +759,17 @@ async function fetchLatestLiveRound() {
     return () => window.clearTimeout(introTimer);
   }, [phase, isWaitingForNextRound]);
 
-  useEffect(() => {
-    return () => {
-      if (resultRevealTimerRef.current) {
-        window.clearTimeout(resultRevealTimerRef.current);
-      }
-    };
-  }, []);
+useEffect(() => {
+  return () => {
+    if (resultRevealTimerRef.current) {
+      window.clearTimeout(resultRevealTimerRef.current);
+    }
+
+    if (settlementMomentTimerRef.current) {
+      window.clearTimeout(settlementMomentTimerRef.current);
+    }
+  };
+}, []);
 
 useEffect(() => {
   if (phase === "loading" || phase === "rolling" || !phaseTargetAt) {
@@ -703,12 +787,55 @@ useEffect(() => {
   return () => window.clearInterval(timer);
 }, [phase, phaseTargetAt]);
 
-  function handleThreeDiceComplete(payload: ThreeDiceRoundPayload) {
+  function handleThreeDiceComplete(
+  payload: ThreeDiceRoundPayload,
+  payloadRoundId?: string | null
+) {
+  if (
+    !payloadRoundId ||
+    payloadRoundId !== visualActiveRoundIdRef.current ||
+    payloadRoundId !== roundIdRef.current
+  ) {
+    return;
+  }
     const resultNames = convertThreeDicePayloadToMyanmarResult(payload);
 
     if (resultNames.length !== SIX_ANIMAL_RULES.diceCount) return;
 
-    setDiceResult(resultNames);
+const completedRoundId = roundIdRef.current;
+
+diceResultRef.current = resultNames;
+isVisualDiceCompleteRef.current = true;
+visualCompleteRoundIdRef.current = completedRoundId;
+
+setDiceResult(resultNames);
+setIsVisualDiceComplete(true);
+setVisualCompleteRoundId(payloadRoundId);
+visualCompleteRoundIdRef.current = payloadRoundId;
+setVisualActiveRoundId(null);
+visualActiveRoundIdRef.current = null;
+setShouldPlayLiveDiceSequence(false);
+setShowSettlementMoment(true);
+setSettlementWaitingRoundId(null);
+settlementWaitingRoundIdRef.current = null;
+setPhase("result");
+
+if (settlementMomentTimerRef.current) {
+  window.clearTimeout(settlementMomentTimerRef.current);
+}
+
+settlementMomentTimerRef.current = window.setTimeout(() => {
+  const waitingRoundId = roundIdRef.current;
+
+  setShowSettlementMoment(false);
+  setSettlementWaitingRoundId(waitingRoundId);
+  settlementWaitingRoundIdRef.current = waitingRoundId;
+
+  setIsWaitingForNextRound(true);
+  setShowRoomIntro(true);
+
+  settlementMomentTimerRef.current = null;
+}, SETTLEMENT_MOMENT_MS);
 
     if (resultRevealTimerRef.current) {
       window.clearTimeout(resultRevealTimerRef.current);
@@ -730,7 +857,17 @@ useEffect(() => {
 }, RESULT_REVEAL_DELAY_MS);
   }
 
-  function handleThreeDiceProgress(payload: ThreeDiceRoundPayload) {
+function handleThreeDiceProgress(
+  payload: ThreeDiceRoundPayload,
+  payloadRoundId?: string | null
+) {
+  if (
+    !payloadRoundId ||
+    payloadRoundId !== visualActiveRoundIdRef.current ||
+    payloadRoundId !== roundIdRef.current
+  ) {
+    return;
+  }
     const resultNames = convertThreeDicePayloadToMyanmarResult(payload);
 
     if (resultNames.length > lastDiceSoundCountRef.current) {
@@ -755,6 +892,8 @@ useEffect(() => {
       amount: numericBetAmount,
       roundNumber,
     });
+    joinedRoundIdRef.current = roundId;
+setJoinedRoundId(roundId);
 
     const { data, error } = await supabase.rpc("place_six_animal_bet", {
       p_round_id: roundId,
@@ -813,9 +952,9 @@ useEffect(() => {
             <p className="text-[10px] font-black uppercase tracking-[0.38em] text-amber-200/70">
               {isWaitingForNextRound ? "Round In Progress" : "Entering Live Room"}
             </p>
-            <h1 className="mt-3 text-3xl font-black text-amber-50">
-              ၆ ကောင်ဂျင်
-            </h1>
+<h1 className="mt-3 text-3xl font-black text-amber-50">
+  Six Animal
+</h1>
             <p className="mt-3 text-sm font-bold leading-relaxed text-white/65">
               {isWaitingForNextRound 
                 ? "Please wait for the current round to finish. You will be joined when betting opens." 
@@ -838,9 +977,9 @@ useEffect(() => {
 </button>
 
           <div className="text-center">
-            <p className="text-[9px] font-bold uppercase tracking-[0.32em] text-amber-200/75 drop-shadow-[0_0_8px_rgba(251,191,36,0.22)]">
-              ၆ ကောင်ဂျင် Live Room
-            </p>
+<p className="text-[9px] font-bold uppercase tracking-[0.32em] text-amber-200/75 drop-shadow-[0_0_8px_rgba(251,191,36,0.22)]">
+  Six Animal Live Room
+</p>
             <p className="text-sm font-black text-white drop-shadow-[0_0_10px_rgba(251,191,36,0.18)]">
               Live Table
             </p>
@@ -893,10 +1032,10 @@ useEffect(() => {
                           nameMm &&
                           activeBet.animalNameMm === nameMm
                       );
-                      const isCurrent =
-                        phase === "rolling" &&
-                        index === diceResult.length &&
-                        diceResult.length < 3;
+const isCurrent =
+  (phase === "rolling" || isResultPhaseVisualGuard) &&
+  index === diceResult.length &&
+  diceResult.length < SIX_ANIMAL_RULES.diceCount;
 
                       return (
                         <div
@@ -925,7 +1064,7 @@ useEffect(() => {
                                 className="mx-auto h-10 w-10 object-contain drop-shadow-[0_0_14px_rgba(251,191,36,0.45)]"
                               />
                               <p className="mt-0.5 text-[10px] font-black text-white">
-                                {animal.nameMm}
+                                {animal.name}
                               </p>
                             </div>
                           ) : (
@@ -954,7 +1093,7 @@ useEffect(() => {
                             />
                           ) : (
                             <span className="text-sm font-black text-amber-100">
-                              {activeBet.animalNameMm}
+                              {activeBetDisplayName}
                             </span>
                           )}
                         </div>
@@ -964,7 +1103,7 @@ useEffect(() => {
                             Your Bet
                           </p>
                           <p className="truncate text-sm font-black text-white">
-                            {activeBet.animalNameMm} · {formatMMK(activeBet.amount)} MMK
+                            {activeBetDisplayName} · {formatMMK(activeBet.amount)} MMK
                           </p>
                         </div>
 
@@ -1080,9 +1219,11 @@ useEffect(() => {
                       <p className="truncate text-xs font-black text-white drop-shadow-[0_0_8px_rgba(251,191,36,0.16)]">
 {showFinalResultPanel
   ? "Visible Dice Result"
-  : isRollingReconnectView
-    ? "Live Table Sync"
-    : "Dice Revealing"}
+  : isResultPhaseVisualGuard
+    ? "Finalizing Table Result"
+    : isRollingReconnectView
+      ? "Live Table Sync"
+      : "Dice Revealing"}
                       </p>
                     </div>
 
@@ -1097,9 +1238,11 @@ useEffect(() => {
                     >
 {showFinalResultPanel
   ? resultStatusLabel
-  : isRollingReconnectView
-    ? "SYNCED TABLE"
-    : `${diceResult.length}/3`}
+  : isResultPhaseVisualGuard
+    ? `${diceResult.length}/3`
+    : isRollingReconnectView
+      ? "SYNCED TABLE"
+      : `${diceResult.length}/3`}
                     </div>
                   </div>
 
@@ -1113,10 +1256,10 @@ useEffect(() => {
                           nameMm &&
                           activeBet.animalNameMm === nameMm
                       );
-                      const isCurrent =
-                        phase === "rolling" &&
-                        index === diceResult.length &&
-                        diceResult.length < 3;
+const isCurrent =
+  (phase === "rolling" || isResultPhaseVisualGuard) &&
+  index === diceResult.length &&
+  diceResult.length < SIX_ANIMAL_RULES.diceCount;
 
                       return (
                         <div
@@ -1145,7 +1288,7 @@ useEffect(() => {
                                 className="mx-auto h-6 w-6 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.42)]"
                               />
                               <p className="text-[8px] font-black text-white">
-                                {animal.nameMm}
+                                {animal.name}
                               </p>
                             </div>
                           ) : (
@@ -1176,6 +1319,26 @@ useEffect(() => {
   </div>
 ) : null}
 
+{showLiveRoundRefreshNotice ? (
+  <div className="pointer-events-none absolute inset-x-3 bottom-3 z-40 mx-auto max-w-[390px] overflow-hidden rounded-[1.25rem] border border-amber-300/24 bg-[linear-gradient(145deg,rgba(45,7,3,0.86),rgba(5,1,1,0.82),rgba(52,12,5,0.68))] p-3 text-center shadow-2xl shadow-black/70 backdrop-blur-xl">
+    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.14),transparent_64%)]" />
+
+    <div className="relative z-10">
+      <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-200/70">
+        Live Round In Progress
+      </p>
+
+      <p className="mt-1 text-xs font-black text-white">
+        Please stay on this table
+      </p>
+
+      <p className="mt-1 text-[10px] font-bold leading-relaxed text-white/55">
+        If you refresh or leave now, your bet stays safe and you will rejoin at the next betting round.
+      </p>
+    </div>
+  </div>
+) : null}
+
             {showSettlementSheet && activeBet ? (
               <div
                 className={`pointer-events-none absolute inset-x-3 top-[60%] z-50 mx-auto max-w-[390px] -translate-y-1/2 overflow-hidden rounded-[1.25rem] border p-2 shadow-2xl shadow-black/75 backdrop-blur-xl ${
@@ -1203,9 +1366,9 @@ useEffect(() => {
                             className="h-8 w-8 object-contain drop-shadow-[0_0_12px_rgba(251,191,36,0.45)]"
                           />
                         ) : (
-                          <span className="text-xs font-black text-amber-100">
-                            {activeBet.animalNameMm}
-                          </span>
+<span className="text-xs font-black text-amber-100">
+  {activeBetDisplayName}
+</span>
                         )}
                       </div>
 
@@ -1214,7 +1377,7 @@ useEffect(() => {
                           Settlement
                         </p>
                         <p className="truncate text-sm font-black text-white">
-                          {activeBet.animalNameMm} · Match {matchCount}/3
+                          {activeBetDisplayName} · Match {matchCount}/3
                         </p>
                       </div>
                     </div>
@@ -1284,6 +1447,7 @@ useEffect(() => {
                   mountedDiceRackMode={effectiveMountedDiceRackMode}
                   serverRngResults={serverRngResults}
                   rollingStartedAt={rollingStartedAt}
+visualRoundId={visualActiveRoundId}
                 />
               </div>
             </div>

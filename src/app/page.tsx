@@ -10,16 +10,16 @@ import { createClient } from "@/lib/supabase/server";
 
 const games = [
   {
-    title: "၆ ကောင်ဂျင်",
-    subtitle: "Myanmar traditional animal dice game",
+    title: "Six Animal",
+    subtitle: "Traditional animal dice live room",
     href: "/six-animal",
-    tag: "Animal Dice",
+    tag: "Live Dice",
   },
   {
-    title: "၃၆ ကောင်ထီ",
-    subtitle: "36-animal traditional draw game",
+    title: "Thirty Six",
+    subtitle: "Traditional 36-animal draw game",
     href: "/thirty-six",
-    tag: "Animal Draw",
+    tag: "Draw Game",
   },
 ];
 
@@ -44,9 +44,9 @@ export default async function HomePage() {
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-300/70">
               Nagani
             </p>
-            <h1 className="mt-1 text-2xl font-black tracking-tight text-amber-100">
-              နဂါးနီ
-            </h1>
+<h1 className="mt-1 text-2xl font-black tracking-tight text-amber-100">
+  Nagani Traditional
+</h1>
           </div>
         </div>
 

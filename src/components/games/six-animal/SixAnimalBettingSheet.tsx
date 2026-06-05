@@ -34,6 +34,12 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
+function getAnimalNameByKey(key: SixAnimalKey | null | undefined) {
+  if (!key) return null;
+
+  return SIX_ANIMAL_OPTIONS.find((animal) => animal.key === key)?.name ?? null;
+}
+
 export default function SixAnimalBettingSheet({
   isOpen,
   betAmount,
@@ -51,8 +57,8 @@ export default function SixAnimalBettingSheet({
 }: SixAnimalBettingSheetProps) {
   if (!isOpen) return null;
 
-  const displayAnimal =
-    activeBet?.animalNameMm ?? selectedOption?.nameMm ?? "Choose";
+const displayAnimal =
+  getAnimalNameByKey(activeBet?.animalKey) ?? selectedOption?.name ?? "Choose";
   const displayAnimalKey = activeBet?.animalKey ?? selectedOption?.key ?? null;
   const displayAmount = activeBet?.amount ?? numericBetAmount;
   const hasSelection = Boolean(activeBet || selectedOption);
@@ -106,20 +112,20 @@ className={`relative min-h-[78px] overflow-hidden rounded-[1.05rem] border p-1.5
                   <div className="relative z-10 flex h-full flex-col justify-between">
                     <div>
 <p
-  className={`text-lg font-black leading-none ${
+  className={`text-base font-black leading-none ${
     isHighlighted
       ? "text-white drop-shadow-[0_0_10px_rgba(251,191,36,0.22)]"
       : "text-white/88"
   }`}
 >
-  {animal.nameMm}
+  {animal.name}
 </p>
 <p
   className={`mt-1 text-[9px] font-black uppercase tracking-[0.16em] ${
     isHighlighted ? "text-amber-100/75" : "text-amber-200/50"
   }`}
 >
-  {animal.name}
+  {isHighlighted ? "Selected" : "Animal"}
 </p>
                     </div>
 
