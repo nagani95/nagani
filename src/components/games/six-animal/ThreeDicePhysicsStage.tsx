@@ -102,6 +102,7 @@ const DEV_TARGET_CORRECTION_ANGULAR_DAMPING = 0.965;
 const ACCEPTED_RESULT_MESSAGE = "Top face accepted and captured.";
 const COCKED_RESULT_MESSAGE =
   "Dice stopped at an unreadable angle. Result not accepted.";
+const TARGET_SETTLE_ANIMATION_MS = 700;
 
 const DICE_HOLDER_X_POSITIONS = [-1.0, 0, 1.0];
 
@@ -916,6 +917,7 @@ function DiceCube({
   targetAnimal,
   targetCorrectionTestEnabled,
   hideActiveDiceFaces,
+  targetSettleKey,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -927,10 +929,16 @@ function DiceCube({
   targetAnimal?: DiceAnimalLabel | null;
 targetCorrectionTestEnabled?: boolean;
 hideActiveDiceFaces?: boolean;
+targetSettleKey?: number;
 }) {
 const bodyRef = useRef<RapierRigidBody | null>(null);
 const stillTimeRef = useRef(0);
 const settledRef = useRef(false);
+const guidedSettleRef = useRef<{
+  startedAt: number;
+  fromQuaternion: Quaternion;
+  targetQuaternion: Quaternion;
+} | null>(null);
 const correctionReadinessRef = useRef<ReturnType<
   typeof getTargetCorrectionReadiness
 > | null>(null);
@@ -982,20 +990,20 @@ if (testMode === "runway") {
 body.setLinvel(
   {
     // Trapdoor mode:
-    // stronger drop with forward travel after touching the stumble bar.
+    // softer wall-side release with stronger forward slide toward the deflector.
     x: lateralDrift,
-    y: -2.65,
-    z: 0.42,
+    y: -1.55,
+    z: 1.08,
   },
   true
 );
 
 body.setAngvel(
   {
-    // More roll energy, but still not crazy air-spin.
-    x: 3.6 + resetKey * 0.04,
-    y: -1.8 + resetKey * 0.03,
-    z: 3.9 + resetKey * 0.04,
+    // Forward roll bias so dice appears to leave the wall-door and roll down table.
+    x: 4.0 + resetKey * 0.04,
+    y: -1.1 + resetKey * 0.03,
+    z: 2.0 + resetKey * 0.04,
   },
   true
 );
@@ -1004,11 +1012,65 @@ body.setAngvel(
     return () => window.clearTimeout(timer);
 }, [resetKey, onSettledChange, onFaceResultChange, testMode, lateralDrift]);
 
-  useFrame((_, delta) => {
-    const body = bodyRef.current;
-    if (!body) return;
+useEffect(() => {
+  const body = bodyRef.current;
+  if (!body || !targetAnimal || !targetSettleKey) return;
 
-    const linvel = body.linvel();
+  const targetQuaternion = createTargetTopFaceQuaternion(targetAnimal);
+  if (!targetQuaternion) return;
+
+  const currentRotation = body.rotation();
+
+  guidedSettleRef.current = {
+    startedAt: performance.now(),
+    fromQuaternion: new Quaternion(
+      currentRotation.x,
+      currentRotation.y,
+      currentRotation.z,
+      currentRotation.w
+    ).normalize(),
+    targetQuaternion,
+  };
+
+  body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+}, [targetSettleKey, targetAnimal]);
+
+useFrame((_, delta) => {
+  const body = bodyRef.current;
+  if (!body) return;
+
+  if (guidedSettleRef.current) {
+    const settle = guidedSettleRef.current;
+    const progress = Math.min(
+      1,
+      (performance.now() - settle.startedAt) / TARGET_SETTLE_ANIMATION_MS
+    );
+    const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+    const nextQuaternion = settle.fromQuaternion
+      .clone()
+      .slerp(settle.targetQuaternion, easedProgress)
+      .normalize();
+
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    body.setRotation(nextQuaternion, true);
+
+    if (progress >= 1) {
+      body.setRotation(settle.targetQuaternion, true);
+      guidedSettleRef.current = null;
+      settledRef.current = true;
+      stillTimeRef.current = 999;
+
+      onSettledChange(true);
+      onFaceResultChange(detectTopDiceFace(settle.targetQuaternion));
+    }
+
+    return;
+  }
+
+  const linvel = body.linvel();
     const angvel = body.angvel();
 
     const movementSpeed =
@@ -1105,7 +1167,7 @@ if (stillTimeRef.current > 1.35 && !settledRef.current) {
       position={
   testMode === "runway"
     ? [activeDieX, 0.25, -1.45]
-    : [activeDieX, 2.9, -2.55]
+    : [activeDieX, 2.9, -2.78]
 }
       rotation={[0.72, 0.42, -0.58]}
 restitution={0.44}
@@ -1466,7 +1528,7 @@ function DiceHolderShelfDepth({ table }: { table: TableMeasurements }) {
     <>
       {/* visual-only front brass edge on holder shelf; no collider */}
       <mesh
-        position={[0, 2.17, table.trapdoorZ + 0.055]}
+        position={[0, 2.17, table.backWallZ + 0.43]}
         receiveShadow
         castShadow
       >
@@ -1476,7 +1538,7 @@ function DiceHolderShelfDepth({ table }: { table: TableMeasurements }) {
 
       {/* visual-only underside shadow; no collider */}
       <mesh
-        position={[0, 2.015, table.trapdoorZ + 0.04]}
+        position={[0, 2.015, table.backWallZ + 0.42]}
         receiveShadow
       >
         <boxGeometry args={[3.05, 0.045, 0.05]} />
@@ -1494,7 +1556,7 @@ function DiceHolderShelfKanoteAccent({ table }: { table: TableMeasurements }) {
     <>
       {/* visual-only holder front ornament strip; no collider */}
       <mesh
-        position={[0, 2.205, table.trapdoorZ + 0.092]}
+        position={[0, 2.205, table.backWallZ + 0.46]}
         receiveShadow
         castShadow
       >
@@ -1505,7 +1567,7 @@ function DiceHolderShelfKanoteAccent({ table }: { table: TableMeasurements }) {
       {DICE_HOLDER_X_POSITIONS.map((x, index) => (
         <group
           key={`holder-mechanism-accent-${index}`}
-          position={[x, 2.225, table.trapdoorZ + 0.105]}
+          position={[x, 2.225, table.backWallZ + 0.47]}
         >
           {/* tiny visual brass hinge impression; no collider */}
           <mesh receiveShadow castShadow>
@@ -1531,38 +1593,18 @@ function DiceHolderShelfKanoteAccent({ table }: { table: TableMeasurements }) {
 function DiceHolderBackboardSupports({ table }: { table: TableMeasurements }) {
   return (
     <>
-      {/* visual-only rear bridge: makes the dice holder feel mounted to the backboard */}
-      <mesh
-        position={[0, 2.02, table.backWallZ + 0.42]}
+      {/* visual-only wall mounting plate: makes dice holder feel attached to backboard */}
+      <RoundedBox
+        position={[0, 2.28, table.backWallZ + 0.16]}
+        args={[3.38, 0.72, 0.075]}
+        radius={0.025}
+        smoothness={6}
         receiveShadow
         castShadow
       >
-        <boxGeometry args={[3.08, 0.18, 0.14]} />
         <meshStandardMaterial {...TABLE_MATERIALS.holderWood} />
-      </mesh>
+      </RoundedBox>
 
-      {DICE_HOLDER_X_POSITIONS.map((x, index) => (
-        <mesh
-          key={`holder-backboard-support-${index}`}
-          position={[x, 1.88, table.backWallZ + 0.55]}
-          rotation={[0.22, 0, 0]}
-          receiveShadow
-          castShadow
-        >
-          <boxGeometry args={[0.16, 0.42, 0.18]} />
-          <meshStandardMaterial {...TABLE_MATERIALS.darkBorder} />
-        </mesh>
-      ))}
-
-      {/* visual-only brass mounting line */}
-      <mesh
-        position={[0, 1.76, table.backWallZ + 0.63]}
-        receiveShadow
-        castShadow
-      >
-        <boxGeometry args={[3.18, 0.045, 0.055]} />
-        <meshStandardMaterial {...TABLE_MATERIALS.goldAccent} />
-      </mesh>
     </>
   );
 }
@@ -1570,9 +1612,9 @@ function DiceHolderBackboardSupports({ table }: { table: TableMeasurements }) {
 function DiceHolderShelf({ table }: { table: TableMeasurements }) {
   return (
     <>
-      <RoundedBox
-        position={[0, 2.1, table.trapdoorZ - 0.1]}
-        args={[3.12, 0.12, 0.28]}
+<RoundedBox
+  position={[0, 2.1, table.backWallZ + 0.28]}
+  args={[3.12, 0.12, 0.42]}
         radius={0.025}
         smoothness={6}
         receiveShadow
@@ -1609,20 +1651,37 @@ function TrapdoorFlaps({
 
         const isDoorOpen = hasDroppedThisRound || isSingleDropOpen;
 
+        const closedAngle = 0.56;
+        const openAngle = 1.22;
+
         return (
-          <mesh
+          <group
             key={`trapdoor-flap-${index}`}
-            position={[x, 2.28, table.trapdoorZ + 0.03]}
-            rotation={[isDoorOpen ? 0.82 : 0, 0, 0]}
-            receiveShadow
+            position={[x, 2.42, table.backWallZ + 0.18]}
+            rotation={[isDoorOpen ? openAngle : closedAngle, 0, 0]}
           >
-            <boxGeometry args={[0.72, 0.045, 0.54]} />
-            <meshStandardMaterial
-              {...(isDoorOpen
-                ? TABLE_MATERIALS.trapdoorOpen
-                : TABLE_MATERIALS.trapdoorClosed)}
-            />
-          </mesh>
+            {/* simple hinge bar at wall-door connection */}
+            <mesh position={[0, 0.002, 0.04]} receiveShadow castShadow>
+              <boxGeometry args={[0.62, 0.026, 0.04]} />
+              <meshStandardMaterial {...TABLE_MATERIALS.goldTrim} />
+            </mesh>
+
+            {/* simple flat door panel under the dice */}
+            <mesh position={[0, -0.02, 0.31]} receiveShadow castShadow>
+              <boxGeometry args={[0.78, 0.05, 0.58]} />
+              <meshStandardMaterial
+                {...(isDoorOpen
+                  ? TABLE_MATERIALS.trapdoorOpen
+                  : TABLE_MATERIALS.trapdoorClosed)}
+              />
+            </mesh>
+
+            {/* tiny gold front edge */}
+            <mesh position={[0, 0.01, 0.58]} receiveShadow castShadow>
+              <boxGeometry args={[0.62, 0.024, 0.035]} />
+              <meshStandardMaterial {...TABLE_MATERIALS.goldTrim} />
+            </mesh>
+          </group>
         );
       })}
     </>
@@ -1654,11 +1713,11 @@ function WaitingDiceRack({
 
         if (!shouldShowWaitingDie) return null;
 
-                const waitingDiePosition: [number, number, number] = [
-          x,
-          2.82,
-          table.trapdoorZ + 0.02,
-        ];
+const waitingDiePosition: [number, number, number] = [
+  x,
+  2.82,
+  table.backWallZ + 0.42,
+];
 
         const waitingDieScale = 0.92;
 
@@ -2070,10 +2129,9 @@ function TrayBox({
 
   return (
     <RigidBody type="fixed" colliders={false}>
-      <TableRunway table={table} />
-      <TableBackboard table={table} />
-      <DiceHolderShelf table={table} />
-      <TrapdoorFlaps
+<TableRunway table={table} />
+<TableBackboard table={table} />
+<TrapdoorFlaps
         table={table}
         activeDieIndex={activeDieIndex}
         sequenceRunning={sequenceRunning}
@@ -2251,9 +2309,10 @@ function DicePhysicsScene({
   mountedDiceRackMode,
   targetAnimal,
   targetCorrectionTestEnabled,
-  hideActiveDiceFaces,
-  showDice = true,
-  forceShowStumbleBar = false,
+hideActiveDiceFaces,
+targetSettleKey = 0,
+showDice = true,
+forceShowStumbleBar = false,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -2270,6 +2329,7 @@ function DicePhysicsScene({
 targetAnimal?: DiceAnimalLabel | null;
 targetCorrectionTestEnabled?: boolean;
 hideActiveDiceFaces?: boolean;
+targetSettleKey?: number;
 showDice?: boolean;
 forceShowStumbleBar?: boolean;
 }) {
@@ -2314,18 +2374,19 @@ forceShowStumbleBar?: boolean;
 />
 
 {displayOnly || !showDice ? null : (
-<DiceCube
-  resetKey={resetKey}
-  onSettledChange={onSettledChange}
-  onFaceResultChange={onFaceResultChange}
-  testMode={testMode}
-  activeDieIndex={activeDieIndex}
-  diceShapePreset={diceShapePreset}
-  diceColliderPreset={diceColliderPreset}
-  targetAnimal={safeTargetAnimal}
-  targetCorrectionTestEnabled={safeTargetCorrectionTestEnabled}
-  hideActiveDiceFaces={hideActiveDiceFaces}
-/>
+  <DiceCube
+    resetKey={resetKey}
+    onSettledChange={onSettledChange}
+    onFaceResultChange={onFaceResultChange}
+    testMode={testMode}
+    activeDieIndex={activeDieIndex}
+    diceShapePreset={diceShapePreset}
+    diceColliderPreset={diceColliderPreset}
+    targetAnimal={safeTargetAnimal}
+    targetCorrectionTestEnabled={safeTargetCorrectionTestEnabled}
+    hideActiveDiceFaces={hideActiveDiceFaces}
+    targetSettleKey={targetSettleKey}
+  />
 )}
       </Physics>
 
@@ -2363,8 +2424,9 @@ export default function ThreeDicePhysicsStage({
   mountedDiceRackMode,
   targetAnimal = null,
   targetCorrectionTestEnabled = false,
-  hideActiveDiceFaces = false,
-  showDice = true,
+hideActiveDiceFaces = false,
+targetSettleKey = 0,
+showDice = true,
   forceShowStumbleBar = false,
 }: {
   resetKey: number;
@@ -2382,6 +2444,7 @@ export default function ThreeDicePhysicsStage({
 targetAnimal?: DiceAnimalLabel | null;
 targetCorrectionTestEnabled?: boolean;
 hideActiveDiceFaces?: boolean;
+targetSettleKey?: number;
 showDice?: boolean;
 forceShowStumbleBar?: boolean;
 }) {
@@ -2424,8 +2487,9 @@ const cameraConfig =
   mountedDiceRackMode={effectiveMountedDiceRackMode}
   targetAnimal={targetAnimal}
   targetCorrectionTestEnabled={targetCorrectionTestEnabled}
-  hideActiveDiceFaces={hideActiveDiceFaces}
-  showDice={showDice}
+hideActiveDiceFaces={hideActiveDiceFaces}
+targetSettleKey={targetSettleKey}
+showDice={showDice}
   forceShowStumbleBar={forceShowStumbleBar}
 />
     </Canvas>

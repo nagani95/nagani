@@ -15,10 +15,10 @@ import ThreeDicePhysicsStage, {
 
 const EXPECTED_DICE_RESULT_COUNT = 3;
 
-const LIVE_DICE_VISUAL_MS = 6400;
-const LIVE_DICE_BETWEEN_MS = 450;
-const LIVE_DICE_CONFIRM_HOLD_MS = 1500;
-const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 3000;
+const LIVE_DICE_VISUAL_MS = 6500;
+const LIVE_DICE_BETWEEN_MS = 0;
+const LIVE_DICE_CONFIRM_HOLD_MS = 1200;
+const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 2200;
 
 function getLiveDiceRevealAtMs(index: number) {
   return LIVE_DICE_VISUAL_MS * (index + 1) + LIVE_DICE_BETWEEN_MS * index;
@@ -67,7 +67,13 @@ visualRoundId = null,
 }: ThreeDiceSequenceControllerProps) {
   const [resetKey, setResetKey] = useState(1);
 const [, setSettled] = useState(false);
-const [, setFaceResult] = useState<DiceFaceResult | null>(null);
+const [faceResult, setFaceResult] = useState<DiceFaceResult | null>(null);
+
+
+const [faceCaptureOwner, setFaceCaptureOwner] = useState<{
+  dieIndex: number;
+  result: DiceFaceResult;
+} | null>(null);
   const [activeDieIndex, setActiveDieIndex] = useState(0);
   const [sequenceRunning, setSequenceRunning] = useState(false);
   const [capturedResults, setCapturedResults] = useState<CapturedDiceResult[]>(
@@ -87,6 +93,7 @@ const activeVisualRoundIdRef = useRef<string | null>(null);
 const capturedResultsOwnerRef = useRef<string | null>(null);
   const backendResultKey = serverRngResults.join("|");
   const backendTimelineKey = `${backendResultKey}|${rollingStartedAt ?? ""}`;
+  const sequenceTimelineKey = enabled ? backendResultKey : backendTimelineKey;
 const hasBackendLiveResults =
   serverRngResults.length === EXPECTED_DICE_RESULT_COUNT;
 
@@ -143,6 +150,18 @@ function clearLiveDiceTimers() {
   }
 }
 
+function handleFaceResultChange(result: DiceFaceResult | null) {
+  setFaceResult(result);
+  setFaceCaptureOwner(
+    result
+      ? {
+          dieIndex: activeDieIndex,
+          result,
+        }
+      : null
+  );
+}
+
 useEffect(() => {
   onProgressRef.current = onProgress;
 }, [onProgress]);
@@ -163,7 +182,7 @@ if (!enabled && !isLiveReconnectDisplay) {
   return;
 }
 
-const sequenceKey = `${runKey}|${visualRoundId ?? "no-round"}|${backendTimelineKey}|${
+const sequenceKey = `${runKey}|${visualRoundId ?? "no-round"}|${sequenceTimelineKey}|${
   enabled ? "live" : "reconnect"
 }`;
 
@@ -182,10 +201,11 @@ clearLiveDiceTimers();
 liveDieStartedAtRef.current = Date.now();
 
 setCapturedResults([]);
-  setActiveDieIndex(0);
+setActiveDieIndex(0);
   setSettled(false);
-  setFaceResult(null);
-  setSequenceRunning(enabled && hasBackendLiveResults);
+setFaceResult(null);
+setFaceCaptureOwner(null);
+setSequenceRunning(enabled && hasBackendLiveResults);
 
   if (enabled && hasBackendLiveResults) {
     setResetKey((value) => value + 1);
@@ -196,6 +216,7 @@ setCapturedResults([]);
   visualRoundId,
   isLiveReconnectDisplay,
   backendTimelineKey,
+  sequenceTimelineKey,
   hasBackendLiveResults,
 ]);
 
@@ -246,6 +267,7 @@ setCapturedResults(alreadyRevealedResults);
 setActiveDieIndex(nextActiveDieIndex);
 setSettled(false);
 setFaceResult(null);
+setFaceCaptureOwner(null);
 setSequenceRunning(hasPendingReveals);
 liveDieStartedAtRef.current = Date.now();
 setResetKey((value) => value + 1);
@@ -310,10 +332,12 @@ useEffect(() => {
 
   if (capturedDieNumbersRef.current.has(dieNumber)) return;
 
-  const label = getServerTargetAnimal(activeDieIndex);
-  if (!label) return;
+clearLiveDiceTimers();
 
-  const captureCurrentDie = () => {
+liveCaptureTimerRef.current = window.setTimeout(() => {
+    const label = getServerTargetAnimal(activeDieIndex);
+    if (!label) return;
+
     if (capturedDieNumbersRef.current.has(dieNumber)) return;
 
     capturedDieNumbersRef.current.add(dieNumber);
@@ -332,28 +356,23 @@ useEffect(() => {
 
     setSettled(false);
     setFaceResult(null);
+    setFaceCaptureOwner(null);
 
-clearLiveDiceTimers();
+    if (activeDieIndex < EXPECTED_DICE_RESULT_COUNT - 1) {
+      liveNextDieTimerRef.current = window.setTimeout(() => {
+        setActiveDieIndex(activeDieIndex + 1);
+        liveDieStartedAtRef.current = Date.now();
+        setResetKey((value) => value + 1);
+        liveNextDieTimerRef.current = null;
+      }, LIVE_DICE_CONFIRM_HOLD_MS);
+    } else {
+      liveNextDieTimerRef.current = window.setTimeout(() => {
+        setSequenceRunning(false);
+        liveNextDieTimerRef.current = null;
+      }, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
+    }
 
-if (activeDieIndex < EXPECTED_DICE_RESULT_COUNT - 1) {
-  liveNextDieTimerRef.current = window.setTimeout(() => {
-    setActiveDieIndex(activeDieIndex + 1);
-    liveDieStartedAtRef.current = Date.now();
-    setResetKey((value) => value + 1);
-    liveNextDieTimerRef.current = null;
-  }, LIVE_DICE_CONFIRM_HOLD_MS);
-} else {
-  liveNextDieTimerRef.current = window.setTimeout(() => {
-    setSequenceRunning(false);
-    liveNextDieTimerRef.current = null;
-  }, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
-}
-  };
-
-  clearLiveDiceTimers();
-
-  liveCaptureTimerRef.current = window.setTimeout(() => {
-    captureCurrentDie();
+    liveCaptureTimerRef.current = null;
   }, LIVE_DICE_VISUAL_MS);
 
   return () => {
@@ -418,7 +437,7 @@ const targetAnimal = getServerTargetAnimal(activeDieIndex);
 <ThreeDicePhysicsStage
   resetKey={resetKey}
   onSettledChange={setSettled}
-  onFaceResultChange={setFaceResult}
+onFaceResultChange={handleFaceResultChange}
   debugPhysics={false}
   testMode="trap"
   activeDieIndex={activeDieIndex}
@@ -428,7 +447,7 @@ const targetAnimal = getServerTargetAnimal(activeDieIndex);
   mountedDiceRackMode={stageMountedDiceRackMode}
   targetAnimal={targetAnimal}
   targetCorrectionTestEnabled={false}
-  hideActiveDiceFaces={serverRngResults.length === EXPECTED_DICE_RESULT_COUNT}
+hideActiveDiceFaces={false}
 />
 
       {showInternalResultStrip ? (

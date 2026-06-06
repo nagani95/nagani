@@ -40,6 +40,12 @@ export const naganiAssets = {
       palaceBgV1:
         "/assets/nagani/six-animal/room/six-animal-palace-room-bg-v1.jpg",
     },
+
+    tableModels: {
+      base: "/assets/nagani/six-animal/table-models",
+      royalTableV1:
+        "/assets/nagani/six-animal/table-models/six-animal-royal-table-v1.glb",
+    },
   },
 
   thirtySix: {

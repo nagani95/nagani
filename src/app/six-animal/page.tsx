@@ -233,6 +233,37 @@ settlementWaitingRoundIdRef.current = null;
 lastDiceSoundCountRef.current = 0;
 }
 
+function startLocalDiceFlow(round: LiveSixAnimalRound) {
+  const backendResultKeys = round.result_animals || [];
+
+  if (backendResultKeys.length !== SIX_ANIMAL_RULES.diceCount) return;
+  if (visualStartedRoundIdRef.current === round.id) return;
+  if (isVisualDiceCompleteRef.current && visualCompleteRoundIdRef.current === round.id) return;
+
+  visualStartedRoundIdRef.current = round.id;
+  visualActiveRoundIdRef.current = round.id;
+
+  setVisualActiveRoundId(round.id);
+  setIsVisualDiceComplete(false);
+  isVisualDiceCompleteRef.current = false;
+
+  setVisualCompleteRoundId(null);
+  visualCompleteRoundIdRef.current = null;
+
+  setDiceResult([]);
+  diceResultRef.current = [];
+
+  setServerRngResults(backendResultKeys);
+  setPhase("rolling");
+  phaseRef.current = "rolling";
+  setPhaseTargetAt(null);
+  setShouldPlayLiveDiceSequence(true);
+  shouldPlayLiveDiceSequenceRef.current = true;
+
+  lastDiceSoundCountRef.current = 0;
+  setThreeDiceRunKey((value) => value + 1);
+}
+
 async function applyLiveRound(round: LiveSixAnimalRound) {
   const nextPhase = mapLiveRoundPhase(round);
   const nextTargetAt = getRoundPhaseTargetAt(round);
@@ -341,9 +372,21 @@ setServerRngResults([]);
   }
 
 if (nextPhase === "closed") {
+  const hasStartedLocalDiceFlow =
+    visualStartedRoundIdRef.current === round.id &&
+    shouldPlayLiveDiceSequenceRef.current;
+
+  setServerRngResults(round.result_animals || []);
+
+  if (hasStartedLocalDiceFlow) {
+    setPhase("rolling");
+    phaseRef.current = "rolling";
+    setPhaseTargetAt(null);
+    return;
+  }
+
   setShouldPlayLiveDiceSequence(false);
   clearVisibleDiceRoundState();
-  setServerRngResults(round.result_animals || []);
 }
 
 if (nextPhase === "rolling") {
@@ -786,6 +829,28 @@ useEffect(() => {
 
   return () => window.clearInterval(timer);
 }, [phase, phaseTargetAt]);
+
+useEffect(() => {
+  if (phase !== "closed") return;
+  if (countdown > 0) return;
+  if (!roundId) return;
+  if (serverRngResults.length !== SIX_ANIMAL_RULES.diceCount) return;
+  if (visualStartedRoundIdRef.current === roundId) return;
+
+  startLocalDiceFlow({
+    id: roundId,
+    room_id: SIX_ANIMAL_ROOM_UUID,
+    round_number: roundNumber,
+    phase: "closed",
+    betting_starts_at: null,
+    betting_ends_at: null,
+    rolling_starts_at: rollingStartedAt,
+    result_revealed_at: null,
+    next_round_starts_at: null,
+    result_animals: serverRngResults,
+    status: "active",
+  });
+}, [phase, countdown, roundId, roundNumber, rollingStartedAt, serverRngResults]);
 
 useEffect(() => {
   if (!shouldConfirmBrowserRefresh) {

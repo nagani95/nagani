@@ -301,15 +301,15 @@ if (activeDieIndex >= 2) {
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-5">
         <header className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.35em] text-amber-300/70">
-            Chapter 51.6
-            </p>
-            <h1 className="mt-2 text-2xl font-black text-amber-100">
-              3D Physics Dice Lab
-            </h1>
-            <p className="mt-1 text-sm font-bold text-white/55">
-              Isolated test route. Not connected to the live Six Animal room yet.
-            </p>
+<p className="text-xs font-black uppercase tracking-[0.35em] text-amber-300/70">
+  Chapter 78.3
+</p>
+<h1 className="mt-2 text-2xl font-black text-amber-100">
+  3D Dice / Royal Table Preview Lab
+</h1>
+<p className="mt-1 text-sm font-bold text-white/55">
+  Isolated dev preview route. Not connected to the live Six Animal room.
+</p>
           </div>
 
 <div className="flex flex-wrap items-center justify-end gap-3">
@@ -451,6 +451,15 @@ if (activeDieIndex >= 2) {
   type="button"
   onClick={() => {
     const nextValue = !cleanTableShotMode;
+
+    <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm font-black text-cyan-100 shadow-xl shadow-black/30">
+  <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-100/55">
+    Table Preview
+  </p>
+  <p className="mt-1 text-xs font-black text-cyan-50">
+    Dev Only
+  </p>
+</div>
 
     setCleanTableShotMode(nextValue);
 
