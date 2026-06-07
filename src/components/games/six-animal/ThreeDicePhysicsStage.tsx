@@ -228,10 +228,10 @@ const TABLE_BRASS_SHADOW_COLOR = "#6e4a1e";
 const TABLE_FRONT_VISUAL_LIP_HEIGHT = 0.46;
 const TABLE_FRONT_COLLIDER_HEIGHT = 0.36;
 
-const TABLE_FRONT_REBOUND_RESTITUTION = 0.78;
-const TABLE_FRONT_REBOUND_FRICTION = 0.08;
-const TABLE_FRONT_KEEPER_RESTITUTION = 0.46;
-const TABLE_FRONT_KEEPER_FRICTION = 0.14;
+const TABLE_FRONT_REBOUND_RESTITUTION = 0.66;
+const TABLE_FRONT_REBOUND_FRICTION = 0.14;
+const TABLE_FRONT_KEEPER_RESTITUTION = 0.36;
+const TABLE_FRONT_KEEPER_FRICTION = 0.2;
 
 type TableMaterialToken = {
   color: string;
@@ -954,62 +954,62 @@ const lateralDrift =
         ? 0.018
         : -0.018;
 
-  useEffect(() => {
-stillTimeRef.current = 0;
-settledRef.current = false;
-onSettledChange(false);
-onFaceResultChange(null);
+useEffect(() => {
+  stillTimeRef.current = 0;
+  settledRef.current = false;
+  guidedSettleRef.current = null;
 
-    const timer = window.setTimeout(() => {
-      const body = bodyRef.current;
-      if (!body) return;
-if (testMode === "runway") {
-  body.setLinvel(
-    {
-      // Runway research mode:
-      // no trapdoor, no guide help. Test if slope + dice shape can roll.
-      x: lateralDrift,
-      y: -0.55,
-      z: 0.75,
-    },
-    true
-  );
+  onSettledChange(false);
+  onFaceResultChange(null);
 
-  body.setAngvel(
-    {
-      x: 1.8 + resetKey * 0.04,
-      y: -0.8 + resetKey * 0.03,
-      z: 2.2 + resetKey * 0.04,
-    },
-    true
-  );
+  const releaseFrame = window.requestAnimationFrame(() => {
+    const body = bodyRef.current;
+    if (!body) return;
 
-  return;
-}
+    if (testMode === "runway") {
+      body.setLinvel(
+        {
+          x: lateralDrift,
+          y: -0.55,
+          z: 0.75,
+        },
+        true
+      );
 
-body.setLinvel(
-  {
-    // Trapdoor mode:
-    // softer wall-side release with stronger forward slide toward the deflector.
-    x: lateralDrift,
-    y: -1.55,
-    z: 1.08,
-  },
-  true
-);
+      body.setAngvel(
+        {
+          x: 1.8 + resetKey * 0.04,
+          y: -0.8 + resetKey * 0.03,
+          z: 2.2 + resetKey * 0.04,
+        },
+        true
+      );
 
-body.setAngvel(
-  {
-    // Forward roll bias so dice appears to leave the wall-door and roll down table.
-    x: 4.0 + resetKey * 0.04,
-    y: -1.1 + resetKey * 0.03,
-    z: 2.0 + resetKey * 0.04,
-  },
-  true
-);
-    }, 120);
+      return;
+    }
 
-    return () => window.clearTimeout(timer);
+    body.setLinvel(
+      {
+        // More forward release, less hanging vertical drop.
+        x: lateralDrift,
+        y: -0.95,
+        z: 1.85,
+      },
+      true
+    );
+
+    body.setAngvel(
+      {
+        // Stronger natural spin at release so it feels thrown/slid, not lowered by rope.
+        x: 5.15 + resetKey * 0.04,
+        y: -1.35 + resetKey * 0.03,
+        z: 2.55 + resetKey * 0.04,
+      },
+      true
+    );
+  });
+
+  return () => window.cancelAnimationFrame(releaseFrame);
 }, [resetKey, onSettledChange, onFaceResultChange, testMode, lateralDrift]);
 
 useEffect(() => {
@@ -1167,7 +1167,7 @@ if (stillTimeRef.current > 1.35 && !settledRef.current) {
       position={
   testMode === "runway"
     ? [activeDieX, 0.25, -1.45]
-    : [activeDieX, 2.9, -2.78]
+    : [activeDieX, 2.62, -2.62]
 }
       rotation={[0.72, 0.42, -0.58]}
 restitution={0.44}
@@ -2333,9 +2333,13 @@ targetSettleKey?: number;
 showDice?: boolean;
 forceShowStumbleBar?: boolean;
 }) {
-  // Allow the backend to dictate the target animal in the live room
-  const safeTargetAnimal = targetAnimal;
-  const safeTargetCorrectionTestEnabled = Boolean(targetCorrectionTestEnabled);
+  // Production room must never receive target/correction data.
+  // Backend result is for the result board only during current MVP.
+  const safeTargetAnimal = variant === "lab" ? targetAnimal : null;
+  const safeTargetCorrectionTestEnabled =
+    variant === "lab" && Boolean(targetCorrectionTestEnabled);
+  const safeTargetSettleKey = variant === "lab" ? targetSettleKey : 0;
+
   return (
     <>
             <ambientLight intensity={0.96} />
@@ -2374,19 +2378,19 @@ forceShowStumbleBar?: boolean;
 />
 
 {displayOnly || !showDice ? null : (
-  <DiceCube
-    resetKey={resetKey}
-    onSettledChange={onSettledChange}
-    onFaceResultChange={onFaceResultChange}
-    testMode={testMode}
-    activeDieIndex={activeDieIndex}
-    diceShapePreset={diceShapePreset}
-    diceColliderPreset={diceColliderPreset}
-    targetAnimal={safeTargetAnimal}
-    targetCorrectionTestEnabled={safeTargetCorrectionTestEnabled}
-    hideActiveDiceFaces={hideActiveDiceFaces}
-    targetSettleKey={targetSettleKey}
-  />
+<DiceCube
+  resetKey={resetKey}
+  onSettledChange={onSettledChange}
+  onFaceResultChange={onFaceResultChange}
+  testMode={testMode}
+  activeDieIndex={activeDieIndex}
+  diceShapePreset={diceShapePreset}
+  diceColliderPreset={diceColliderPreset}
+  targetAnimal={safeTargetAnimal}
+  targetCorrectionTestEnabled={safeTargetCorrectionTestEnabled}
+  hideActiveDiceFaces={hideActiveDiceFaces}
+  targetSettleKey={safeTargetSettleKey}
+/>
 )}
       </Physics>
 
@@ -2485,11 +2489,11 @@ const cameraConfig =
   diceShapePreset={effectiveDiceShapePreset}
   diceColliderPreset={effectiveDiceColliderPreset}
   mountedDiceRackMode={effectiveMountedDiceRackMode}
-  targetAnimal={targetAnimal}
-  targetCorrectionTestEnabled={targetCorrectionTestEnabled}
-hideActiveDiceFaces={hideActiveDiceFaces}
-targetSettleKey={targetSettleKey}
-showDice={showDice}
+  targetAnimal={variant === "lab" ? targetAnimal : null}
+  targetCorrectionTestEnabled={variant === "lab" && targetCorrectionTestEnabled}
+  hideActiveDiceFaces={hideActiveDiceFaces}
+  targetSettleKey={variant === "lab" ? targetSettleKey : 0}
+  showDice={showDice}
   forceShowStumbleBar={forceShowStumbleBar}
 />
     </Canvas>

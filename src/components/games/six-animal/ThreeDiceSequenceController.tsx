@@ -425,10 +425,13 @@ useEffect(() => {
   );
 }, [sequenceRunning, capturedResults, onComplete]);
 
-const shouldRenderLiveDiceStage =
-  enabled || (isLiveReconnectDisplay && sequenceRunning);
+const visualSequenceRunning =
+  sequenceRunning || (enabled && hasBackendLiveResults);
 
-const targetAnimal = getServerTargetAnimal(activeDieIndex);
+const shouldRenderLiveDiceStage =
+  enabled || (isLiveReconnectDisplay && visualSequenceRunning);
+
+const targetAnimal = null;
 
   return (
     <div
@@ -437,17 +440,17 @@ const targetAnimal = getServerTargetAnimal(activeDieIndex);
 <ThreeDicePhysicsStage
   resetKey={resetKey}
   onSettledChange={setSettled}
-onFaceResultChange={handleFaceResultChange}
+  onFaceResultChange={handleFaceResultChange}
   debugPhysics={false}
   testMode="trap"
   activeDieIndex={activeDieIndex}
-  sequenceRunning={sequenceRunning}
+  sequenceRunning={visualSequenceRunning}
   displayOnly={!shouldRenderLiveDiceStage}
   variant="room"
   mountedDiceRackMode={stageMountedDiceRackMode}
-  targetAnimal={targetAnimal}
+  targetAnimal={null}
   targetCorrectionTestEnabled={false}
-hideActiveDiceFaces={false}
+  hideActiveDiceFaces={false}
 />
 
       {showInternalResultStrip ? (

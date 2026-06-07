@@ -563,6 +563,8 @@ const isRollingReconnectView = false;
 const showSettlementSheet =
   showFinalResultPanel && showSettlementMoment && Boolean(activeBet);
 
+const showNextRoundPause = false;
+
 const shouldConfirmBrowserRefresh =
   !showRoomIntro &&
   !isWaitingForNextRound &&
@@ -789,18 +791,18 @@ async function fetchLatestLiveRound() {
   };
 }, [supabase]);
 
-  useEffect(() => {
-    if (phase === "loading" || isWaitingForNextRound) {
-      setShowRoomIntro(true);
-      return;
-    }
+useEffect(() => {
+  if (phase === "loading" || isWaitingForNextRound) {
+    setShowRoomIntro(true);
+    return;
+  }
 
-    const introTimer = window.setTimeout(() => {
-      setShowRoomIntro(false);
-    }, 800);
+  const introTimer = window.setTimeout(() => {
+    setShowRoomIntro(false);
+  }, 800);
 
-    return () => window.clearTimeout(introTimer);
-  }, [phase, isWaitingForNextRound]);
+  return () => window.clearTimeout(introTimer);
+}, [phase, isWaitingForNextRound]);
 
 useEffect(() => {
   return () => {
@@ -913,8 +915,10 @@ settlementMomentTimerRef.current = window.setTimeout(() => {
   setSettlementWaitingRoundId(waitingRoundId);
   settlementWaitingRoundIdRef.current = waitingRoundId;
 
+  // Keep the player inside the same live table room while waiting
+  // for the shared backend next-round timing.
   setIsWaitingForNextRound(true);
-  setShowRoomIntro(true);
+  setShowRoomIntro(false);
 
   settlementMomentTimerRef.current = null;
 }, SETTLEMENT_MOMENT_MS);
@@ -1493,6 +1497,24 @@ const isCurrent =
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
+            ) : null}
+
+                        {showNextRoundPause ? (
+              <div className="pointer-events-none absolute inset-x-4 bottom-4 z-50 mx-auto max-w-[360px] overflow-hidden rounded-[1.1rem] border border-amber-300/24 bg-[linear-gradient(145deg,rgba(45,7,3,0.78),rgba(5,1,1,0.82),rgba(52,12,5,0.58))] p-3 text-center shadow-2xl shadow-black/70 backdrop-blur-xl">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.14),transparent_66%)]" />
+
+                <div className="relative z-10">
+                  <p className="text-[8px] font-black uppercase tracking-[0.28em] text-amber-200/65">
+                    Live Table Pause
+                  </p>
+                  <p className="mt-1 text-sm font-black text-white">
+                    Next round opening{displayCountdown > 0 ? ` · ${displayCountdown}s` : " soon"}
+                  </p>
+                  <p className="mt-1 text-[10px] font-bold text-white/52">
+                    Final dice and result stay on the table until betting opens.
+                  </p>
                 </div>
               </div>
             ) : null}
