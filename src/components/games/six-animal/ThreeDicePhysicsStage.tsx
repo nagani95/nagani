@@ -228,10 +228,10 @@ const TABLE_BRASS_SHADOW_COLOR = "#6e4a1e";
 const TABLE_FRONT_VISUAL_LIP_HEIGHT = 0.46;
 const TABLE_FRONT_COLLIDER_HEIGHT = 0.36;
 
-const TABLE_FRONT_REBOUND_RESTITUTION = 0.66;
-const TABLE_FRONT_REBOUND_FRICTION = 0.14;
-const TABLE_FRONT_KEEPER_RESTITUTION = 0.36;
-const TABLE_FRONT_KEEPER_FRICTION = 0.2;
+const TABLE_FRONT_REBOUND_RESTITUTION = 0.42;
+const TABLE_FRONT_REBOUND_FRICTION = 0.3;
+const TABLE_FRONT_KEEPER_RESTITUTION = 0.2;
+const TABLE_FRONT_KEEPER_FRICTION = 0.34;
 
 type TableMaterialToken = {
   color: string;
@@ -944,7 +944,18 @@ const correctionReadinessRef = useRef<ReturnType<
 > | null>(null);
 
 const collider = getDiceColliderConfig(diceColliderPreset);
-  const activeDieX = DICE_HOLDER_X_POSITIONS[activeDieIndex] ?? 0;
+const activeDieX = DICE_HOLDER_X_POSITIONS[activeDieIndex] ?? 0;
+
+const activeHolderStartPosition: [number, number, number] =
+  testMode === "runway"
+    ? [activeDieX, 0.25, -1.45]
+    : [activeDieX, 2.82, -2.725];
+
+const activeHolderStartRotation: [number, number, number] =
+  testMode === "runway"
+    ? [0.72, 0.42, -0.58]
+    : DISPLAY_DICE_ROTATIONS[activeDieIndex] ?? [0, 0, 0];
+
 const lateralDrift =
   activeDieIndex === 0
     ? 0.035
@@ -988,25 +999,25 @@ useEffect(() => {
       return;
     }
 
-    body.setLinvel(
-      {
-        // More forward release, less hanging vertical drop.
-        x: lateralDrift,
-        y: -0.95,
-        z: 1.85,
-      },
-      true
-    );
+body.setLinvel(
+  {
+    // Gravity-led release with a little more natural travel.
+    x: lateralDrift,
+    y: -0.78,
+    z: 1.26,
+  },
+  true
+);
 
-    body.setAngvel(
-      {
-        // Stronger natural spin at release so it feels thrown/slid, not lowered by rope.
-        x: 5.15 + resetKey * 0.04,
-        y: -1.35 + resetKey * 0.03,
-        z: 2.55 + resetKey * 0.04,
-      },
-      true
-    );
+body.setAngvel(
+  {
+    // Freer roll, still below the old pushed-from-behind force.
+    x: 3.95 + resetKey * 0.028,
+    y: -0.74 + resetKey * 0.018,
+    z: 1.96 + resetKey * 0.028,
+  },
+  true
+);
   });
 
   return () => window.cancelAnimationFrame(releaseFrame);
@@ -1164,16 +1175,12 @@ if (stillTimeRef.current > 1.35 && !settledRef.current) {
       key={resetKey}
       colliders={false}
       ccd
-      position={
-  testMode === "runway"
-    ? [activeDieX, 0.25, -1.45]
-    : [activeDieX, 2.62, -2.62]
-}
-      rotation={[0.72, 0.42, -0.58]}
-restitution={0.44}
-friction={0.3}
-linearDamping={0.01}
-angularDamping={0.016}
+position={activeHolderStartPosition}
+rotation={activeHolderStartRotation}
+restitution={0.38}
+friction={0.38}
+linearDamping={0.024}
+angularDamping={0.056}
     >
 <RoundCuboidCollider args={collider.args} />
 
@@ -1225,7 +1232,7 @@ function createTableMeasurements(): TableMeasurements {
 
   // Lower zone is not flat. It is a calmer runout slope so dice still rolls,
   // but does not keep gaining strong forward energy forever.
-  const settlingSlopeAngle = 0.12;
+const settlingSlopeAngle = 0.028;
 
   // Transition point between energetic runway and calmer receiving zone.
   const transitionZ = floorZ + 0.95;
@@ -1895,13 +1902,13 @@ function FrontLip({ table }: { table: TableMeasurements }) {
 <FrontLipKanoteStrip table={table} />
 
             {/* invisible angled rebound face: kicks dice back into the tray */}
-      <CuboidCollider
-        args={[table.halfWidth - 0.08, 0.075, 0.18]}
-        position={[0, table.frontBorderY + 0.23, table.frontEdgeZ - 0.1]}
-        rotation={[-0.24, 0, 0]}
-        restitution={TABLE_FRONT_REBOUND_RESTITUTION}
-        friction={TABLE_FRONT_REBOUND_FRICTION}
-      />
+<CuboidCollider
+  args={[table.halfWidth - 0.08, 0.07, 0.16]}
+  position={[0, table.frontBorderY + 0.19, table.frontEdgeZ - 0.08]}
+  rotation={[-0.11, 0, 0]}
+  restitution={TABLE_FRONT_REBOUND_RESTITUTION}
+  friction={TABLE_FRONT_REBOUND_FRICTION}
+/>
 
       {/* invisible keeper wall: prevents escape without being the first hard stop */}
       <CuboidCollider
@@ -2042,11 +2049,13 @@ function TraySideRails({ table }: { table: TableMeasurements }) {
         <meshStandardMaterial {...TABLE_MATERIALS.sideGoldRail} />
       </mesh>
 
-      <CuboidCollider
-        args={[0.14, 1.18, table.halfDepth]}
-        position={[-table.halfWidth, table.sideRailY + 0.12, table.floorZ]}
-        rotation={[table.slopeAngle, 0, 0]}
-      />
+<CuboidCollider
+  args={[0.13, 1.08, table.halfDepth]}
+  position={[-table.halfWidth, table.sideRailY + 0.1, table.floorZ]}
+  rotation={[table.slopeAngle, 0, 0]}
+  restitution={0.08}
+  friction={0.55}
+/>
 
       {/* right side rail */}
       <RoundedBox
@@ -2070,11 +2079,13 @@ function TraySideRails({ table }: { table: TableMeasurements }) {
         <meshStandardMaterial {...TABLE_MATERIALS.sideGoldRail} />
       </mesh>
 
-      <CuboidCollider
-        args={[0.14, 1.18, table.halfDepth]}
-        position={[table.halfWidth, table.sideRailY + 0.12, table.floorZ]}
-        rotation={[table.slopeAngle, 0, 0]}
-      />
+<CuboidCollider
+  args={[0.13, 1.08, table.halfDepth]}
+  position={[table.halfWidth, table.sideRailY + 0.1, table.floorZ]}
+  rotation={[table.slopeAngle, 0, 0]}
+  restitution={0.08}
+  friction={0.55}
+/>
 
       <TrayRailLacquerDepth table={table} />
       <TraySideRailKanoteTrim table={table} />
@@ -2086,22 +2097,26 @@ function TableSafetyGuards({ table }: { table: TableMeasurements }) {
   return (
     <>
             {/* emergency escape guard only; main bounce should happen on FrontLip */}
-      <CuboidCollider
-        args={[table.halfWidth, 1.05, 0.08]}
-        position={[0, 0.12, table.frontEdgeZ + 0.34]}
-        restitution={0.34}
-        friction={0.18}
-      />
+<CuboidCollider
+  args={[table.halfWidth, 0.92, 0.07]}
+  position={[0, 0.08, table.frontEdgeZ + 0.34]}
+  restitution={0.12}
+  friction={0.5}
+/>
 
-      <CuboidCollider
-        args={[0.12, 1.3, table.halfDepth]}
-        position={[-table.halfWidth - 0.04, 0.12, table.floorZ]}
-      />
+<CuboidCollider
+  args={[0.11, 1.16, table.halfDepth]}
+  position={[-table.halfWidth - 0.04, 0.08, table.floorZ]}
+  restitution={0.04}
+  friction={0.62}
+/>
 
-      <CuboidCollider
-        args={[0.12, 1.3, table.halfDepth]}
-        position={[table.halfWidth + 0.04, 0.12, table.floorZ]}
-      />
+<CuboidCollider
+  args={[0.11, 1.16, table.halfDepth]}
+  position={[table.halfWidth + 0.04, 0.08, table.floorZ]}
+  restitution={0.04}
+  friction={0.62}
+/>
     </>
   );
 }

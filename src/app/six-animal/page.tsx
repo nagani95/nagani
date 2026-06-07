@@ -187,11 +187,13 @@ const [settlementWaitingRoundId, setSettlementWaitingRoundId] =
   
   // --- QUEUING STATES ---
   const [isWaitingForNextRound, setIsWaitingForNextRound] = useState(false);
+  const [showInRoomNextRoundPause, setShowInRoomNextRoundPause] = useState(false);
 const [isQuitting, setIsQuitting] = useState(false);
 const [joinedRoundId, setJoinedRoundId] = useState<string | null>(null);
 
 const resultRevealTimerRef = useRef<number | null>(null);
 const settlementMomentTimerRef = useRef<number | null>(null);
+const localRollingStartTimerRef = useRef<number | null>(null);
 const lastDiceSoundCountRef = useRef(0);
 
   // Refs for Realtime Websocket closures to prevent stale state
@@ -206,6 +208,7 @@ const visualCompleteRoundIdRef = useRef<string | null>(null);
 const visualStartedRoundIdRef = useRef<string | null>(null);
 const visualActiveRoundIdRef = useRef<string | null>(null);
 const settlementWaitingRoundIdRef = useRef<string | null>(null);
+const showInRoomNextRoundPauseRef = useRef(false);
 
 function clearVisibleDiceRoundState() {
   setDiceResult([]);
@@ -226,9 +229,17 @@ if (settlementMomentTimerRef.current) {
   settlementMomentTimerRef.current = null;
 }
 
+if (localRollingStartTimerRef.current) {
+  window.clearTimeout(localRollingStartTimerRef.current);
+  localRollingStartTimerRef.current = null;
+}
+
 setShowSettlementMoment(false);
 setSettlementWaitingRoundId(null);
 settlementWaitingRoundIdRef.current = null;
+
+setShowInRoomNextRoundPause(false);
+showInRoomNextRoundPauseRef.current = false;
 
 lastDiceSoundCountRef.current = 0;
 }
@@ -253,10 +264,11 @@ function startLocalDiceFlow(round: LiveSixAnimalRound) {
   setDiceResult([]);
   diceResultRef.current = [];
 
-  setServerRngResults(backendResultKeys);
-  setPhase("rolling");
-  phaseRef.current = "rolling";
-  setPhaseTargetAt(null);
+setServerRngResults(backendResultKeys);
+setRollingStartedAt(round.rolling_starts_at);
+setPhase("rolling");
+phaseRef.current = "rolling";
+setPhaseTargetAt(null);
   setShouldPlayLiveDiceSequence(true);
   shouldPlayLiveDiceSequenceRef.current = true;
 
@@ -353,12 +365,14 @@ setPhase(displayPhase);
 setPhaseTargetAt(displayPhase === "rolling" ? null : nextTargetAt);
 setRollingStartedAt(round.rolling_starts_at);
 setCountdown(nextCountdown);
-const shouldKeepLocalWaitingScreen =
-  nextPhase === "result" && settlementWaitingRoundIdRef.current === round.id;
-
-setIsWaitingForNextRound(shouldKeepLocalWaitingScreen);
+// Hard waiting is only for late join / refresh safety.
+// Normal post-settlement waiting must stay inside the live room.
+setIsWaitingForNextRound(false);
 
   if (nextPhase === "betting") {
+    setShowInRoomNextRoundPause(false);
+showInRoomNextRoundPauseRef.current = false;
+setIsWaitingForNextRound(false);
 setShouldPlayLiveDiceSequence(false);
 clearVisibleDiceRoundState();
 setRollingStartedAt(null);
@@ -460,6 +474,7 @@ isVisualDiceCompleteRef.current = isVisualDiceComplete;
 visualCompleteRoundIdRef.current = visualCompleteRoundId;
 visualActiveRoundIdRef.current = visualActiveRoundId;
 settlementWaitingRoundIdRef.current = settlementWaitingRoundId;
+showInRoomNextRoundPauseRef.current = showInRoomNextRoundPause;
 }, [
   phase,
   roundId,
@@ -563,7 +578,8 @@ const isRollingReconnectView = false;
 const showSettlementSheet =
   showFinalResultPanel && showSettlementMoment && Boolean(activeBet);
 
-const showNextRoundPause = false;
+const showNextRoundPause =
+  showFinalResultPanel && showInRoomNextRoundPause;
 
 const shouldConfirmBrowserRefresh =
   !showRoomIntro &&
@@ -834,25 +850,55 @@ useEffect(() => {
 
 useEffect(() => {
   if (phase !== "closed") return;
-  if (countdown > 0) return;
   if (!roundId) return;
+  if (!rollingStartedAt) return;
   if (serverRngResults.length !== SIX_ANIMAL_RULES.diceCount) return;
   if (visualStartedRoundIdRef.current === roundId) return;
 
-  startLocalDiceFlow({
-    id: roundId,
-    room_id: SIX_ANIMAL_ROOM_UUID,
-    round_number: roundNumber,
-    phase: "closed",
-    betting_starts_at: null,
-    betting_ends_at: null,
-    rolling_starts_at: rollingStartedAt,
-    result_revealed_at: null,
-    next_round_starts_at: null,
-    result_animals: serverRngResults,
-    status: "active",
-  });
-}, [phase, countdown, roundId, roundNumber, rollingStartedAt, serverRngResults]);
+  const rollingStartMs = new Date(rollingStartedAt).getTime();
+
+  if (!Number.isFinite(rollingStartMs)) return;
+
+  const delayMs = Math.max(0, rollingStartMs - Date.now());
+
+  if (localRollingStartTimerRef.current) {
+    window.clearTimeout(localRollingStartTimerRef.current);
+    localRollingStartTimerRef.current = null;
+  }
+
+  localRollingStartTimerRef.current = window.setTimeout(() => {
+    localRollingStartTimerRef.current = null;
+
+    if (visualStartedRoundIdRef.current === roundId) return;
+    if (
+      isVisualDiceCompleteRef.current &&
+      visualCompleteRoundIdRef.current === roundId
+    ) {
+      return;
+    }
+
+    startLocalDiceFlow({
+      id: roundId,
+      room_id: SIX_ANIMAL_ROOM_UUID,
+      round_number: roundNumber,
+      phase: "rolling",
+      betting_starts_at: null,
+      betting_ends_at: null,
+      rolling_starts_at: rollingStartedAt,
+      result_revealed_at: null,
+      next_round_starts_at: null,
+      result_animals: serverRngResults,
+      status: "active",
+    });
+  }, delayMs);
+
+  return () => {
+    if (localRollingStartTimerRef.current) {
+      window.clearTimeout(localRollingStartTimerRef.current);
+      localRollingStartTimerRef.current = null;
+    }
+  };
+}, [phase, roundId, roundNumber, rollingStartedAt, serverRngResults]);
 
 useEffect(() => {
   if (!shouldConfirmBrowserRefresh) {
@@ -909,15 +955,18 @@ if (settlementMomentTimerRef.current) {
 }
 
 settlementMomentTimerRef.current = window.setTimeout(() => {
-  const waitingRoundId = roundIdRef.current;
-
   setShowSettlementMoment(false);
-  setSettlementWaitingRoundId(waitingRoundId);
-  settlementWaitingRoundIdRef.current = waitingRoundId;
 
-  // Keep the player inside the same live table room while waiting
-  // for the shared backend next-round timing.
-  setIsWaitingForNextRound(true);
+  // Soft in-room pause only.
+  // Do not use isWaitingForNextRound here; that is reserved for
+  // late-join / refresh safety.
+  setSettlementWaitingRoundId(null);
+  settlementWaitingRoundIdRef.current = null;
+
+  setShowInRoomNextRoundPause(true);
+  showInRoomNextRoundPauseRef.current = true;
+
+  setIsWaitingForNextRound(false);
   setShowRoomIntro(false);
 
   settlementMomentTimerRef.current = null;
@@ -1530,7 +1579,9 @@ const isCurrent =
                   showInternalResultStrip={false}
                   mountedDiceRackMode={effectiveMountedDiceRackMode}
                   serverRngResults={serverRngResults}
-                  rollingStartedAt={rollingStartedAt}
+rollingStartedAt={
+  phase === "rolling" || isResultPhaseVisualGuard ? rollingStartedAt : null
+}
 visualRoundId={visualActiveRoundId}
                 />
               </div>
