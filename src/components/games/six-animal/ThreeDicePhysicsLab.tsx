@@ -604,10 +604,8 @@ onClick={() => {
   sequenceRunning={sequenceRunning}
   diceShapePreset={diceShapePreset}
   diceColliderPreset={diceColliderPreset}
-  targetAnimal={targetAnimal}
-  targetCorrectionTestEnabled={targetCorrectionTestEnabled}
   showDice={effectiveShowDice}
-forceShowStumbleBar={cleanTableShotMode}
+  forceShowStumbleBar={cleanTableShotMode}
 />
   </div>
 </section>

@@ -20,7 +20,7 @@ import type { SixAnimalKey } from "@/types/games";
 const ROOM_BACKGROUND = naganiAssets.sixAnimal.room.palaceBgV1;
 
 const RESULT_REVEAL_DELAY_MS = 2000;
-const SETTLEMENT_MOMENT_MS = 3000;
+const SETTLEMENT_MOMENT_MS = 2200;
 
 const ROOM_SOUND_ENABLED = false;
 
@@ -91,6 +91,7 @@ const ANIMAL_ASSETS: Record<SixAnimalKey, string> = {
 };
 
 type RoundPhase = "loading" | "betting" | "closed" | "rolling" | "result";
+type VisualDiceStatus = "idle" | "playing" | "complete";
 
 type ActiveBet = {
   animalKey: SixAnimalKey;
@@ -173,6 +174,8 @@ export default function SixAnimalPage() {
   const [roundNumber, setRoundNumber] = useState(1208);
 const [diceResult, setDiceResult] = useState<string[]>([]);
 const [isVisualDiceComplete, setIsVisualDiceComplete] = useState(false);
+const [visualDiceStatus, setVisualDiceStatus] =
+  useState<VisualDiceStatus>("idle");
 const [visualCompleteRoundId, setVisualCompleteRoundId] = useState<string | null>(null);
 const [visualActiveRoundId, setVisualActiveRoundId] = useState<string | null>(null);
 const [threeDiceRunKey, setThreeDiceRunKey] = useState(0);
@@ -204,11 +207,15 @@ const joinedRoundIdRef = useRef<string | null>(null);
 const shouldPlayLiveDiceSequenceRef = useRef(false);
 const diceResultRef = useRef<string[]>([]);
 const isVisualDiceCompleteRef = useRef(false);
+const visualDiceStatusRef = useRef<VisualDiceStatus>("idle");
+
 const visualCompleteRoundIdRef = useRef<string | null>(null);
 const visualStartedRoundIdRef = useRef<string | null>(null);
 const visualActiveRoundIdRef = useRef<string | null>(null);
 const settlementWaitingRoundIdRef = useRef<string | null>(null);
 const showInRoomNextRoundPauseRef = useRef(false);
+const showSettlementMomentRef = useRef(false);
+const pendingBettingRoundRef = useRef<LiveSixAnimalRound | null>(null);
 
 function clearVisibleDiceRoundState() {
   setDiceResult([]);
@@ -216,6 +223,9 @@ function clearVisibleDiceRoundState() {
 
   setIsVisualDiceComplete(false);
   isVisualDiceCompleteRef.current = false;
+
+  setVisualDiceStatus("idle");
+visualDiceStatusRef.current = "idle";
 
   setVisualCompleteRoundId(null);
   visualCompleteRoundIdRef.current = null;
@@ -235,6 +245,8 @@ if (localRollingStartTimerRef.current) {
 }
 
 setShowSettlementMoment(false);
+showSettlementMomentRef.current = false;
+
 setSettlementWaitingRoundId(null);
 settlementWaitingRoundIdRef.current = null;
 
@@ -257,6 +269,9 @@ function startLocalDiceFlow(round: LiveSixAnimalRound) {
   setVisualActiveRoundId(round.id);
   setIsVisualDiceComplete(false);
   isVisualDiceCompleteRef.current = false;
+
+  setVisualDiceStatus("playing");
+visualDiceStatusRef.current = "playing";
 
   setVisualCompleteRoundId(null);
   visualCompleteRoundIdRef.current = null;
@@ -284,9 +299,20 @@ async function applyLiveRound(round: LiveSixAnimalRound) {
   const isSwitchingRound =
     Boolean(roundIdRef.current) && roundIdRef.current !== round.id;
 
+  const shouldDeferNextBettingUntilSettlementEnds =
+    nextPhase === "betting" &&
+    isSwitchingRound &&
+    showSettlementMomentRef.current;
+
+  if (shouldDeferNextBettingUntilSettlementEnds) {
+    pendingBettingRoundRef.current = round;
+    return;
+  }
+
   if (isSwitchingRound) {
     clearVisibleDiceRoundState();
     setShouldPlayLiveDiceSequence(false);
+    shouldPlayLiveDiceSequenceRef.current = false;
     setActiveBet(null);
   }
 
@@ -417,6 +443,10 @@ if (nextPhase === "rolling") {
   setServerRngResults(backendResultKeys);
   setRollingStartedAt(round.rolling_starts_at);
   setShouldPlayLiveDiceSequence(shouldRunLocalDiceFlow);
+  if (shouldRunLocalDiceFlow) {
+  setVisualDiceStatus("playing");
+  visualDiceStatusRef.current = "playing";
+}
 
 if (shouldRunLocalDiceFlow) {
   if (visualStartedRoundIdRef.current !== round.id) {
@@ -455,11 +485,24 @@ const hasCompleteVisualDiceResult =
     roundIdRef.current === round.id &&
     !hasCompleteVisualDiceResult;
 
-  setServerRngResults(backendResultKeys);
-  setRollingStartedAt(round.rolling_starts_at);
-  setShouldPlayLiveDiceSequence(shouldContinueLocalDiceFlow);
+setServerRngResults(backendResultKeys);
+setRollingStartedAt(round.rolling_starts_at);
 
+if (hasCompleteVisualDiceResult) {
+  // Visual dice already completed for this round.
+  // Result phase is now HOLD mode, not PLAY mode.
+  setVisualDiceStatus("complete");
+  visualDiceStatusRef.current = "complete";
+
+  setShouldPlayLiveDiceSequence(false);
+  shouldPlayLiveDiceSequenceRef.current = false;
   return;
+}
+
+setShouldPlayLiveDiceSequence(shouldContinueLocalDiceFlow);
+shouldPlayLiveDiceSequenceRef.current = shouldContinueLocalDiceFlow;
+
+return;
 }
 }
 
@@ -471,10 +514,12 @@ useEffect(() => {
 shouldPlayLiveDiceSequenceRef.current = shouldPlayLiveDiceSequence;
 diceResultRef.current = diceResult;
 isVisualDiceCompleteRef.current = isVisualDiceComplete;
+  visualDiceStatusRef.current = visualDiceStatus;
 visualCompleteRoundIdRef.current = visualCompleteRoundId;
 visualActiveRoundIdRef.current = visualActiveRoundId;
 settlementWaitingRoundIdRef.current = settlementWaitingRoundId;
 showInRoomNextRoundPauseRef.current = showInRoomNextRoundPause;
+showSettlementMomentRef.current = showSettlementMoment;
 }, [
   phase,
   roundId,
@@ -483,9 +528,12 @@ showInRoomNextRoundPauseRef.current = showInRoomNextRoundPause;
   shouldPlayLiveDiceSequence,
   diceResult,
   isVisualDiceComplete,
+    visualDiceStatus,
   visualCompleteRoundId,
   visualActiveRoundId,
   settlementWaitingRoundId,
+  showInRoomNextRoundPause,
+  showSettlementMoment,
 ]);
 
   const selectedOption = useMemo(() => {
@@ -578,8 +626,16 @@ const isRollingReconnectView = false;
 const showSettlementSheet =
   showFinalResultPanel && showSettlementMoment && Boolean(activeBet);
 
-const showNextRoundPause =
-  showFinalResultPanel && showInRoomNextRoundPause;
+const showNextRoundPause = false;
+
+const heldVisualRoundId =
+  visualActiveRoundId ?? (showFinalResultPanel ? visualCompleteRoundId : null);
+
+const shouldEnableDiceController =
+  shouldPlayLiveDiceSequence &&
+  visualDiceStatus === "playing" &&
+  !showFinalResultPanel &&
+  (phase === "rolling" || isResultPhaseVisualGuard);
 
 const shouldConfirmBrowserRefresh =
   !showRoomIntro &&
@@ -928,6 +984,13 @@ useEffect(() => {
   ) {
     return;
   }
+
+    if (
+    isVisualDiceCompleteRef.current &&
+    visualCompleteRoundIdRef.current === payloadRoundId
+  ) {
+    return;
+  }
     const resultNames = convertThreeDicePayloadToMyanmarResult(payload);
 
     if (resultNames.length !== SIX_ANIMAL_RULES.diceCount) return;
@@ -940,12 +1003,25 @@ visualCompleteRoundIdRef.current = completedRoundId;
 
 setDiceResult(resultNames);
 setIsVisualDiceComplete(true);
+
+setVisualDiceStatus("complete");
+visualDiceStatusRef.current = "complete";
+
 setVisualCompleteRoundId(payloadRoundId);
 visualCompleteRoundIdRef.current = payloadRoundId;
-setVisualActiveRoundId(null);
-visualActiveRoundIdRef.current = null;
+// Keep the completed visual round id locked during result/settlement hold.
+// clearVisibleDiceRoundState() will clear it safely when the next betting round is applied.
+setVisualActiveRoundId(payloadRoundId);
+visualActiveRoundIdRef.current = payloadRoundId;
+
+// Die 3 completed. Hard-stop the dice controller.
+// Do not keep enabled=true for result hold, because enabled still means "can run".
 setShouldPlayLiveDiceSequence(false);
+shouldPlayLiveDiceSequenceRef.current = false;
+
 setShowSettlementMoment(true);
+showSettlementMomentRef.current = true;
+
 setSettlementWaitingRoundId(null);
 settlementWaitingRoundIdRef.current = null;
 setPhase("result");
@@ -956,20 +1032,29 @@ if (settlementMomentTimerRef.current) {
 
 settlementMomentTimerRef.current = window.setTimeout(() => {
   setShowSettlementMoment(false);
+  showSettlementMomentRef.current = false;
 
-  // Soft in-room pause only.
-  // Do not use isWaitingForNextRound here; that is reserved for
-  // late-join / refresh safety.
+  // No separate post-settlement pause panel.
+  // The final dice and result board remain visible until backend opens betting.
   setSettlementWaitingRoundId(null);
   settlementWaitingRoundIdRef.current = null;
 
-  setShowInRoomNextRoundPause(true);
-  showInRoomNextRoundPauseRef.current = true;
+  setShowInRoomNextRoundPause(false);
+  showInRoomNextRoundPauseRef.current = false;
 
   setIsWaitingForNextRound(false);
   setShowRoomIntro(false);
 
+  const pendingBettingRound = pendingBettingRoundRef.current;
+  pendingBettingRoundRef.current = null;
+
   settlementMomentTimerRef.current = null;
+
+  if (pendingBettingRound) {
+    void applyLiveRound(pendingBettingRound);
+  } else {
+    void fetchLatestLiveRound();
+  }
 }, SETTLEMENT_MOMENT_MS);
 
     if (resultRevealTimerRef.current) {
@@ -1571,7 +1656,7 @@ const isCurrent =
             <div className="relative z-10 flex h-full min-h-0 items-center justify-center p-2">
               <div className="relative h-full w-full max-w-[980px]">
                 <ThreeDiceSequenceController
-                  enabled={shouldPlayLiveDiceSequence}
+                  enabled={shouldEnableDiceController}
                   runKey={threeDiceRunKey}
                   onComplete={handleThreeDiceComplete}
                   onProgress={handleThreeDiceProgress}
@@ -1582,7 +1667,7 @@ const isCurrent =
 rollingStartedAt={
   phase === "rolling" || isResultPhaseVisualGuard ? rollingStartedAt : null
 }
-visualRoundId={visualActiveRoundId}
+visualRoundId={heldVisualRoundId}
                 />
               </div>
             </div>

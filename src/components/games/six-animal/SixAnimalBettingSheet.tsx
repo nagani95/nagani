@@ -2,6 +2,8 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { SIX_ANIMAL_OPTIONS } from "@/lib/gameRules";
 import type { SixAnimalKey, SixAnimalOption } from "@/types/games";
 
@@ -55,6 +57,22 @@ export default function SixAnimalBettingSheet({
   onSelectAnimal,
   onPlaceBet,
 }: SixAnimalBettingSheetProps) {
+
+    const [hasEntered, setHasEntered] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setHasEntered(false);
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      setHasEntered(true);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
 const displayAnimal =
@@ -64,8 +82,18 @@ const displayAnimal =
   const hasSelection = Boolean(activeBet || selectedOption);
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-2 z-50 flex justify-center px-2 sm:px-4">
-<div className="pointer-events-auto relative w-full max-w-[400px] overflow-hidden rounded-[1.55rem] border border-amber-300/26 bg-[linear-gradient(145deg,rgba(48,7,4,0.95),rgba(8,1,1,0.92),rgba(54,12,5,0.9))] shadow-2xl shadow-black/85 backdrop-blur-2xl">
+        <div
+      className={`pointer-events-none absolute inset-x-0 top-2 z-50 flex justify-center px-2 transition-[opacity,transform] duration-500 ease-out sm:px-4 ${
+        hasEntered
+          ? "translate-y-0 opacity-100"
+          : "-translate-y-3 opacity-0"
+      }`}
+    >
+<div
+  className={`pointer-events-auto relative w-full max-w-[400px] overflow-hidden rounded-[1.55rem] border border-amber-300/26 bg-[linear-gradient(145deg,rgba(48,7,4,0.95),rgba(8,1,1,0.92),rgba(54,12,5,0.9))] shadow-2xl shadow-black/85 backdrop-blur-2xl transition-transform duration-500 ease-out ${
+    hasEntered ? "scale-100" : "scale-[0.985]"
+  }`}
+>
   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.2),transparent_54%)]" />
   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/80 to-transparent" />
   <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-red-300/20 to-transparent" />

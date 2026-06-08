@@ -1,5 +1,3 @@
-//src/components/games/six-animal/ThreeDiceSequenceController.tsx
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -8,31 +6,16 @@ import ThreeDicePhysicsStage, {
   createThreeDiceRoundPayload,
   type CapturedDiceResult,
   type DiceFaceResult,
+  type DiceAnimalLabel,
   type MountedDiceRackMode,
   type ThreeDiceRoundPayload,
-  type DiceAnimalLabel,
 } from "./ThreeDicePhysicsStage";
 
 const EXPECTED_DICE_RESULT_COUNT = 3;
 
-const LIVE_DICE_VISUAL_MS = 8000;
-const LIVE_DICE_BETWEEN_MS = 0;
-const LIVE_DICE_CONFIRM_HOLD_MS = 1200;
-const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 2200;
-
-function getLiveDiceRevealAtMs(index: number) {
-  return LIVE_DICE_VISUAL_MS * (index + 1) + LIVE_DICE_BETWEEN_MS * index;
-}
-
-function getElapsedMsSinceIso(isoValue?: string | null) {
-  if (!isoValue) return 0;
-
-  const startedAtMs = new Date(isoValue).getTime();
-
-  if (!Number.isFinite(startedAtMs)) return 0;
-
-  return Math.max(0, Date.now() - startedAtMs);
-}
+const LIVE_DICE_CONFIRM_HOLD_MS = 1000;
+const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 1200;
+const LIVE_DICE_DIRECTOR_CAPTURE_MS = 5600;
 
 type ThreeDiceSequenceControllerProps = {
   enabled: boolean;
@@ -49,296 +32,177 @@ type ThreeDiceSequenceControllerProps = {
   className?: string;
   showInternalResultStrip?: boolean;
   mountedDiceRackMode?: MountedDiceRackMode;
+
+  // Kept for page compatibility. Not used in current natural visible-dice mode.
   serverRngResults?: string[];
   rollingStartedAt?: string | null;
 };
+
+function createVisibleCapturedResult(
+  result: DiceFaceResult,
+  dieNumber: number
+): CapturedDiceResult {
+  const visibleLabel = (
+    result.status === "accepted" ? result.label : result.nearestLabel
+  ) as DiceAnimalLabel;
+
+  return {
+    ...result,
+    status: "accepted",
+    label: visibleLabel,
+    nearestLabel: visibleLabel,
+    message:
+      result.status === "accepted"
+        ? result.message || "Visible dice face captured."
+        : "Nearest visible dice face captured for natural dice test.",
+    dieNumber,
+  };
+}
 
 export default function ThreeDiceSequenceController({
   enabled,
   runKey,
   onComplete,
   onProgress,
+  visualRoundId = null,
   className = "",
   showInternalResultStrip = true,
   mountedDiceRackMode = enabled ? "sequence" : "ready",
-  serverRngResults = [],
-rollingStartedAt = null,
-visualRoundId = null,
 }: ThreeDiceSequenceControllerProps) {
   const [resetKey, setResetKey] = useState(1);
-const [, setSettled] = useState(false);
-const [faceResult, setFaceResult] = useState<DiceFaceResult | null>(null);
-
-
-const [faceCaptureOwner, setFaceCaptureOwner] = useState<{
-  dieIndex: number;
-  result: DiceFaceResult;
-} | null>(null);
+  const [, setSettled] = useState(false);
+  const [captureRequestKey, setCaptureRequestKey] = useState(0);
   const [activeDieIndex, setActiveDieIndex] = useState(0);
   const [sequenceRunning, setSequenceRunning] = useState(false);
   const [capturedResults, setCapturedResults] = useState<CapturedDiceResult[]>(
     []
   );
+  const [faceCaptureOwner, setFaceCaptureOwner] = useState<{
+    dieIndex: number;
+    result: DiceFaceResult;
+  } | null>(null);
 
+  const lastStartedSequenceKeyRef = useRef<string | null>(null);
+  const activeVisualRoundIdRef = useRef<string | null>(null);
+  const capturedResultsOwnerRef = useRef<string | null>(null);
   const capturedDieNumbersRef = useRef<Set<number>>(new Set());
   const completionSentRef = useRef(false);
-const lastSequenceKeyRef = useRef<string | null>(null);
-const liveCaptureTimerRef = useRef<number | null>(null);
-const liveForceCaptureTimerRef = useRef<number | null>(null);
-const liveNextDieTimerRef = useRef<number | null>(null);
-const liveDieStartedAtRef = useRef<number>(Date.now());
 
-const onProgressRef = useRef(onProgress);
-const activeVisualRoundIdRef = useRef<string | null>(null);
-const capturedResultsOwnerRef = useRef<string | null>(null);
-  const backendResultKey = serverRngResults.join("|");
-  const backendTimelineKey = `${backendResultKey}|${rollingStartedAt ?? ""}`;
-  const sequenceTimelineKey = enabled ? backendResultKey : backendTimelineKey;
-const hasBackendLiveResults =
-  serverRngResults.length === EXPECTED_DICE_RESULT_COUNT;
+  const forceCaptureTimerRef = useRef<number | null>(null);
+  const nextDieTimerRef = useRef<number | null>(null);
 
-const isLiveReconnectDisplay =
-  !enabled && Boolean(rollingStartedAt) && hasBackendLiveResults;
+  const onProgressRef = useRef(onProgress);
+  const onCompleteRef = useRef(onComplete);
 
-const shouldUseBackendTimeline = isLiveReconnectDisplay;
+  function clearTimers() {
+    if (forceCaptureTimerRef.current) {
+      window.clearTimeout(forceCaptureTimerRef.current);
+      forceCaptureTimerRef.current = null;
+    }
 
-const stageMountedDiceRackMode: MountedDiceRackMode = isLiveReconnectDisplay
-  ? "sequence"
-  : mountedDiceRackMode;
-
-const lastBackendResultKeyRef = useRef<string | null>(null);
-
-  function getServerTargetAnimal(index: number) {
-  const animalKey = serverRngResults[index];
-
-  if (!animalKey) return null;
-
-  return (animalKey.charAt(0).toUpperCase() +
-    animalKey.slice(1)) as DiceAnimalLabel;
-}
-
-function createBackendCapturedResult(
-  label: DiceAnimalLabel,
-  dieNumber: number
-): CapturedDiceResult {
-  return {
-    status: "accepted",
-    label,
-    nearestLabel: label,
-    axis: "backend-live",
-    confidence: 100,
-    tiltDegrees: 0,
-    message: "Backend live result captured.",
-    dieNumber,
-  };
-}
-
-function clearLiveDiceTimers() {
-  if (liveCaptureTimerRef.current) {
-    window.clearTimeout(liveCaptureTimerRef.current);
-    liveCaptureTimerRef.current = null;
+    if (nextDieTimerRef.current) {
+      window.clearTimeout(nextDieTimerRef.current);
+      nextDieTimerRef.current = null;
+    }
   }
 
-  if (liveForceCaptureTimerRef.current) {
-    window.clearTimeout(liveForceCaptureTimerRef.current);
-    liveForceCaptureTimerRef.current = null;
-  }
+  function resetSequenceForNewRun(roundId: string) {
+    clearTimers();
 
-  if (liveNextDieTimerRef.current) {
-    window.clearTimeout(liveNextDieTimerRef.current);
-    liveNextDieTimerRef.current = null;
-  }
-}
+    activeVisualRoundIdRef.current = roundId;
+    capturedResultsOwnerRef.current = roundId;
+    capturedDieNumbersRef.current.clear();
+    completionSentRef.current = false;
 
-function handleFaceResultChange(result: DiceFaceResult | null) {
-  setFaceResult(result);
-  setFaceCaptureOwner(
-    result
-      ? {
-          dieIndex: activeDieIndex,
-          result,
-        }
-      : null
-  );
-}
-
-useEffect(() => {
-  onProgressRef.current = onProgress;
-}, [onProgress]);
-
-useEffect(() => {
-  return () => {
-    clearLiveDiceTimers();
-  };
-}, []);
-
-useEffect(() => {
-if (!enabled && !isLiveReconnectDisplay) {
-  setSequenceRunning(false);
-  lastBackendResultKeyRef.current = null;
-
-  clearLiveDiceTimers();
-
-  return;
-}
-
-const sequenceKey = `${runKey}|${visualRoundId ?? "no-round"}|${sequenceTimelineKey}|${
-  enabled ? "live" : "reconnect"
-}`;
-
-  if (lastSequenceKeyRef.current === sequenceKey && !isLiveReconnectDisplay) {
-    return;
-  }
-
-lastSequenceKeyRef.current = sequenceKey;
-activeVisualRoundIdRef.current = visualRoundId;
-capturedResultsOwnerRef.current = null;
-completionSentRef.current = false;
-capturedDieNumbersRef.current.clear();
-lastBackendResultKeyRef.current = null;
-
-clearLiveDiceTimers();
-liveDieStartedAtRef.current = Date.now();
-
-setCapturedResults([]);
-setActiveDieIndex(0);
-  setSettled(false);
-setFaceResult(null);
-setFaceCaptureOwner(null);
-setSequenceRunning(enabled && hasBackendLiveResults);
-
-  if (enabled && hasBackendLiveResults) {
+    setCapturedResults([]);
+    setActiveDieIndex(0);
+    setSettled(false);
+    setFaceCaptureOwner(null);
+    setCaptureRequestKey(0);
+    setSequenceRunning(true);
     setResetKey((value) => value + 1);
   }
-}, [
-  enabled,
-  runKey,
-  visualRoundId,
-  isLiveReconnectDisplay,
-  backendTimelineKey,
-  sequenceTimelineKey,
-  hasBackendLiveResults,
-]);
 
-useEffect(() => {
-  if (!shouldUseBackendTimeline || !hasBackendLiveResults) {
-    return;
+  function handleFaceResultChange(result: DiceFaceResult | null) {
+    setFaceCaptureOwner(
+      result
+        ? {
+            dieIndex: activeDieIndex,
+            result,
+          }
+        : null
+    );
   }
 
-  if (lastBackendResultKeyRef.current === backendTimelineKey) {
-    return;
-  }
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+  }, [onProgress]);
 
-  lastBackendResultKeyRef.current = backendTimelineKey;
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
-  let cancelled = false;
-  const timers: number[] = [];
-  const elapsedMs = isLiveReconnectDisplay
-  ? getElapsedMsSinceIso(rollingStartedAt)
-  : 0;
+  useEffect(() => {
+    return () => {
+      clearTimers();
+    };
+  }, []);
 
-  completionSentRef.current = false;
-  capturedDieNumbersRef.current.clear();
+  useEffect(() => {
+    if (!enabled || !visualRoundId) {
+      clearTimers();
+      setSequenceRunning(false);
+      setFaceCaptureOwner(null);
+      return;
+    }
 
-  const alreadyRevealedResults = serverRngResults
-    .map((_, index) => {
-      const revealAt = getLiveDiceRevealAtMs(index);
+    const sequenceKey = `${runKey}|${visualRoundId}`;
 
-      if (elapsedMs < revealAt) return null;
+    if (lastStartedSequenceKeyRef.current === sequenceKey) {
+      return;
+    }
 
-      const label = getServerTargetAnimal(index);
-      if (!label) return null;
+    lastStartedSequenceKeyRef.current = sequenceKey;
+    resetSequenceForNewRun(visualRoundId);
+  }, [enabled, runKey, visualRoundId]);
 
-      const dieNumber = index + 1;
-      capturedDieNumbersRef.current.add(dieNumber);
+  useEffect(() => {
+    if (!enabled || !sequenceRunning) return;
 
-      return createBackendCapturedResult(label, dieNumber);
-    })
-    .filter((result): result is CapturedDiceResult => Boolean(result));
-
-  const revealedCount = alreadyRevealedResults.length;
-  const hasPendingReveals = revealedCount < EXPECTED_DICE_RESULT_COUNT;
-  const nextActiveDieIndex = Math.min(
-    revealedCount,
-    EXPECTED_DICE_RESULT_COUNT - 1
-  );
-
-setCapturedResults(alreadyRevealedResults);
-setActiveDieIndex(nextActiveDieIndex);
-setSettled(false);
-setFaceResult(null);
-setFaceCaptureOwner(null);
-setSequenceRunning(hasPendingReveals);
-liveDieStartedAtRef.current = Date.now();
-setResetKey((value) => value + 1);
-
-  serverRngResults.forEach((_, index) => {
-    const revealAt = getLiveDiceRevealAtMs(index);
-    const revealDelay = revealAt - elapsedMs;
-
-    if (revealDelay <= 0) return;
-
-    const timer = window.setTimeout(() => {
-      if (cancelled) return;
-
-      const label = getServerTargetAnimal(index);
-      if (!label) return;
-
-      const dieNumber = index + 1;
-
-      if (capturedDieNumbersRef.current.has(dieNumber)) return;
-
-      capturedDieNumbersRef.current.add(dieNumber);
-
-      setCapturedResults((current) => {
-        const withoutDuplicate = current.filter(
-          (result) => result.dieNumber !== dieNumber
-        );
-
-        return [
-          ...withoutDuplicate,
-          createBackendCapturedResult(label, dieNumber),
-        ].sort((a, b) => a.dieNumber - b.dieNumber);
-      });
-
-      if (index < EXPECTED_DICE_RESULT_COUNT - 1) {
-        setActiveDieIndex(index + 1);
-        setResetKey((value) => value + 1);
-      } else {
-        setSequenceRunning(false);
-      }
-    }, revealDelay);
-
-    timers.push(timer);
-  });
-
-  return () => {
-    cancelled = true;
-    timers.forEach((timer) => window.clearTimeout(timer));
-  };
-}, [
-  shouldUseBackendTimeline,
-  runKey,
-  backendTimelineKey,
-  hasBackendLiveResults,
-  rollingStartedAt,
-]);
-
-useEffect(() => {
-  if (!enabled || !sequenceRunning) return;
-  if (!hasBackendLiveResults) return;
-
-  const dieNumber = activeDieIndex + 1;
-
-  if (capturedDieNumbersRef.current.has(dieNumber)) return;
-
-clearLiveDiceTimers();
-
-liveCaptureTimerRef.current = window.setTimeout(() => {
-    const label = getServerTargetAnimal(activeDieIndex);
-    if (!label) return;
+    const dieNumber = activeDieIndex + 1;
 
     if (capturedDieNumbersRef.current.has(dieNumber)) return;
+
+    if (forceCaptureTimerRef.current) {
+      window.clearTimeout(forceCaptureTimerRef.current);
+      forceCaptureTimerRef.current = null;
+    }
+
+    forceCaptureTimerRef.current = window.setTimeout(() => {
+      if (capturedDieNumbersRef.current.has(dieNumber)) return;
+
+      setCaptureRequestKey((value) => value + 1);
+      forceCaptureTimerRef.current = null;
+    }, LIVE_DICE_DIRECTOR_CAPTURE_MS);
+
+    return () => {
+      if (forceCaptureTimerRef.current) {
+        window.clearTimeout(forceCaptureTimerRef.current);
+        forceCaptureTimerRef.current = null;
+      }
+    };
+  }, [enabled, sequenceRunning, activeDieIndex, resetKey]);
+
+  useEffect(() => {
+    if (!enabled || !sequenceRunning) return;
+    if (!faceCaptureOwner) return;
+    if (faceCaptureOwner.dieIndex !== activeDieIndex) return;
+
+    const dieNumber = activeDieIndex + 1;
+
+    if (capturedDieNumbersRef.current.has(dieNumber)) return;
+
+    clearTimers();
 
     capturedDieNumbersRef.current.add(dieNumber);
     capturedResultsOwnerRef.current = activeVisualRoundIdRef.current;
@@ -350,108 +214,87 @@ liveCaptureTimerRef.current = window.setTimeout(() => {
 
       return [
         ...withoutDuplicate,
-        createBackendCapturedResult(label, dieNumber),
+        createVisibleCapturedResult(faceCaptureOwner.result, dieNumber),
       ].sort((a, b) => a.dieNumber - b.dieNumber);
     });
 
     setSettled(false);
-    setFaceResult(null);
     setFaceCaptureOwner(null);
 
     if (activeDieIndex < EXPECTED_DICE_RESULT_COUNT - 1) {
-      liveNextDieTimerRef.current = window.setTimeout(() => {
+      nextDieTimerRef.current = window.setTimeout(() => {
         setActiveDieIndex(activeDieIndex + 1);
-        liveDieStartedAtRef.current = Date.now();
+        setCaptureRequestKey(0);
         setResetKey((value) => value + 1);
-        liveNextDieTimerRef.current = null;
+        nextDieTimerRef.current = null;
       }, LIVE_DICE_CONFIRM_HOLD_MS);
-    } else {
-      liveNextDieTimerRef.current = window.setTimeout(() => {
-        setSequenceRunning(false);
-        liveNextDieTimerRef.current = null;
-      }, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
+
+      return;
     }
 
-    liveCaptureTimerRef.current = null;
-  }, LIVE_DICE_VISUAL_MS);
+    nextDieTimerRef.current = window.setTimeout(() => {
+      setSequenceRunning(false);
+      nextDieTimerRef.current = null;
+    }, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
+  }, [enabled, sequenceRunning, activeDieIndex, faceCaptureOwner]);
 
-  return () => {
-    if (liveCaptureTimerRef.current) {
-      window.clearTimeout(liveCaptureTimerRef.current);
-      liveCaptureTimerRef.current = null;
+  useEffect(() => {
+    if (capturedResults.length === 0) return;
+
+    const ownerRoundId = capturedResultsOwnerRef.current;
+
+    if (!ownerRoundId || ownerRoundId !== activeVisualRoundIdRef.current) {
+      return;
     }
-  };
-}, [
-  enabled,
-  sequenceRunning,
-  activeDieIndex,
-  hasBackendLiveResults,
-  backendResultKey,
-]);
 
-useEffect(() => {
-  if (capturedResults.length === 0) return;
+    onProgressRef.current?.(
+      createThreeDiceRoundPayload(capturedResults, sequenceRunning),
+      ownerRoundId
+    );
+  }, [capturedResults, sequenceRunning]);
 
-  const ownerRoundId = capturedResultsOwnerRef.current;
+  useEffect(() => {
+    if (sequenceRunning) return;
+    if (capturedResults.length !== EXPECTED_DICE_RESULT_COUNT) return;
 
-  if (!ownerRoundId || ownerRoundId !== activeVisualRoundIdRef.current) {
-    return;
-  }
+    const ownerRoundId = capturedResultsOwnerRef.current;
 
-  onProgressRef.current?.(
-    createThreeDiceRoundPayload(capturedResults, sequenceRunning),
-    ownerRoundId
-  );
-}, [capturedResults, sequenceRunning]);
+    if (!ownerRoundId || ownerRoundId !== activeVisualRoundIdRef.current) {
+      return;
+    }
 
-useEffect(() => {
-  if (sequenceRunning || capturedResults.length !== EXPECTED_DICE_RESULT_COUNT) {
-    return;
-  }
+    if (completionSentRef.current) return;
 
-  const ownerRoundId = capturedResultsOwnerRef.current;
+    completionSentRef.current = true;
 
-  if (!ownerRoundId || ownerRoundId !== activeVisualRoundIdRef.current) {
-    return;
-  }
+    onCompleteRef.current(
+      createThreeDiceRoundPayload(capturedResults, false),
+      ownerRoundId
+    );
+  }, [sequenceRunning, capturedResults]);
 
-  if (completionSentRef.current) return;
-
-  completionSentRef.current = true;
-
-  onComplete(
-    createThreeDiceRoundPayload(capturedResults, false),
-    ownerRoundId
-  );
-}, [sequenceRunning, capturedResults, onComplete]);
-
-const visualSequenceRunning =
-  sequenceRunning || (enabled && hasBackendLiveResults);
-
-const shouldRenderLiveDiceStage =
-  enabled || (isLiveReconnectDisplay && visualSequenceRunning);
-
-const targetAnimal = null;
+  const stageMountedDiceRackMode: MountedDiceRackMode = sequenceRunning
+    ? mountedDiceRackMode
+    : mountedDiceRackMode;
 
   return (
     <div
       className={`relative h-full min-h-[360px] overflow-hidden rounded-[1.6rem] border border-amber-300/15 bg-black/35 ${className}`}
     >
-<ThreeDicePhysicsStage
-  resetKey={resetKey}
-  onSettledChange={setSettled}
-  onFaceResultChange={handleFaceResultChange}
-  debugPhysics={false}
-  testMode="trap"
-  activeDieIndex={activeDieIndex}
-  sequenceRunning={visualSequenceRunning}
-  displayOnly={!shouldRenderLiveDiceStage}
-  variant="room"
-  mountedDiceRackMode={stageMountedDiceRackMode}
-  targetAnimal={null}
-  targetCorrectionTestEnabled={false}
-  hideActiveDiceFaces={false}
-/>
+      <ThreeDicePhysicsStage
+        resetKey={resetKey}
+        onSettledChange={setSettled}
+        onFaceResultChange={handleFaceResultChange}
+        debugPhysics={false}
+        testMode="trap"
+        activeDieIndex={activeDieIndex}
+        sequenceRunning={sequenceRunning}
+        displayOnly={!sequenceRunning}
+        variant="room"
+        mountedDiceRackMode={stageMountedDiceRackMode}
+        hideActiveDiceFaces={false}
+        captureRequestKey={captureRequestKey}
+      />
 
       {showInternalResultStrip ? (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 w-[min(92%,360px)] -translate-x-1/2 rounded-2xl border border-amber-300/20 bg-black/60 p-3 text-center shadow-2xl shadow-black/60 backdrop-blur-md">
