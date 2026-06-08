@@ -13,9 +13,9 @@ import ThreeDicePhysicsStage, {
 
 const EXPECTED_DICE_RESULT_COUNT = 3;
 
-const LIVE_DICE_CONFIRM_HOLD_MS = 1000;
-const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 1200;
-const LIVE_DICE_DIRECTOR_CAPTURE_MS = 5600;
+const LIVE_DICE_CONFIRM_HOLD_MS = 1300;
+const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 1800;
+const LIVE_DICE_DIRECTOR_CAPTURE_MS = 8200;
 
 type ThreeDiceSequenceControllerProps = {
   enabled: boolean;
