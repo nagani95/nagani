@@ -1,3 +1,5 @@
+//src>components>games>six-animal>ThreeDiceSequenceController.tsx
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";

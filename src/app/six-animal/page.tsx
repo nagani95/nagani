@@ -19,8 +19,8 @@ import type { SixAnimalKey } from "@/types/games";
 
 const ROOM_BACKGROUND = naganiAssets.sixAnimal.room.palaceBgV1;
 
-const RESULT_REVEAL_DELAY_MS = 2000;
-const SETTLEMENT_MOMENT_MS = 2200;
+const RESULT_REVEAL_DELAY_MS = 900;
+const SETTLEMENT_POPUP_DELAY_MS = 1400;
 
 const ROOM_SOUND_ENABLED = false;
 
@@ -299,15 +299,9 @@ async function applyLiveRound(round: LiveSixAnimalRound) {
   const isSwitchingRound =
     Boolean(roundIdRef.current) && roundIdRef.current !== round.id;
 
-  const shouldDeferNextBettingUntilSettlementEnds =
-    nextPhase === "betting" &&
-    isSwitchingRound &&
-    showSettlementMomentRef.current;
-
-  if (shouldDeferNextBettingUntilSettlementEnds) {
-    pendingBettingRoundRef.current = round;
-    return;
-  }
+// When backend opens the next betting round, switch immediately.
+// The settlement card stays visible only until the new betting round is applied.
+pendingBettingRoundRef.current = null;
 
   if (isSwitchingRound) {
     clearVisibleDiceRoundState();
@@ -378,9 +372,16 @@ const shouldHoldLocalVisualRollingPhase =
   hasBackendDiceTimeline &&
   !hasCompleteVisualDiceResult;
 
-const displayPhase: RoundPhase = shouldHoldLocalVisualRollingPhase
-  ? "rolling"
-  : nextPhase;
+const shouldHoldCompletedVisualResultPhase =
+  nextPhase === "rolling" &&
+  hasBackendDiceTimeline &&
+  hasCompleteVisualDiceResult;
+
+const displayPhase: RoundPhase = shouldHoldCompletedVisualResultPhase
+  ? "result"
+  : shouldHoldLocalVisualRollingPhase
+    ? "rolling"
+    : nextPhase;
 
 roundIdRef.current = round.id;
 phaseRef.current = displayPhase;
@@ -1019,11 +1020,11 @@ visualActiveRoundIdRef.current = payloadRoundId;
 setShouldPlayLiveDiceSequence(false);
 shouldPlayLiveDiceSequenceRef.current = false;
 
-setShowSettlementMoment(true);
-showSettlementMomentRef.current = true;
+setShowSettlementMoment(false);
+showSettlementMomentRef.current = false;
 
-setSettlementWaitingRoundId(null);
-settlementWaitingRoundIdRef.current = null;
+setSettlementWaitingRoundId(payloadRoundId);
+settlementWaitingRoundIdRef.current = payloadRoundId;
 setPhase("result");
 
 if (settlementMomentTimerRef.current) {
@@ -1031,31 +1032,19 @@ if (settlementMomentTimerRef.current) {
 }
 
 settlementMomentTimerRef.current = window.setTimeout(() => {
-  setShowSettlementMoment(false);
-  showSettlementMomentRef.current = false;
+  if (
+    settlementWaitingRoundIdRef.current !== payloadRoundId ||
+    roundIdRef.current !== payloadRoundId
+  ) {
+    settlementMomentTimerRef.current = null;
+    return;
+  }
 
-  // No separate post-settlement pause panel.
-  // The final dice and result board remain visible until backend opens betting.
-  setSettlementWaitingRoundId(null);
-  settlementWaitingRoundIdRef.current = null;
-
-  setShowInRoomNextRoundPause(false);
-  showInRoomNextRoundPauseRef.current = false;
-
-  setIsWaitingForNextRound(false);
-  setShowRoomIntro(false);
-
-  const pendingBettingRound = pendingBettingRoundRef.current;
-  pendingBettingRoundRef.current = null;
+  setShowSettlementMoment(true);
+  showSettlementMomentRef.current = true;
 
   settlementMomentTimerRef.current = null;
-
-  if (pendingBettingRound) {
-    void applyLiveRound(pendingBettingRound);
-  } else {
-    void fetchLatestLiveRound();
-  }
-}, SETTLEMENT_MOMENT_MS);
+}, SETTLEMENT_POPUP_DELAY_MS);
 
     if (resultRevealTimerRef.current) {
       window.clearTimeout(resultRevealTimerRef.current);
@@ -1088,6 +1077,14 @@ function handleThreeDiceProgress(
   ) {
     return;
   }
+
+  if (
+  isVisualDiceCompleteRef.current &&
+  visualCompleteRoundIdRef.current === payloadRoundId
+) {
+  return;
+}
+
     const resultNames = convertThreeDicePayloadToMyanmarResult(payload);
 
     if (resultNames.length > lastDiceSoundCountRef.current) {
