@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
+import { logout } from "@/lib/supabase/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -157,7 +158,7 @@ export default async function AdminPage() {
     "Monitor wallet safety, duplicate bets, unsettled bets, and Six Animal debit/payout flow.",
   href: "/admin/financial-integrity",
   stat: "Safe",
-  label: "Wallet",
+  label: "Wallet",import { createClient } from "@/lib/supabase/server";
 },
 {
   title: "၆ ကောင်ဂျင်",
@@ -240,12 +241,23 @@ const errors = [
             </p>
           </div>
 
-          <Link
-            href="/"
-            className="w-fit rounded-full border border-amber-400/20 bg-amber-400/10 px-5 py-3 text-sm font-black text-amber-100"
-          >
-            Open Lobby
-          </Link>
+<div className="flex flex-col gap-3 sm:flex-row">
+  <Link
+    href="/"
+    className="w-fit rounded-full border border-amber-400/20 bg-amber-400/10 px-5 py-3 text-center text-sm font-black text-amber-100"
+  >
+    Open Lobby
+  </Link>
+
+  <form action={logout}>
+    <button
+      type="submit"
+      className="w-fit rounded-full border border-red-400/25 bg-red-500/10 px-5 py-3 text-sm font-black text-red-100 transition hover:bg-red-400 hover:text-black"
+    >
+      Logout
+    </button>
+  </form>
+</div>
         </header>
 
         {errors.length > 0 ? (
