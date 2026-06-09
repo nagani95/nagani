@@ -1,53 +1,74 @@
-//src>app>cashier>page.tsx
+// src/app/cashier/page.tsx
 
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import CashierHero from "@/components/cashier/CashierHero";
 import CashierNote from "@/components/cashier/CashierNote";
 import CashierRecentTickets from "@/components/cashier/CashierRecentTickets";
 import CashierRequestForm from "@/components/cashier/CashierRequestForm";
 import AppShell from "@/components/layout/AppShell";
+import { createClient } from "@/lib/supabase/client";
 
 type CashierTab = "deposit" | "withdraw";
 
-const recentTickets = [
-  {
-    id: "NG-WALLET-1003",
-    type: "Deposit",
-    amount: 50000,
-    status: "Pending review",
-    time: "Today",
-  },
-  {
-    id: "NG-WALLET-1002",
-    type: "Withdraw",
-    amount: 30000,
-    status: "Confirmed",
-    time: "Yesterday",
-  },
-  {
-    id: "NG-WALLET-1001",
-    type: "Deposit",
-    amount: 100000,
-    status: "Confirmed",
-    time: "2 days ago",
-  },
-];
+type WalletRequestRow = {
+  id: string;
+  request_type: "deposit" | "withdraw";
+  amount: number | string;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  created_at: string;
+};
+
+type CashierTicket = {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  time: string;
+};
 
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
-export default function CashierPage() {
+function formatTicketTime(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Yangon",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatRequestType(type: WalletRequestRow["request_type"]) {
+  return type === "deposit" ? "Deposit" : "Withdraw";
+}
+
+function formatRequestStatus(status: WalletRequestRow["status"]) {
+  if (status === "approved") return "Confirmed";
+  if (status === "rejected") return "Rejected";
+  if (status === "cancelled") return "Cancelled";
+
+  return "Pending review";
+}
+
+function CashierPageContent() {
+  const searchParams = useSearchParams();
+  const successMessage = searchParams.get("message");
+  const errorMessage = searchParams.get("error");
+
+  const [supabase] = useState(() => createClient());
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [recentTickets, setRecentTickets] = useState<CashierTicket[]>([]);
+
   const [activeTab, setActiveTab] = useState<CashierTab>("deposit");
   const [amount, setAmount] = useState("10000");
   const [note, setNote] = useState("");
-  const [mockRequestMessage, setMockRequestMessage] = useState<string | null>(
-    null
-  );
 
   const numericAmount = Number(amount || 0);
   const isValidAmount = numericAmount >= 1000;
@@ -58,29 +79,66 @@ export default function CashierPage() {
       : "Submit Withdraw Request";
   }, [activeTab]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchCashierData() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: wallet } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("profile_id", user.id)
+        .maybeSingle<{ balance: number | string | null }>();
+
+      const { data: requests } = await supabase
+        .from("wallet_requests")
+        .select("id, request_type, amount, status, created_at")
+        .eq("profile_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10)
+        .returns<WalletRequestRow[]>();
+
+      if (!isMounted) return;
+
+      setWalletBalance(Number(wallet?.balance ?? 0));
+
+      setRecentTickets(
+        (requests ?? []).map((request) => ({
+          id: `NG-WALLET-${request.id.slice(0, 8).toUpperCase()}`,
+          type: formatRequestType(request.request_type),
+          amount: Number(request.amount),
+          status: formatRequestStatus(request.status),
+          time: formatTicketTime(request.created_at),
+        }))
+      );
+    }
+
+    void fetchCashierData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase, successMessage]);
+
   function handleTabChange(tab: CashierTab) {
     setActiveTab(tab);
-    setMockRequestMessage(null);
   }
 
   function handleAmountChange(value: string) {
     setAmount(value);
-    setMockRequestMessage(null);
   }
 
   function handleNoteChange(value: string) {
     setNote(value);
-    setMockRequestMessage(null);
   }
 
   function handleSubmitRequest() {
-    if (!isValidAmount) return;
-
-    const requestType = activeTab === "deposit" ? "Deposit" : "Withdraw";
-
-    setMockRequestMessage(
-      `${requestType} request prepared • ${formatMMK(numericAmount)} MMK`
-    );
+    // Server action handles submit now.
   }
 
   return (
@@ -95,7 +153,19 @@ export default function CashierPage() {
         </div>
       </header>
 
-      <CashierHero balanceLabel="0 MMK" />
+      <CashierHero balanceLabel={`${formatMMK(walletBalance)} MMK`} />
+
+      {successMessage ? (
+        <div className="mt-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-100">
+          {successMessage}
+        </div>
+      ) : null}
+
+      {errorMessage ? (
+        <div className="mt-4 rounded-[1.25rem] border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-100">
+          {errorMessage}
+        </div>
+      ) : null}
 
       <CashierRequestForm
         activeTab={activeTab}
@@ -110,15 +180,25 @@ export default function CashierPage() {
         onSubmitRequest={handleSubmitRequest}
       />
 
-      {mockRequestMessage && (
-        <div className="mt-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-100">
-          {mockRequestMessage}
-        </div>
-      )}
-
       <CashierRecentTickets tickets={recentTickets} />
 
       <CashierNote />
     </AppShell>
+  );
+}
+
+export default function CashierPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell>
+          <div className="rounded-[1.5rem] border border-amber-400/20 bg-black/40 p-5 text-sm font-bold text-amber-100">
+            Loading cashier...
+          </div>
+        </AppShell>
+      }
+    >
+      <CashierPageContent />
+    </Suspense>
   );
 }

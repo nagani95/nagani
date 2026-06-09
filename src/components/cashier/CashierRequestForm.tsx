@@ -1,4 +1,6 @@
-//src>components>cashier>CashierRequestForm.tsx
+// src/components/cashier/CashierRequestForm.tsx
+
+import { submitWalletRequest } from "@/lib/supabase/walletRequests";
 
 type CashierTab = "deposit" | "withdraw";
 
@@ -29,10 +31,14 @@ export default function CashierRequestForm({
   onTabChange,
   onAmountChange,
   onNoteChange,
-  onSubmitRequest,
 }: CashierRequestFormProps) {
   return (
-    <section className="mt-6 rounded-[1.75rem] border border-amber-400/20 bg-black/45 p-4 shadow-xl shadow-black/40">
+    <form
+      action={submitWalletRequest}
+      className="mt-6 rounded-[1.75rem] border border-amber-400/20 bg-black/45 p-4 shadow-xl shadow-black/40"
+    >
+      <input type="hidden" name="requestType" value={activeTab} />
+
       <div className="grid grid-cols-2 gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1">
         <button
           type="button"
@@ -66,6 +72,7 @@ export default function CashierRequestForm({
 
         <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
           <input
+            name="amount"
             value={amount}
             onChange={(event) => onAmountChange(event.target.value)}
             inputMode="numeric"
@@ -97,6 +104,7 @@ export default function CashierRequestForm({
         </p>
 
         <textarea
+          name="note"
           value={note}
           onChange={(event) => onNoteChange(event.target.value)}
           rows={3}
@@ -129,9 +137,8 @@ export default function CashierRequestForm({
       </div>
 
       <button
-        type="button"
+        type="submit"
         disabled={!isValidAmount}
-        onClick={onSubmitRequest}
         className={
           isValidAmount
             ? "mt-5 w-full rounded-full bg-gradient-to-b from-amber-200 to-amber-400 px-5 py-4 text-sm font-black text-black shadow-xl shadow-amber-950/40 transition active:scale-[0.98]"
@@ -146,6 +153,6 @@ export default function CashierRequestForm({
           Minimum request amount is 1,000 MMK.
         </p>
       )}
-    </section>
+    </form>
   );
 }
