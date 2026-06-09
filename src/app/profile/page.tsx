@@ -1,29 +1,29 @@
-//src>app>profile>page.tsx
-
-"use client";
+// src/app/profile/page.tsx
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
+import AppShell from "@/components/layout/AppShell";
 import ProfileAccountStatus from "@/components/profile/ProfileAccountStatus";
 import ProfileMemberCard from "@/components/profile/ProfileMemberCard";
 import ProfileQuickActions from "@/components/profile/ProfileQuickActions";
 import ProfileStatsGrid from "@/components/profile/ProfileStatsGrid";
 import ProfileSupportSecurity from "@/components/profile/ProfileSupportSecurity";
-import AppShell from "@/components/layout/AppShell";
+import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/supabase/auth";
 
 const memberStats = [
   {
     label: "Total Bets",
-    value: "24",
+    value: "0",
   },
   {
     label: "Wins",
-    value: "8",
+    value: "0",
   },
   {
     label: "Wallet Tickets",
-    value: "3",
+    value: "0",
   },
   {
     label: "Member Level",
@@ -35,7 +35,38 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
-export default function ProfilePage() {
+function formatMemberId(userId: string) {
+  return `NG-${userId.slice(0, 8).toUpperCase()}`;
+}
+
+export default async function ProfilePage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .maybeSingle<{ username: string | null }>();
+
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("profile_id", user.id)
+    .maybeSingle<{ balance: number | string | null }>();
+
+  const balance = Number(wallet?.balance ?? 0);
+
+  const memberName =
+    profile?.username || user.email || (user.is_anonymous ? "Demo Player" : "Nagani Member");
+
   return (
     <AppShell>
       <header className="flex items-center justify-between">
@@ -49,9 +80,9 @@ export default function ProfilePage() {
       </header>
 
       <ProfileMemberCard
-        memberName="Member 4821"
-        memberId="NG-4821"
-        balanceLabel={`${formatMMK(0)} MMK`}
+        memberName={memberName}
+        memberId={formatMemberId(user.id)}
+        balanceLabel={`${formatMMK(balance)} MMK`}
       />
 
       <ProfileStatsGrid stats={memberStats} />
@@ -62,14 +93,14 @@ export default function ProfilePage() {
 
       <ProfileSupportSecurity />
 
-<form action={logout}>
-  <button
-    type="submit"
-    className="mt-6 w-full rounded-full border border-red-400/20 bg-red-400/10 px-5 py-4 text-sm font-black text-red-100"
-  >
-    Logout
-  </button>
-</form>
+      <form action={logout}>
+        <button
+          type="submit"
+          className="mt-6 w-full rounded-full border border-red-400/20 bg-red-400/10 px-5 py-4 text-sm font-black text-red-100"
+        >
+          Logout
+        </button>
+      </form>
     </AppShell>
   );
 }

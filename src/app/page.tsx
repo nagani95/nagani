@@ -26,10 +26,28 @@ const games = [
   },
 ];
 
+function formatMMK(amount: number) {
+  return new Intl.NumberFormat("en-US").format(amount);
+}
+
 export default async function HomePage() {
   // 1. Check if user already has an active anonymous session
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+const supabase = await createClient();
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+let walletBalance = 0;
+
+if (user) {
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("profile_id", user.id)
+    .maybeSingle<{ balance: number | string | null }>();
+
+  walletBalance = Number(wallet?.balance ?? 0);
+}
 
   return (
     <AppShell>
@@ -86,7 +104,10 @@ export default async function HomePage() {
 )}
       </header>
 
-      <LobbyHero balanceLabel={user ? "Wallet Active" : "0 MMK"} statusLabel="Open" />
+<LobbyHero
+  balanceLabel={`${formatMMK(walletBalance)} MMK`}
+  statusLabel="Open"
+/>
 
       <LobbyGameCards games={games} />
 
