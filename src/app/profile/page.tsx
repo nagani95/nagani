@@ -10,6 +10,7 @@ import ProfileQuickActions from "@/components/profile/ProfileQuickActions";
 import ProfileStatsGrid from "@/components/profile/ProfileStatsGrid";
 import ProfileSupportSecurity from "@/components/profile/ProfileSupportSecurity";
 import AppShell from "@/components/layout/AppShell";
+import { logout } from "@/lib/supabase/auth";
 
 const memberStats = [
   {
@@ -61,12 +62,14 @@ export default function ProfilePage() {
 
       <ProfileSupportSecurity />
 
-      <button
-        type="button"
-        className="mt-6 w-full rounded-full border border-red-400/20 bg-red-400/10 px-5 py-4 text-sm font-black text-red-100"
-      >
-        Logout
-      </button>
+<form action={logout}>
+  <button
+    type="submit"
+    className="mt-6 w-full rounded-full border border-red-400/20 bg-red-400/10 px-5 py-4 text-sm font-black text-red-100"
+  >
+    Logout
+  </button>
+</form>
     </AppShell>
   );
 }

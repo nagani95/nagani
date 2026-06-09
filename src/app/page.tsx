@@ -1,5 +1,7 @@
 //src>app>page.tsx
 
+import Link from "next/link";
+
 import AppShell from "@/components/layout/AppShell";
 import LobbyGameCards from "@/components/nagani/LobbyGameCards";
 import LobbyHero from "@/components/nagani/LobbyHero";
@@ -7,6 +9,7 @@ import LobbyRecentActivity from "@/components/nagani/LobbyRecentActivity";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { signInAnonymously } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
+
 
 const games = [
   {
@@ -51,20 +54,36 @@ export default async function HomePage() {
         </div>
 
         {/* 2. Show connected status, or the login button */}
-        {user ? (
-          <div className="rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1 text-xs font-bold text-green-200">
-            Wallet Connected
-          </div>
-        ) : (
-          <form action={signInAnonymously}>
-            <button
-              type="submit"
-              className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-bold text-amber-200 hover:bg-amber-400/20 hover:text-white transition-colors cursor-pointer"
-            >
-              Play Demo
-            </button>
-          </form>
-        )}
+{user ? (
+  <div className="rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1 text-xs font-bold text-green-200">
+    Wallet Connected
+  </div>
+) : (
+<div className="flex items-center gap-2">
+  <Link
+    href="/login"
+    className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-bold text-amber-200 transition hover:bg-amber-400/20 hover:text-white"
+  >
+    Login
+  </Link>
+
+  <Link
+    href="/register"
+    className="rounded-full border border-amber-300/40 bg-amber-300 px-4 py-2 text-xs font-black text-[#210807] shadow-lg shadow-black/20 transition hover:bg-amber-200"
+  >
+    Register
+  </Link>
+
+  <form action={signInAnonymously}>
+    <button
+      type="submit"
+      className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-bold text-amber-200 transition-colors hover:bg-amber-400/20 hover:text-white"
+    >
+      Play Demo
+    </button>
+  </form>
+</div>
+)}
       </header>
 
       <LobbyHero balanceLabel={user ? "Wallet Active" : "0 MMK"} statusLabel="Open" />

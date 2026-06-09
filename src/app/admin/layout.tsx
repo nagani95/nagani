@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -60,12 +61,12 @@ function AdminBlockedScreen({
               Open Lobby
             </Link>
 
-            <Link
-              href="/dev/login"
-              className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-sm font-black text-white/70"
-            >
-              Dev Login
-            </Link>
+<Link
+  href="/admin/login"
+  className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-sm font-black text-white/70"
+>
+  Admin Login
+</Link>
           </div>
 
           <p className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4 text-xs leading-5 text-white/45">
@@ -80,6 +81,13 @@ function AdminBlockedScreen({
 }
 
 export default async function AdminLayout({ children }: AdminLayoutProps) {
+  const headerStore = await headers();
+  const pathname = headerStore.get("x-nagani-pathname");
+
+  if (pathname === "/admin/login") {
+    return children;
+  }
+
   const supabase = await createClient();
 
   const {
