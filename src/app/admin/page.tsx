@@ -158,7 +158,7 @@ export default async function AdminPage() {
     "Monitor wallet safety, duplicate bets, unsettled bets, and Six Animal debit/payout flow.",
   href: "/admin/financial-integrity",
   stat: "Safe",
-  label: "Wallet",import { createClient } from "@/lib/supabase/server";
+  label: "Wallet",
 },
 {
   title: "၆ ကောင်ဂျင်",
