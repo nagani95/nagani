@@ -12,6 +12,11 @@ import type {
   MountedDiceRackMode,
   ThreeDiceRoundPayload,
 } from "@/components/games/six-animal/ThreeDicePhysicsStage";
+import SettlementPopup from "@/components/games/six-animal/SettlementPopup";
+import {
+  RoyalRoomAtmosphere,
+  RoyalTableChamberBackdrop,
+} from "@/components/games/six-animal/RoyalRoomAtmosphere";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import { convertThreeDicePayloadToMyanmarResult } from "@/lib/threeDiceResultAdapter";
 import { createClient } from "@/lib/supabase/client";
@@ -111,40 +116,6 @@ type SixAnimalSoundEvent =
 
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
-}
-
-function RoyalRoomAtmosphere() {
-  return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-52 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.13),rgba(127,29,29,0.08)_34%,transparent_72%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.42),transparent_24%,transparent_76%,rgba(0,0,0,0.42))]" />
-      <div className="absolute inset-x-8 bottom-0 h-60 bg-[radial-gradient(circle_at_50%_100%,rgba(127,29,29,0.18),transparent_68%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.12),transparent_32%,rgba(0,0,0,0.34))]" />
-    </div>
-  );
-}
-
-function RoyalTableChamberBackdrop() {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.1),transparent_24%,rgba(0,0,0,0.5)_100%)]" />
-
-      <div className="absolute inset-y-0 left-0 w-[34%] bg-[linear-gradient(90deg,rgba(30,7,3,0.82),rgba(69,22,8,0.36)_42%,transparent_100%)]" />
-      <div className="absolute inset-y-0 right-0 w-[34%] bg-[linear-gradient(270deg,rgba(30,7,3,0.82),rgba(69,22,8,0.36)_42%,transparent_100%)]" />
-
-      <div className="absolute left-0 top-20 bottom-10 w-[22%] bg-[radial-gradient(ellipse_at_0%_45%,rgba(120,53,15,0.24),rgba(251,191,36,0.055)_34%,transparent_72%)] shadow-[inset_-18px_0_34px_rgba(0,0,0,0.28)]" />
-      <div className="absolute right-0 top-20 bottom-10 w-[22%] bg-[radial-gradient(ellipse_at_100%_45%,rgba(120,53,15,0.24),rgba(251,191,36,0.055)_34%,transparent_72%)] shadow-[inset_18px_0_34px_rgba(0,0,0,0.28)]" />
-
-      <div className="absolute left-0 top-10 bottom-8 w-20 bg-[linear-gradient(90deg,rgba(120,53,15,0.28),rgba(251,191,36,0.08),transparent)]" />
-      <div className="absolute right-0 top-10 bottom-8 w-20 bg-[linear-gradient(270deg,rgba(120,53,15,0.28),rgba(251,191,36,0.08),transparent)]" />
-
-      <div className="absolute left-5 top-8 bottom-10 w-[2px] bg-gradient-to-b from-transparent via-amber-200/24 to-transparent" />
-      <div className="absolute right-5 top-8 bottom-10 w-[2px] bg-gradient-to-b from-transparent via-amber-200/24 to-transparent" />
-
-      <div className="absolute inset-x-6 bottom-0 h-44 bg-[radial-gradient(ellipse_at_50%_100%,rgba(127,29,29,0.34),rgba(69,10,10,0.18)_38%,transparent_74%)]" />
-      <div className="absolute inset-x-10 top-4 h-px bg-gradient-to-r from-transparent via-amber-200/22 to-transparent" />
-    </div>
-  );
 }
 
 function getAnimalByNameMm(nameMm: string) {
@@ -1570,103 +1541,17 @@ const isCurrent =
 ) : null}
 
             {showSettlementSheet && activeBet ? (
-              <div
-                className={`pointer-events-none absolute inset-x-3 top-[60%] z-50 mx-auto max-w-[390px] -translate-y-1/2 overflow-hidden rounded-[1.45rem] border p-2.5 shadow-[0_22px_54px_rgba(0,0,0,0.82),inset_0_1px_0_rgba(251,191,36,0.16),inset_0_-18px_32px_rgba(0,0,0,0.34)] backdrop-blur-xl ${
-                 isResultWin
-                    ? "border-emerald-300/28 bg-[linear-gradient(145deg,rgba(6,78,59,0.34),rgba(5,1,1,0.82),rgba(45,7,3,0.66))]"
-                    : "border-red-300/22 bg-[linear-gradient(145deg,rgba(92,15,12,0.48),rgba(5,1,1,0.84),rgba(45,7,3,0.62))]"
-                }`}
-              >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.12),transparent_64%)]" />
-                                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/55 to-transparent" />
-                <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-300/25 to-transparent" />
-                <div className="pointer-events-none absolute inset-y-4 left-0 w-px bg-gradient-to-b from-transparent via-amber-200/20 to-transparent" />
-                <div className="pointer-events-none absolute inset-y-4 right-0 w-px bg-gradient-to-b from-transparent via-amber-200/20 to-transparent" />
-
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border shadow-inner shadow-black/35 ${
-                          isResultWin
-                            ? "border-emerald-300/25 bg-emerald-400/10"
-                            : "border-red-300/20 bg-red-500/10"
-                        }`}
-                      >
-                        {activeBetAnimal ? (
-                          <img
-                            src={ANIMAL_ASSETS[activeBetAnimal.key]}
-                            alt={activeBetAnimal.name}
-                            className="h-8 w-8 object-contain drop-shadow-[0_0_12px_rgba(251,191,36,0.45)]"
-                          />
-                        ) : (
-<span className="text-xs font-black text-amber-100">
-  {activeBetDisplayName}
-</span>
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-200/55">
-                          Settlement
-                        </p>
-                        <p className="truncate text-sm font-black text-white">
-                          {activeBetDisplayName} · Match {matchCount}/3
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`shrink-0 rounded-full border px-3 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${
-                        isResultWin
-                          ? "border-emerald-200/35 bg-emerald-300/18 text-emerald-100"
-                          : "border-red-200/25 bg-red-500/12 text-red-100"
-                      }`}
-                    >
-                      {resultStatusLabel}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 grid grid-cols-3 gap-1.5">
-                    <div className="rounded-xl border border-amber-300/12 bg-black/28 p-2 text-center shadow-inner shadow-black/30">
-                      <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
-                        Bet
-                      </p>
-                      <p className="mt-1 text-[11px] font-black text-white">
-                        {formatMMK(activeBet.amount)} MMK
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-amber-300/12 bg-black/28 p-2 text-center shadow-inner shadow-black/30">
-                      <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
-                        Return
-                      </p>
-                      <p className="mt-1 text-[11px] font-black text-amber-100">
-                        {formatMMK(displayPayoutAmount)} MMK
-                      </p>
-                    </div>
-
-                    <div
-                      className={`rounded-xl border p-2 text-center ${
-                        isResultWin
-                          ? "border-emerald-300/25 bg-emerald-400/10"
-                          : "border-red-300/20 bg-red-500/10"
-                      }`}
-                    >
-                      <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
-                        Net
-                      </p>
-                      <p
-                        className={`mt-1 text-[11px] font-black ${
-                          isResultWin ? "text-emerald-100" : "text-red-100"
-                        }`}
-                      >
-                        {netResultLabel}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <SettlementPopup
+                activeBetAnimal={activeBetAnimal ?? null}
+                activeBetDisplayName={activeBetDisplayName}
+                activeBetAmount={activeBet.amount}
+                matchCount={matchCount}
+                displayPayoutAmount={displayPayoutAmount}
+                netResultLabel={netResultLabel}
+                resultStatusLabel={resultStatusLabel}
+                isResultWin={isResultWin}
+                animalAssets={ANIMAL_ASSETS}
+              />
             ) : null}
 
                         {showNextRoundPause ? (
