@@ -13,10 +13,10 @@ import type {
   ThreeDiceRoundPayload,
 } from "@/components/games/six-animal/ThreeDicePhysicsStage";
 import SettlementPopup from "@/components/games/six-animal/SettlementPopup";
-import {
-  RoyalRoomAtmosphere,
-  RoyalTableChamberBackdrop,
-} from "@/components/games/six-animal/RoyalRoomAtmosphere";
+import FloatingResultBoard from "@/components/games/six-animal/FloatingResultBoard";
+import { RoyalRoomAtmosphere } from "@/components/games/six-animal/RoyalRoomAtmosphere";
+import RoyalTableChamberBackdrop from "@/components/games/six-animal/RoyalTableChamberBackdrop";
+import RoomIntroOverlay from "@/components/games/six-animal/RoomIntroOverlay";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import { convertThreeDicePayloadToMyanmarResult } from "@/lib/threeDiceResultAdapter";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +30,8 @@ const SETTLEMENT_POPUP_DELAY_MS = 1400;
 const ROOM_SOUND_ENABLED = false;
 
 const SIX_ANIMAL_ROOM_UUID = "11111111-1111-1111-1111-111111111111";
+const AUTO_SEAL_COUNTDOWN_SECONDS = 6;
+const BET_AMOUNT_STEP = 1000;
 
 type LiveSixAnimalRound = {
   id: string;
@@ -197,6 +199,8 @@ const settlementWaitingRoundIdRef = useRef<string | null>(null);
 const showInRoomNextRoundPauseRef = useRef(false);
 const showSettlementMomentRef = useRef(false);
 const pendingBettingRoundRef = useRef<LiveSixAnimalRound | null>(null);
+const isSubmittingBetRef = useRef(false);
+const autoSealRoundIdRef = useRef<string | null>(null);
 
 function clearVisibleDiceRoundState() {
   setDiceResult([]);
@@ -284,12 +288,16 @@ async function applyLiveRound(round: LiveSixAnimalRound) {
 // The settlement card stays visible only until the new betting round is applied.
 pendingBettingRoundRef.current = null;
 
-  if (isSwitchingRound) {
-    clearVisibleDiceRoundState();
-    setShouldPlayLiveDiceSequence(false);
-    shouldPlayLiveDiceSequenceRef.current = false;
-    setActiveBet(null);
-  }
+if (isSwitchingRound) {
+  clearVisibleDiceRoundState();
+  setShouldPlayLiveDiceSequence(false);
+  shouldPlayLiveDiceSequenceRef.current = false;
+  setActiveBet(null);
+  setSelectedAnimal(null);
+  setBetAmount(String(SIX_ANIMAL_RULES.minBet));
+  isSubmittingBetRef.current = false;
+  autoSealRoundIdRef.current = null;
+}
 
   roundIdRef.current = round.id;
 
@@ -522,17 +530,28 @@ showSettlementMomentRef.current = showSettlementMoment;
     return SIX_ANIMAL_OPTIONS.find((animal) => animal.key === selectedAnimal);
   }, [selectedAnimal]);
 
-  const numericBetAmount = Number(betAmount || 0);
-  const isBettingOpen = phase === "betting";
-  const canEditBet = isBettingOpen && !activeBet;
+const numericBetAmount = Number(betAmount || 0);
+const isBettingOpen = phase === "betting";
+const canEditBet = isBettingOpen && !activeBet;
 
-  const isBetValid =
-    canEditBet &&
-    Boolean(selectedAnimal) &&
-    Number.isFinite(numericBetAmount) &&
-    numericBetAmount >= SIX_ANIMAL_RULES.minBet &&
-    numericBetAmount <= SIX_ANIMAL_RULES.maxBet &&
-    roundId !== ""; 
+const walletStepAmount =
+  Math.floor(Math.max(0, walletBalance) / BET_AMOUNT_STEP) * BET_AMOUNT_STEP;
+
+const maxPlayableBetAmount = Math.min(
+  SIX_ANIMAL_RULES.maxBet,
+  walletStepAmount
+);
+
+const canAffordMinBet = maxPlayableBetAmount >= SIX_ANIMAL_RULES.minBet;
+
+const isBetValid =
+  canEditBet &&
+  Boolean(selectedAnimal) &&
+  canAffordMinBet &&
+  Number.isFinite(numericBetAmount) &&
+  numericBetAmount >= SIX_ANIMAL_RULES.minBet &&
+  numericBetAmount <= maxPlayableBetAmount &&
+  roundId !== "";
 
   const matchCount =
     activeBet && diceResult.length > 0
@@ -1080,37 +1099,85 @@ function handleThreeDiceProgress(
     if (!canEditBet) return;
     setSelectedAnimal(animal);
   }
+  function clampBetAmount(amount: number) {
+  if (!canAffordMinBet) return SIX_ANIMAL_RULES.minBet;
 
-  async function handlePlaceBet() {
-    if (!isBetValid || !selectedOption || !roundId) return;
+  return Math.min(
+    Math.max(SIX_ANIMAL_RULES.minBet, amount),
+    maxPlayableBetAmount
+  );
+}
 
-    setActiveBet({
-      animalKey: selectedOption.key,
-      animalNameMm: selectedOption.nameMm,
-      amount: numericBetAmount,
-      roundNumber,
-    });
-    joinedRoundIdRef.current = roundId;
-setJoinedRoundId(roundId);
+function setSafeBetAmount(amount: number) {
+  if (!canEditBet) return;
+  setBetAmount(String(clampBetAmount(amount)));
+}
 
-    const { data, error } = await supabase.rpc("place_six_animal_bet", {
-      p_round_id: roundId,
-      p_animal: selectedOption.key,
-      p_amount: numericBetAmount,
-    });
+function handleQuickAmountSelect(amount: number) {
+  setSafeBetAmount(amount);
+}
 
-    const response = data as any;
-    if (error || (response && response.success === false)) {
-      console.error("Bet rejected:", error?.message || response?.error);
-      setActiveBet(null);
-      return;
-    }
+function handleIncreaseBetAmount() {
+  setSafeBetAmount(numericBetAmount + BET_AMOUNT_STEP);
+}
 
-    playRoomSound("bet-locked");
-    if (response && response.new_balance !== undefined) {
-      setWalletBalance(response.new_balance);
-    }
+function handleDecreaseBetAmount() {
+  setSafeBetAmount(numericBetAmount - BET_AMOUNT_STEP);
+}
+
+async function handlePlaceBet() {
+  if (isSubmittingBetRef.current) return;
+  if (!isBetValid || !selectedOption || !roundId) return;
+
+  isSubmittingBetRef.current = true;
+  autoSealRoundIdRef.current = roundId;
+
+  setActiveBet({
+    animalKey: selectedOption.key,
+    animalNameMm: selectedOption.nameMm,
+    amount: numericBetAmount,
+    roundNumber,
+  });
+
+  joinedRoundIdRef.current = roundId;
+  setJoinedRoundId(roundId);
+
+  const { data, error } = await supabase.rpc("place_six_animal_bet", {
+    p_round_id: roundId,
+    p_animal: selectedOption.key,
+    p_amount: numericBetAmount,
+  });
+
+  const response = data as any;
+
+  if (error || (response && response.success === false)) {
+    console.error("Bet rejected:", error?.message || response?.error);
+    setActiveBet(null);
+    isSubmittingBetRef.current = false;
+    autoSealRoundIdRef.current = null;
+    return;
   }
+
+  playRoomSound("bet-locked");
+
+  if (response && response.new_balance !== undefined) {
+    setWalletBalance(response.new_balance);
+  }
+
+  isSubmittingBetRef.current = false;
+}
+
+useEffect(() => {
+  if (phase !== "betting") return;
+  if (!roundId) return;
+  if (activeBet) return;
+  if (!isBetValid) return;
+  if (countdown <= 0) return;
+  if (countdown > AUTO_SEAL_COUNTDOWN_SECONDS) return;
+  if (autoSealRoundIdRef.current === roundId) return;
+
+  void handlePlaceBet();
+}, [phase, roundId, countdown, activeBet, isBetValid, selectedAnimal, betAmount]);
 
   return (
     <main
@@ -1137,33 +1204,12 @@ setJoinedRoundId(roundId);
         </div>
       ) : null}
 
-      {showRoomIntro ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black">
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-100"
-            style={{ backgroundImage: `url(${ROOM_BACKGROUND})` }}
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.18),rgba(20,3,3,0.24),rgba(0,0,0,0.38))]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,transparent_0%,rgba(0,0,0,0.18)_48%,rgba(0,0,0,0.55)_100%)]" />
-
-          <div className="relative mx-5 w-full max-w-sm rounded-[2rem] border border-amber-300/25 bg-black/70 p-6 text-center shadow-2xl shadow-red-950/50 backdrop-blur-xl">
-            <p className="text-[10px] font-black uppercase tracking-[0.38em] text-amber-200/70">
-              {isWaitingForNextRound ? "Round In Progress" : "Entering Live Room"}
-            </p>
-<h1 className="mt-3 text-3xl font-black text-amber-50">
-  Six Animal
-</h1>
-            <p className="mt-3 text-sm font-bold leading-relaxed text-white/65">
-              {isWaitingForNextRound 
-                ? "Please wait for the current round to finish. You will be joined when betting opens." 
-                : "Preparing table, dice, and live round timer."}
-            </p>
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-2/3 animate-pulse rounded-full bg-amber-300" />
-            </div>
-          </div>
-        </div>
-      ) : null}
+{showRoomIntro ? (
+  <RoomIntroOverlay
+    roomBackground={ROOM_BACKGROUND}
+    isWaitingForNextRound={isWaitingForNextRound}
+  />
+) : null}
 
       <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden px-2 py-2 sm:px-4">
         <header className="z-20 flex shrink-0 items-center justify-between rounded-2xl border border-amber-300/24 bg-[linear-gradient(135deg,rgba(45,7,3,0.9),rgba(12,2,2,0.78),rgba(70,22,5,0.62))] px-3 py-2 shadow-[0_0_24px_rgba(127,29,29,0.28),inset_0_1px_0_rgba(251,191,36,0.12)] backdrop-blur-md">
@@ -1357,21 +1403,21 @@ const isCurrent =
                   ) : null}
                 </div>
               ) : (
-<div className="grid grid-cols-2 gap-2">
-  <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-right">
+<div className="grid grid-cols-[0.92fr_1.08fr] gap-2">
+  <div className="flex min-h-[68px] flex-col items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-center">
     <p className="text-[9px] font-black uppercase tracking-[0.25em] text-amber-200/60">
       Timer
     </p>
-    <p className="mt-0.5 text-2xl font-black text-white">
+    <p className="mt-0.5 text-2xl font-black leading-none text-white">
       {timerLabel}
     </p>
   </div>
 
-  <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-right">
+  <div className="flex min-h-[68px] flex-col items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-center">
     <p className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-100/55">
       Balance
     </p>
-    <p className="mt-0.5 text-lg font-black text-emerald-100">
+    <p className="mt-0.5 text-lg font-black leading-none text-emerald-100">
       {formatMMK(walletBalance)} MMK
     </p>
   </div>
@@ -1401,133 +1447,21 @@ const isCurrent =
               </div>
             ) : null}
 
-            {showFloatingResultBoard ? (
-              <div className="pointer-events-none absolute inset-x-4 top-2 z-40 overflow-hidden rounded-[1.15rem] border border-amber-300/32 bg-[linear-gradient(145deg,rgba(60,10,4,0.86),rgba(5,1,1,0.8),rgba(72,18,6,0.64))] p-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(251,191,36,0.16),inset_0_-18px_28px_rgba(0,0,0,0.28)] backdrop-blur-md">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.16),transparent_62%)]" />
-                                <div className="pointer-events-none absolute inset-x-3 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-300/35 to-transparent" />
-                <div className="pointer-events-none absolute inset-y-2 left-0 w-px bg-gradient-to-b from-transparent via-amber-200/22 to-transparent" />
-                <div className="pointer-events-none absolute inset-y-2 right-0 w-px bg-gradient-to-b from-transparent via-amber-200/22 to-transparent" />
-                <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/60 to-transparent" />
-
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[7px] font-black uppercase tracking-[0.24em] text-amber-200/60">
-                        Royal Result Board
-                      </p>
-                      <p className="truncate text-xs font-black text-white drop-shadow-[0_0_8px_rgba(251,191,36,0.16)]">
-{showFinalResultPanel
-  ? "Visible Dice Result"
-  : isResultPhaseVisualGuard
-    ? "Finalizing Table Result"
-    : isRollingReconnectView
-      ? "Live Table Sync"
-      : "Dice Revealing"}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] ${
-                        showFinalResultPanel && isResultWin
-                          ? "border-emerald-200/35 bg-emerald-300/18 text-emerald-100"
-                          : showFinalResultPanel
-                            ? "border-red-200/25 bg-red-500/12 text-red-100"
-                            : "border-amber-200/25 bg-amber-300/10 text-amber-100"
-                      }`}
-                    >
-{showFinalResultPanel
-  ? resultStatusLabel
-  : isResultPhaseVisualGuard
-    ? `${diceResult.length}/3`
-    : isRollingReconnectView
-      ? "SYNCED TABLE"
-      : `${diceResult.length}/3`}
-                    </div>
-                  </div>
-
-                  {activeBet ? (
-  <div className="mt-1.5 flex items-center justify-between gap-2 rounded-xl border border-amber-300/16 bg-black/24 px-2 py-1 shadow-inner shadow-black/35">
-    <div className="flex min-w-0 items-center gap-1.5">
-      {activeBetAnimal ? (
-        <img
-          src={ANIMAL_ASSETS[activeBetAnimal.key]}
-          alt={activeBetAnimal.name}
-          className="h-5 w-5 shrink-0 object-contain drop-shadow-[0_0_8px_rgba(251,191,36,0.38)]"
-        />
-      ) : null}
-
-      <p className="min-w-0 truncate text-[9px] font-black text-white/82">
-        Your Bet · {activeBetDisplayName}
-      </p>
-    </div>
-
-    <p className="shrink-0 text-[9px] font-black text-amber-100">
-      {formatMMK(activeBet.amount)} MMK
-    </p>
-  </div>
+{showFloatingResultBoard ? (
+  <FloatingResultBoard
+    diceResult={diceResult}
+    activeBet={activeBet}
+    activeBetAnimal={activeBetAnimal ?? null}
+    activeBetDisplayName={activeBetDisplayName}
+    showFinalResultPanel={showFinalResultPanel}
+    isResultPhaseVisualGuard={isResultPhaseVisualGuard}
+    isRollingReconnectView={isRollingReconnectView}
+    isRollingPhase={phase === "rolling"}
+    isResultWin={isResultWin}
+    resultStatusLabel={resultStatusLabel}
+    animalAssets={ANIMAL_ASSETS}
+  />
 ) : null}
-
-                  <div className="mt-1.5 grid grid-cols-3 gap-1">
-                    {[0, 1, 2].map((index) => {
-                      const nameMm = diceResult[index];
-                      const animal = nameMm ? getAnimalByNameMm(nameMm) : null;
-                      const isMatched = Boolean(
-                        showFinalResultPanel &&
-                          activeBet &&
-                          nameMm &&
-                          activeBet.animalNameMm === nameMm
-                      );
-const isCurrent =
-  (phase === "rolling" || isResultPhaseVisualGuard) &&
-  index === diceResult.length &&
-  diceResult.length < SIX_ANIMAL_RULES.diceCount;
-
-                      return (
-                        <div
-                          key={`floating-result-slot-${index}`}
-                          className={`relative flex min-h-[38px] items-center justify-center overflow-hidden rounded-xl border shadow-inner shadow-black/35 ${
-                            isMatched
-                              ? "border-emerald-200/50 bg-[linear-gradient(145deg,rgba(16,185,129,0.18),rgba(0,0,0,0.42))] shadow-[0_0_18px_rgba(16,185,129,0.14)]"
-                              : animal
-                                ? "border-amber-200/28 bg-[linear-gradient(145deg,rgba(251,191,36,0.12),rgba(0,0,0,0.42))]"
-                                : isCurrent
-                                  ? "border-emerald-300/38 bg-[linear-gradient(145deg,rgba(16,185,129,0.14),rgba(0,0,0,0.42))]"
-                                  : "border-white/10 bg-black/30"
-                          }`}
-                        >
-                          {isMatched ? (
-                            <div className="absolute right-0.5 top-0.5 rounded-full border border-emerald-100/60 bg-emerald-300 px-1 py-0.5 text-[5px] font-black uppercase tracking-[0.08em] text-black shadow-[0_0_10px_rgba(16,185,129,0.28)]">
-                              Match
-                            </div>
-                          ) : null}
-
-                          {animal ? (
-                            <div className="text-center">
-                              <img
-                                src={ANIMAL_ASSETS[animal.key]}
-                                alt={animal.name}
-                                className="mx-auto h-6 w-6 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.42)]"
-                              />
-                              <p className="text-[8px] font-black text-white">
-                                {animal.name}
-                              </p>
-                            </div>
-                          ) : (
-                            <div
-                              className={`h-6 w-6 rounded-lg border shadow-inner shadow-black/50 ${
-                                isCurrent
-                                  ? "animate-pulse border-emerald-200/50 bg-emerald-300/25 shadow-emerald-500/20"
-                                  : "border-amber-200/10 bg-black/35"
-                              }`}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ) : null}
 
 {isRollingReconnectView ? (
   <div className="pointer-events-none absolute left-1/2 top-[88px] z-40 -translate-x-1/2 rounded-full border border-amber-300/20 bg-black/55 px-3 py-1.5 text-center shadow-xl shadow-black/50 backdrop-blur-md">
@@ -1591,21 +1525,18 @@ visualRoundId={heldVisualRoundId}
               </div>
             </div>
 
-            <SixAnimalBettingSheet
-              isOpen={phase === "betting"}
-              betAmount={betAmount}
-              selectedAnimal={selectedAnimal}
-              selectedOption={selectedOption}
-              activeBet={activeBet}
-              canEditBet={canEditBet}
-              isBetValid={isBetValid}
-              numericBetAmount={numericBetAmount}
-              animalAssets={ANIMAL_ASSETS}
-              onBetAmountChange={setBetAmount}
-              onQuickAmountSelect={setBetAmount}
-              onSelectAnimal={handleSelectAnimal}
-              onPlaceBet={handlePlaceBet}
-            />
+<SixAnimalBettingSheet
+  isOpen={phase === "betting"}
+  selectedAnimal={selectedAnimal}
+  activeBet={activeBet}
+  canEditBet={canEditBet}
+  numericBetAmount={numericBetAmount}
+  animalAssets={ANIMAL_ASSETS}
+  onSelectAnimal={handleSelectAnimal}
+  onQuickAmountSelect={handleQuickAmountSelect}
+  onIncreaseAmount={handleIncreaseBetAmount}
+  onDecreaseAmount={handleDecreaseBetAmount}
+/>
           </div>
         </section>
       </div>
