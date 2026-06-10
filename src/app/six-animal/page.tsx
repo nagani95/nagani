@@ -31,7 +31,6 @@ const SETTLEMENT_POPUP_DELAY_MS = 1400;
 const ROOM_SOUND_ENABLED = false;
 
 const SIX_ANIMAL_ROOM_UUID = "11111111-1111-1111-1111-111111111111";
-const AUTO_SEAL_COUNTDOWN_SECONDS = 6;
 const BET_AMOUNT_STEP = 1000;
 
 type LiveSixAnimalRound = {
@@ -52,7 +51,9 @@ type LiveSixAnimalBet = {
   id: string;
   round_id: string;
   profile_id: string;
+  bet_type: BetMode;
   animal: SixAnimalKey;
+  animal_2: SixAnimalKey | null;
   amount: number;
   locked: boolean;
   settled: boolean;
@@ -100,10 +101,14 @@ const ANIMAL_ASSETS: Record<SixAnimalKey, string> = {
 
 type RoundPhase = "loading" | "betting" | "closed" | "rolling" | "result";
 type VisualDiceStatus = "idle" | "playing" | "complete";
+type BetMode = "single" | "pair";
 
 type ActiveBet = {
+  betType: BetMode;
   animalKey: SixAnimalKey;
+  animalKey2?: SixAnimalKey | null;
   animalNameMm: string;
+  animalNameMm2?: string | null;
   amount: number;
   roundNumber: number;
 };
@@ -121,6 +126,10 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
+function getPairKey(animalA: SixAnimalKey, animalB: SixAnimalKey) {
+  return [animalA, animalB].sort().join(":");
+}
+
 function getAnimalByNameMm(nameMm: string) {
   return SIX_ANIMAL_OPTIONS.find((animal) => animal.nameMm === nameMm);
 }
@@ -133,9 +142,19 @@ function convertBackendBetToActiveBet(
 
   if (!animal) return null;
 
+  const betType: BetMode = bet.bet_type === "pair" ? "pair" : "single";
+  const animal2 = bet.animal_2
+    ? SIX_ANIMAL_OPTIONS.find((option) => option.key === bet.animal_2)
+    : null;
+
+  if (betType === "pair" && !animal2) return null;
+
   return {
+    betType,
     animalKey: animal.key,
+    animalKey2: animal2?.key ?? null,
     animalNameMm: animal.nameMm,
+    animalNameMm2: animal2?.nameMm ?? null,
     amount: Number(bet.amount),
     roundNumber,
   };
@@ -150,6 +169,8 @@ export default function SixAnimalPage() {
   const [roundId, setRoundId] = useState<string>("");
   const [serverRngResults, setServerRngResults] = useState<string[]>([]);
   const [selectedAnimal, setSelectedAnimal] = useState<SixAnimalKey | null>(null);
+  const [betMode, setBetMode] = useState<BetMode>("single");
+const [selectedPairAnimals, setSelectedPairAnimals] = useState<SixAnimalKey[]>([]);
   const [betAmount, setBetAmount] = useState("1000");
   const [phase, setPhase] = useState<RoundPhase>("loading");
   const [countdown, setCountdown] = useState(3);
@@ -168,7 +189,7 @@ const [threeDiceRunKey, setThreeDiceRunKey] = useState(0);
   const soundEnabled = ROOM_SOUND_ENABLED;
   const [showRoomIntro, setShowRoomIntro] = useState(true);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [activeBet, setActiveBet] = useState<ActiveBet | null>(null);
+  const [activeBets, setActiveBets] = useState<ActiveBet[]>([]);
   const [showSettlementMoment, setShowSettlementMoment] = useState(false);
 const [settlementWaitingRoundId, setSettlementWaitingRoundId] =
   useState<string | null>(null);
@@ -202,7 +223,6 @@ const showInRoomNextRoundPauseRef = useRef(false);
 const showSettlementMomentRef = useRef(false);
 const pendingBettingRoundRef = useRef<LiveSixAnimalRound | null>(null);
 const isSubmittingBetRef = useRef(false);
-const autoSealRoundIdRef = useRef<string | null>(null);
 
 function clearVisibleDiceRoundState() {
   setDiceResult([]);
@@ -294,19 +314,20 @@ if (isSwitchingRound) {
   clearVisibleDiceRoundState();
   setShouldPlayLiveDiceSequence(false);
   shouldPlayLiveDiceSequenceRef.current = false;
-  setActiveBet(null);
+  setActiveBets([]);
   setSelectedAnimal(null);
+  setSelectedPairAnimals([]);
+setBetMode("single");
   setBetAmount(String(SIX_ANIMAL_RULES.minBet));
   isSubmittingBetRef.current = false;
-  autoSealRoundIdRef.current = null;
 }
 
   roundIdRef.current = round.id;
 
-  const backendBet = await fetchCurrentUserBetForRound(round.id);
-  const restoredActiveBet = backendBet
-    ? convertBackendBetToActiveBet(backendBet, round.round_number)
-    : null;
+const backendBets = await fetchCurrentUserBetsForRound(round.id);
+const restoredActiveBets = backendBets
+  .map((bet) => convertBackendBetToActiveBet(bet, round.round_number))
+  .filter((bet): bet is ActiveBet => Boolean(bet));
 
 const hasJoinedCurrentBrowserRound = joinedRoundIdRef.current === round.id;
 const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
@@ -324,14 +345,14 @@ if (isRefreshOrLateJoinToInProgressRound) {
   setCountdown(0);
   setIsWaitingForNextRound(true);
   setServerRngResults([]);
-  setActiveBet(null);
+  setActiveBets([]);
   return;
 }
 
-if (restoredActiveBet) {
+if (restoredActiveBets.length > 0) {
   joinedRoundIdRef.current = round.id;
   setJoinedRoundId(round.id);
-  setActiveBet(restoredActiveBet);
+  setActiveBets(restoredActiveBets);
 }
 
   if (
@@ -396,9 +417,9 @@ clearVisibleDiceRoundState();
 setRollingStartedAt(null);
 setServerRngResults([]);
 
-    if (!restoredActiveBet) {
-      setActiveBet(null);
-    }
+if (restoredActiveBets.length === 0) {
+  setActiveBets([]);
+}
 
     lastDiceSoundCountRef.current = 0;
   }
@@ -528,13 +549,33 @@ showSettlementMomentRef.current = showSettlementMoment;
   showSettlementMoment,
 ]);
 
-  const selectedOption = useMemo(() => {
-    return SIX_ANIMAL_OPTIONS.find((animal) => animal.key === selectedAnimal);
-  }, [selectedAnimal]);
+const selectedOption = useMemo(() => {
+  return SIX_ANIMAL_OPTIONS.find((animal) => animal.key === selectedAnimal);
+}, [selectedAnimal]);
+
+const selectedPairOptions = useMemo(() => {
+  return selectedPairAnimals
+    .map((animalKey) =>
+      SIX_ANIMAL_OPTIONS.find((animal) => animal.key === animalKey)
+    )
+    .filter((animal): animal is (typeof SIX_ANIMAL_OPTIONS)[number] =>
+      Boolean(animal)
+    );
+}, [selectedPairAnimals]);
+
+const isPairBetMode = betMode === "pair";
+
+const activeBet = activeBets[0] ?? null;
+const hasActiveBets = activeBets.length > 0;
+
+const totalActiveBetAmount = activeBets.reduce(
+  (sum, bet) => sum + bet.amount,
+  0
+);
 
 const numericBetAmount = Number(betAmount || 0);
 const isBettingOpen = phase === "betting";
-const canEditBet = isBettingOpen && !activeBet;
+const canEditBet = isBettingOpen;
 
 const walletStepAmount =
   Math.floor(Math.max(0, walletBalance) / BET_AMOUNT_STEP) * BET_AMOUNT_STEP;
@@ -548,43 +589,87 @@ const canAffordMinBet = maxPlayableBetAmount >= SIX_ANIMAL_RULES.minBet;
 
 const isBetValid =
   canEditBet &&
-  Boolean(selectedAnimal) &&
   canAffordMinBet &&
   Number.isFinite(numericBetAmount) &&
   numericBetAmount >= SIX_ANIMAL_RULES.minBet &&
   numericBetAmount <= maxPlayableBetAmount &&
-  roundId !== "";
+  roundId !== "" &&
+  (isPairBetMode
+    ? selectedPairOptions.length === 2
+    : Boolean(selectedAnimal));
 
-  const matchCount =
-    activeBet && diceResult.length > 0
-      ? diceResult.filter((item) => item === activeBet.animalNameMm).length
+const activeBetResults = activeBets.map((bet) => {
+  if (bet.betType === "pair" && bet.animalNameMm2) {
+    const hasFirstAnimal = diceResult.includes(bet.animalNameMm);
+    const hasSecondAnimal = diceResult.includes(bet.animalNameMm2);
+    const pairMatchCount =
+      Number(hasFirstAnimal) + Number(hasSecondAnimal);
+    const isPairWin = hasFirstAnimal && hasSecondAnimal;
+
+    const payout = phase === "result" && isPairWin ? bet.amount * 5 : 0;
+    const profit = payout > 0 ? payout - bet.amount : 0;
+
+    return {
+      bet,
+      matchCount: pairMatchCount,
+      payout,
+      profit,
+    };
+  }
+
+  const betMatchCount =
+    diceResult.length > 0
+      ? diceResult.filter((item) => item === bet.animalNameMm).length
       : 0;
 
-  const displayProfitAmount =
-    activeBet && phase === "result" && matchCount > 0
-      ? activeBet.amount * matchCount
+  const payout =
+    phase === "result" && betMatchCount > 0
+      ? bet.amount + bet.amount * betMatchCount
       : 0;
 
-  const displayPayoutAmount =
-    activeBet && phase === "result" && matchCount > 0
-      ? activeBet.amount + displayProfitAmount
+  const profit =
+    phase === "result" && betMatchCount > 0
+      ? bet.amount * betMatchCount
       : 0;
 
-  const displayNetAmount =
-    activeBet && phase === "result"
-      ? matchCount > 0
-        ? displayProfitAmount
-        : -activeBet.amount
-      : 0;
+  return {
+    bet,
+    matchCount: betMatchCount,
+    payout,
+    profit,
+  };
+});
 
-  const settlementStatus =
-    !activeBet
-      ? "No active bet"
-      : phase !== "result"
-        ? "Pending result"
-        : matchCount > 0
-          ? "Win"
-          : "No Match";
+const totalMatchCount = activeBetResults.reduce(
+  (sum, item) => sum + item.matchCount,
+  0
+);
+
+const matchCount = activeBetResults[0]?.matchCount ?? 0;
+
+const displayProfitAmount =
+  phase === "result"
+    ? activeBetResults.reduce((sum, item) => sum + item.profit, 0)
+    : 0;
+
+const displayPayoutAmount =
+  phase === "result"
+    ? activeBetResults.reduce((sum, item) => sum + item.payout, 0)
+    : 0;
+
+const displayNetAmount =
+  hasActiveBets && phase === "result"
+    ? displayPayoutAmount - totalActiveBetAmount
+    : 0;
+
+const settlementStatus =
+  !hasActiveBets
+    ? "No active bet"
+    : phase !== "result"
+      ? "Pending result"
+      : displayPayoutAmount > 0
+        ? "Win"
+        : "No Match";
 
   const displayCountdown = Math.max(0, countdown);
 
@@ -627,8 +712,7 @@ const isRollingReconnectView = false;
   const showFloatingClosedPanel = false;
   const showFloatingResultBoard = showResultBoardPanel;
 const showSettlementSheet =
-  showFinalResultPanel && showSettlementMoment && Boolean(activeBet);
-
+  showFinalResultPanel && showSettlementMoment && hasActiveBets;
 const showNextRoundPause = false;
 
 const heldVisualRoundId =
@@ -663,16 +747,17 @@ const activeBetAnimal = activeBet
 
 const activeBetDisplayName = activeBetAnimal?.name ?? activeBet?.animalNameMm ?? "";
 
-const isResultWin = phase === "result" && Boolean(activeBet) && matchCount > 0;
+const isResultWin =
+  phase === "result" && hasActiveBets && displayPayoutAmount > 0;
 
-  const resultStatusLabel = !activeBet
+  const resultStatusLabel = !hasActiveBets
     ? "Table Result"
     : isResultWin
       ? "You Win"
       : "No Match";
 
   const netResultLabel =
-    activeBet && phase === "result"
+    hasActiveBets && phase === "result"
       ? `${displayNetAmount > 0 ? "+" : "-"}${formatMMK(
           Math.abs(displayNetAmount)
         )} MMK`
@@ -695,12 +780,12 @@ async function handleLobbyClick() {
     return;
   }
 
-  const backendBet = await fetchCurrentUserBetForRound(currentRoundId);
+const backendBets = await fetchCurrentUserBetsForRound(currentRoundId);
 
-  if (!backendBet) {
-    router.push("/");
-    return;
-  }
+if (backendBets.length === 0) {
+  router.push("/");
+  return;
+}
 
   joinedRoundIdRef.current = currentRoundId;
   setJoinedRoundId(currentRoundId);
@@ -709,33 +794,33 @@ async function handleLobbyClick() {
   setIsQuitting(true);
 }
 
-async function fetchCurrentUserBetForRound(roundIdToCheck: string) {
-  if (!roundIdToCheck) return null;
+async function fetchCurrentUserBetsForRound(roundIdToCheck: string) {
+  if (!roundIdToCheck) return [];
 
-  const { data, error } = await supabase.rpc("get_my_six_animal_bet", {
+  const { data, error } = await supabase.rpc("get_my_six_animal_bets", {
     p_round_id: roundIdToCheck,
   });
 
   if (error) {
-    console.error("[SixAnimal] current bet restore RPC error:", error);
-    return null;
+    console.error("[SixAnimal] current bets restore RPC error:", error);
+    return [];
   }
 
   const response = data as {
     success?: boolean;
     error?: string;
-    bet?: LiveSixAnimalBet | null;
+    bets?: LiveSixAnimalBet[];
   } | null;
 
   if (!response?.success) {
     if (response?.error) {
-      console.error("[SixAnimal] current bet restore rejected:", response.error);
+      console.error("[SixAnimal] current bets restore rejected:", response.error);
     }
 
-    return null;
+    return [];
   }
 
-  return response.bet ?? null;
+  return response.bets ?? [];
 }
 
 async function fetchLatestLiveRound() {
@@ -1099,10 +1184,40 @@ function handleThreeDiceProgress(
     setDiceResult(resultNames);
   }
   
-  function handleSelectAnimal(animal: SixAnimalKey) {
-    if (!canEditBet) return;
-    setSelectedAnimal(animal);
+function handleSelectAnimal(animal: SixAnimalKey) {
+  if (!canEditBet) return;
+
+  if (betMode === "pair") {
+    setSelectedPairAnimals((currentAnimals) => {
+      if (currentAnimals.includes(animal)) {
+        return currentAnimals.filter((item) => item !== animal);
+      }
+
+      if (currentAnimals.length >= 2) {
+        return [currentAnimals[1], animal];
+      }
+
+      return [...currentAnimals, animal];
+    });
+
+    return;
   }
+
+  setSelectedAnimal(animal);
+}
+
+function handleBetModeChange(nextMode: BetMode) {
+  if (!canEditBet) return;
+
+  setBetMode(nextMode);
+
+  if (nextMode === "single") {
+    setSelectedPairAnimals([]);
+    return;
+  }
+
+  setSelectedAnimal(null);
+}
   function clampBetAmount(amount: number) {
   if (!canAffordMinBet) return SIX_ANIMAL_RULES.minBet;
 
@@ -1131,57 +1246,181 @@ function handleDecreaseBetAmount() {
 
 async function handlePlaceBet() {
   if (isSubmittingBetRef.current) return;
-  if (!isBetValid || !selectedOption || !roundId) return;
+  if (!isBetValid || !roundId) return;
 
   isSubmittingBetRef.current = true;
-  autoSealRoundIdRef.current = roundId;
 
-  setActiveBet({
-    animalKey: selectedOption.key,
-    animalNameMm: selectedOption.nameMm,
-    amount: numericBetAmount,
-    roundNumber,
-  });
+  const placedAmount = numericBetAmount;
 
   joinedRoundIdRef.current = roundId;
   setJoinedRoundId(roundId);
 
-  const { data, error } = await supabase.rpc("place_six_animal_bet", {
-    p_round_id: roundId,
-    p_animal: selectedOption.key,
-    p_amount: numericBetAmount,
-  });
+  if (isPairBetMode) {
+    if (selectedPairOptions.length !== 2) {
+      isSubmittingBetRef.current = false;
+      return;
+    }
 
-  const response = data as any;
+    const pairAnimalOne = selectedPairOptions[0];
+    const pairAnimalTwo = selectedPairOptions[1];
 
-  if (error || (response && response.success === false)) {
-    console.error("Bet rejected:", error?.message || response?.error);
-    setActiveBet(null);
+    const { data, error } = await supabase.rpc("place_six_animal_pair_bet", {
+      p_round_id: roundId,
+      p_animal_1: pairAnimalOne.key,
+      p_animal_2: pairAnimalTwo.key,
+      p_amount: placedAmount,
+    });
+
+    const response = data as {
+      success?: boolean;
+      error?: string;
+      animal?: SixAnimalKey;
+      animal_2?: SixAnimalKey | null;
+      new_balance?: number;
+      total_pair_amount?: number;
+    } | null;
+
+    if (error || response?.success === false) {
+      console.error("Pair bet rejected:", error?.message || response?.error);
+      isSubmittingBetRef.current = false;
+      return;
+    }
+
+    const backendAnimalOne = response?.animal ?? pairAnimalOne.key;
+    const backendAnimalTwo = response?.animal_2 ?? pairAnimalTwo.key;
+
+    const normalizedAnimalOne = SIX_ANIMAL_OPTIONS.find(
+      (animal) => animal.key === backendAnimalOne
+    );
+    const normalizedAnimalTwo = SIX_ANIMAL_OPTIONS.find(
+      (animal) => animal.key === backendAnimalTwo
+    );
+
+    if (!normalizedAnimalOne || !normalizedAnimalTwo) {
+      isSubmittingBetRef.current = false;
+      return;
+    }
+
+    const nextPairAmount = Number(
+      response?.total_pair_amount ?? placedAmount
+    );
+
+    setActiveBets((currentBets) => {
+      const pairKey = getPairKey(
+        normalizedAnimalOne.key,
+        normalizedAnimalTwo.key
+      );
+
+      const existingBet = currentBets.find(
+        (bet) =>
+          bet.betType === "pair" &&
+          bet.animalKey2 &&
+          getPairKey(bet.animalKey, bet.animalKey2) === pairKey
+      );
+
+      if (existingBet) {
+        return currentBets.map((bet) =>
+          bet.betType === "pair" &&
+          bet.animalKey2 &&
+          getPairKey(bet.animalKey, bet.animalKey2) === pairKey
+            ? {
+                ...bet,
+                amount: nextPairAmount,
+              }
+            : bet
+        );
+      }
+
+      return [
+        ...currentBets,
+        {
+          betType: "pair",
+          animalKey: normalizedAnimalOne.key,
+          animalKey2: normalizedAnimalTwo.key,
+          animalNameMm: normalizedAnimalOne.nameMm,
+          animalNameMm2: normalizedAnimalTwo.nameMm,
+          amount: nextPairAmount,
+          roundNumber,
+        },
+      ];
+    });
+
+    playRoomSound("bet-locked");
+
+    if (response?.new_balance !== undefined) {
+      setWalletBalance(response.new_balance);
+    }
+
     isSubmittingBetRef.current = false;
-    autoSealRoundIdRef.current = null;
     return;
   }
 
+  if (!selectedOption) {
+    isSubmittingBetRef.current = false;
+    return;
+  }
+
+  const placedAnimal = selectedOption;
+
+  const { data, error } = await supabase.rpc("place_six_animal_bet", {
+    p_round_id: roundId,
+    p_animal: placedAnimal.key,
+    p_amount: placedAmount,
+  });
+
+  const response = data as {
+    success?: boolean;
+    error?: string;
+    new_balance?: number;
+    total_animal_amount?: number;
+  } | null;
+
+  if (error || response?.success === false) {
+    console.error("Bet rejected:", error?.message || response?.error);
+    isSubmittingBetRef.current = false;
+    return;
+  }
+
+  const nextAnimalAmount = Number(
+    response?.total_animal_amount ?? placedAmount
+  );
+
+  setActiveBets((currentBets) => {
+    const existingBet = currentBets.find(
+      (bet) => bet.betType === "single" && bet.animalKey === placedAnimal.key
+    );
+
+    if (existingBet) {
+      return currentBets.map((bet) =>
+        bet.betType === "single" && bet.animalKey === placedAnimal.key
+          ? {
+              ...bet,
+              amount: nextAnimalAmount,
+            }
+          : bet
+      );
+    }
+
+    return [
+      ...currentBets,
+      {
+        betType: "single",
+        animalKey: placedAnimal.key,
+        animalNameMm: placedAnimal.nameMm,
+        amount: nextAnimalAmount,
+        roundNumber,
+      },
+    ];
+  });
+
   playRoomSound("bet-locked");
 
-  if (response && response.new_balance !== undefined) {
+  if (response?.new_balance !== undefined) {
     setWalletBalance(response.new_balance);
   }
 
   isSubmittingBetRef.current = false;
 }
-
-useEffect(() => {
-  if (phase !== "betting") return;
-  if (!roundId) return;
-  if (activeBet) return;
-  if (!isBetValid) return;
-  if (countdown <= 0) return;
-  if (countdown > AUTO_SEAL_COUNTDOWN_SECONDS) return;
-  if (autoSealRoundIdRef.current === roundId) return;
-
-  void handlePlaceBet();
-}, [phase, roundId, countdown, activeBet, isBetValid, selectedAnimal, betAmount]);
 
   return (
     <main
@@ -1539,19 +1778,24 @@ const isCurrent =
   </div>
 ) : null}
 
-            {showSettlementSheet && activeBet ? (
-              <SettlementPopup
-                activeBetAnimal={activeBetAnimal ?? null}
-                activeBetDisplayName={activeBetDisplayName}
-                activeBetAmount={activeBet.amount}
-                matchCount={matchCount}
-                displayPayoutAmount={displayPayoutAmount}
-                netResultLabel={netResultLabel}
-                resultStatusLabel={resultStatusLabel}
-                isResultWin={isResultWin}
-                animalAssets={ANIMAL_ASSETS}
-              />
-            ) : null}
+{showSettlementSheet ? (
+  <SettlementPopup
+    settlementBets={activeBetResults.map((item) => ({
+      betType: item.bet.betType,
+      animalKey: item.bet.animalKey,
+      animalKey2: item.bet.animalKey2 ?? null,
+      amount: item.bet.amount,
+      matchCount: item.matchCount,
+      payout: item.payout,
+    }))}
+    totalBetAmount={totalActiveBetAmount}
+    displayPayoutAmount={displayPayoutAmount}
+    netResultLabel={netResultLabel}
+    resultStatusLabel={resultStatusLabel}
+    isResultWin={isResultWin}
+    animalAssets={ANIMAL_ASSETS}
+  />
+) : null}
 
                         {showNextRoundPause ? (
               <div className="pointer-events-none absolute inset-x-4 bottom-4 z-50 mx-auto max-w-[360px] overflow-hidden rounded-[1.1rem] border border-amber-300/24 bg-[linear-gradient(145deg,rgba(45,7,3,0.78),rgba(5,1,1,0.82),rgba(52,12,5,0.58))] p-3 text-center shadow-2xl shadow-black/70 backdrop-blur-xl">
@@ -1592,16 +1836,80 @@ visualRoundId={heldVisualRoundId}
 
 <SixAnimalBettingSheet
   isOpen={phase === "betting"}
+  betMode={betMode}
   selectedAnimal={selectedAnimal}
-  activeBet={activeBet}
+  selectedPairAnimals={selectedPairAnimals}
+  activeBets={activeBets}
   canEditBet={canEditBet}
+  canPlaceBet={isBetValid}
   numericBetAmount={numericBetAmount}
   animalAssets={ANIMAL_ASSETS}
+  onBetModeChange={handleBetModeChange}
   onSelectAnimal={handleSelectAnimal}
   onQuickAmountSelect={handleQuickAmountSelect}
   onIncreaseAmount={handleIncreaseBetAmount}
   onDecreaseAmount={handleDecreaseBetAmount}
+  onPlaceBet={handlePlaceBet}
 />
+
+{phase === "betting" && activeBets.length > 0 ? (
+  <div className="pointer-events-none absolute inset-x-0 bottom-6 z-50 flex justify-center px-5">
+    <div className="w-full max-w-[330px] overflow-hidden rounded-[1.15rem] border border-amber-300/22 bg-[linear-gradient(145deg,rgba(46,8,3,0.86),rgba(9,1,1,0.88),rgba(63,15,5,0.72))] p-2.5 shadow-2xl shadow-black/75 backdrop-blur-md">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.16),transparent_66%)]" />
+
+      <div className="relative z-10">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[8px] font-black uppercase tracking-[0.26em] text-amber-200/65">
+            Your Bets
+          </p>
+          <p className="text-[10px] font-black text-amber-100">
+            {formatMMK(totalActiveBetAmount)} MMK
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1.5">
+{activeBets.map((bet) => {
+  const betSlipKey =
+    bet.betType === "pair" && bet.animalKey2
+      ? `pair-${getPairKey(bet.animalKey, bet.animalKey2)}`
+      : `single-${bet.animalKey}`;
+
+  return (
+    <div
+      key={betSlipKey}
+              className="flex min-h-[42px] items-center gap-1.5 rounded-xl border border-amber-300/18 bg-[linear-gradient(145deg,rgba(72,15,5,0.92),rgba(15,1,1,0.92))] px-2 py-1 shadow-inner shadow-black/45"
+            >
+{bet.betType === "pair" && bet.animalKey2 ? (
+  <div className="flex shrink-0 items-center -space-x-2">
+    <img
+      src={ANIMAL_ASSETS[bet.animalKey]}
+      alt=""
+      className="h-7 w-7 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+    />
+    <img
+      src={ANIMAL_ASSETS[bet.animalKey2]}
+      alt=""
+      className="h-7 w-7 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+    />
+  </div>
+) : (
+  <img
+    src={ANIMAL_ASSETS[bet.animalKey]}
+    alt=""
+    className="h-8 w-8 shrink-0 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+  />
+)}
+              <span className="min-w-0 truncate text-[10px] font-black text-amber-100">
+                {formatMMK(bet.amount)}
+              </span>
+    </div>
+  );
+})}
+        </div>
+      </div>
+    </div>
+  </div>
+) : null}
           </div>
         </section>
       </div>

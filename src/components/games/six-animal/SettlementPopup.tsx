@@ -1,17 +1,21 @@
-//src>components>games>six-animal>SettlementPopup.tsx
+//src>components/games/six-animal/SettlementPopup.tsx
 
 "use client";
 
 import type { SixAnimalKey } from "@/types/games";
 
-type SettlementPopupProps = {
-  activeBetAnimal: {
-    key: SixAnimalKey;
-    name: string;
-  } | null;
-  activeBetDisplayName: string;
-  activeBetAmount: number;
+type SettlementBet = {
+  betType: "single" | "pair";
+  animalKey: SixAnimalKey;
+  animalKey2?: SixAnimalKey | null;
+  amount: number;
   matchCount: number;
+  payout: number;
+};
+
+type SettlementPopupProps = {
+  settlementBets: SettlementBet[];
+  totalBetAmount: number;
   displayPayoutAmount: number;
   netResultLabel: string;
   resultStatusLabel: string;
@@ -24,16 +28,18 @@ function formatMMK(amount: number) {
 }
 
 export default function SettlementPopup({
-  activeBetAnimal,
-  activeBetDisplayName,
-  activeBetAmount,
-  matchCount,
+  settlementBets,
+  totalBetAmount,
   displayPayoutAmount,
   netResultLabel,
   resultStatusLabel,
   isResultWin,
   animalAssets,
 }: SettlementPopupProps) {
+const matchedBetCount = settlementBets.filter((bet) =>
+  bet.betType === "pair" ? bet.matchCount === 2 : bet.matchCount > 0
+).length;
+
   return (
     <div
       className={`pointer-events-none absolute inset-x-3 top-[60%] z-50 mx-auto max-w-[390px] -translate-y-1/2 overflow-hidden rounded-[1.45rem] border p-2.5 shadow-[0_22px_54px_rgba(0,0,0,0.82),inset_0_1px_0_rgba(251,191,36,0.16),inset_0_-18px_32px_rgba(0,0,0,0.34)] backdrop-blur-xl ${
@@ -50,35 +56,15 @@ export default function SettlementPopup({
 
       <div className="relative z-10">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <div
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border shadow-inner shadow-black/35 ${
-                isResultWin
-                  ? "border-emerald-300/25 bg-emerald-400/10"
-                  : "border-red-300/20 bg-red-500/10"
-              }`}
-            >
-              {activeBetAnimal ? (
-                <img
-                  src={animalAssets[activeBetAnimal.key]}
-                  alt={activeBetAnimal.name}
-                  className="h-8 w-8 object-contain drop-shadow-[0_0_12px_rgba(251,191,36,0.45)]"
-                />
-              ) : (
-                <span className="text-xs font-black text-amber-100">
-                  {activeBetDisplayName}
-                </span>
-              )}
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-200/55">
-                Settlement
-              </p>
-              <p className="truncate text-sm font-black text-white">
-                {activeBetDisplayName} · Match {matchCount}/3
-              </p>
-            </div>
+          <div className="min-w-0">
+            <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-200/55">
+              Settlement
+            </p>
+            <p className="mt-0.5 truncate text-sm font-black text-white">
+              {matchedBetCount > 0
+                ? `${matchedBetCount}/${settlementBets.length} animals matched`
+                : "No animals matched"}
+            </p>
           </div>
 
           <div
@@ -92,13 +78,77 @@ export default function SettlementPopup({
           </div>
         </div>
 
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          {settlementBets.map((bet) => {
+            const isMatched =
+  bet.betType === "pair" ? bet.matchCount === 2 : bet.matchCount > 0;
+
+            return (
+              <div
+                key={
+  bet.betType === "pair" && bet.animalKey2
+    ? `pair-${bet.animalKey}-${bet.animalKey2}`
+    : `single-${bet.animalKey}`
+}
+                className={`grid grid-cols-[34px_1fr_auto] items-center gap-1.5 rounded-xl border px-2 py-1.5 shadow-inner shadow-black/35 ${
+                  isMatched
+                    ? "border-emerald-300/24 bg-emerald-400/10"
+                    : "border-amber-300/12 bg-black/28"
+                }`}
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-300/14 bg-black/24">
+{bet.betType === "pair" && bet.animalKey2 ? (
+  <div className="flex items-center -space-x-2">
+    <img
+      src={animalAssets[bet.animalKey]}
+      alt=""
+      className="h-6 w-6 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+    />
+    <img
+      src={animalAssets[bet.animalKey2]}
+      alt=""
+      className="h-6 w-6 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+    />
+  </div>
+) : (
+  <img
+    src={animalAssets[bet.animalKey]}
+    alt=""
+    className="h-7 w-7 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+  />
+)}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="truncate text-[10px] font-black text-white">
+                    {formatMMK(bet.amount)}
+                  </p>
+                  <p className="text-[7px] font-black uppercase tracking-[0.12em] text-white/42">
+                    Bet
+                  </p>
+                </div>
+
+                <div
+                  className={`rounded-full px-1.5 py-0.5 text-[8px] font-black ${
+                    isMatched
+                      ? "bg-emerald-300 text-black"
+                      : "bg-white/8 text-white/45"
+                  }`}
+                >
+                  {bet.betType === "pair" ? `${bet.matchCount}/2` : `${bet.matchCount}/3`}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <div className="mt-2 grid grid-cols-3 gap-1.5">
           <div className="rounded-xl border border-amber-300/12 bg-black/28 p-2 text-center shadow-inner shadow-black/30">
             <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
-              Bet
+              Total Bet
             </p>
             <p className="mt-1 text-[11px] font-black text-white">
-              {formatMMK(activeBetAmount)} MMK
+              {formatMMK(totalBetAmount)} MMK
             </p>
           </div>
 
