@@ -132,6 +132,9 @@ function RoyalTableChamberBackdrop() {
       <div className="absolute inset-y-0 left-0 w-[34%] bg-[linear-gradient(90deg,rgba(30,7,3,0.82),rgba(69,22,8,0.36)_42%,transparent_100%)]" />
       <div className="absolute inset-y-0 right-0 w-[34%] bg-[linear-gradient(270deg,rgba(30,7,3,0.82),rgba(69,22,8,0.36)_42%,transparent_100%)]" />
 
+      <div className="absolute left-0 top-20 bottom-10 w-[22%] bg-[radial-gradient(ellipse_at_0%_45%,rgba(120,53,15,0.24),rgba(251,191,36,0.055)_34%,transparent_72%)] shadow-[inset_-18px_0_34px_rgba(0,0,0,0.28)]" />
+      <div className="absolute right-0 top-20 bottom-10 w-[22%] bg-[radial-gradient(ellipse_at_100%_45%,rgba(120,53,15,0.24),rgba(251,191,36,0.055)_34%,transparent_72%)] shadow-[inset_18px_0_34px_rgba(0,0,0,0.28)]" />
+
       <div className="absolute left-0 top-10 bottom-8 w-20 bg-[linear-gradient(90deg,rgba(120,53,15,0.28),rgba(251,191,36,0.08),transparent)]" />
       <div className="absolute right-0 top-10 bottom-8 w-20 bg-[linear-gradient(270deg,rgba(120,53,15,0.28),rgba(251,191,36,0.08),transparent)]" />
 
@@ -1214,7 +1217,7 @@ setJoinedRoundId(roundId);
           </div>
         </header>
 
-        <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.85rem] border border-amber-300/22 bg-gradient-to-b from-[#3a0707]/76 via-[#140202]/74 to-black/93 p-2.5 shadow-[0_0_50px_rgba(127,29,29,0.4),inset_0_0_34px_rgba(251,191,36,0.065),inset_0_1px_0_rgba(251,191,36,0.12)] backdrop-blur-sm">
+        <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.65rem] border border-amber-300/12 bg-[linear-gradient(145deg,rgba(45,7,3,0.62),rgba(10,1,1,0.52),rgba(65,18,5,0.34))] p-2 shadow-[0_18px_58px_rgba(0,0,0,0.52),inset_0_0_42px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(251,191,36,0.08)] backdrop-blur-[2px]">
           {showTopPanel ? (
             <div className={`shrink-0 rounded-[1.15rem] border p-1.5 shadow-xl shadow-black/35 backdrop-blur-md ${commandBarClass}`}>
               {showResultBoardPanel ? (
@@ -1406,14 +1409,14 @@ const isCurrent =
             </div>
           ) : null}
 
-          <div
-            className="relative mt-2 min-h-0 flex-1 overflow-hidden rounded-[1.7rem] border border-amber-300/20 bg-black/55 shadow-[inset_0_0_34px_rgba(0,0,0,0.58),inset_0_0_28px_rgba(251,191,36,0.05)]"
-            style={{
-              backgroundImage: `linear-gradient(to bottom, rgba(5,1,1,0.48), rgba(18,2,2,0.42), rgba(0,0,0,0.72)), url(${ROOM_BACKGROUND})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center 38%",
-            }}
-          >
+<div
+  className="relative mt-2 min-h-0 flex-1 overflow-hidden rounded-[1.55rem] border border-amber-300/10 bg-black/46 shadow-[inset_0_0_48px_rgba(0,0,0,0.62),inset_0_0_34px_rgba(251,191,36,0.035),0_18px_46px_rgba(0,0,0,0.35)]"
+  style={{
+    backgroundImage: `linear-gradient(to bottom, rgba(5,1,1,0.34), rgba(18,2,2,0.3), rgba(0,0,0,0.68)), url(${ROOM_BACKGROUND})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center 38%",
+  }}
+>
             <RoyalTableChamberBackdrop />
 
             {showFloatingClosedPanel ? (
