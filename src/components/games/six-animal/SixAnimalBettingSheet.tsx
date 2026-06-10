@@ -119,7 +119,7 @@ const pairBetAnimals = useMemo(() => {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.16),transparent_54%)]" />
         <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/75 to-transparent" />
 
-        <div className="relative z-10 max-h-[56vh] overflow-y-auto px-5 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="relative z-10 px-4 pb-4 pt-3">
           <div className="grid grid-cols-3 gap-1.5">
             {SIX_ANIMAL_OPTIONS.map((animal) => {
 const activeAnimalBet = singleBetMap.get(animal.key);
@@ -137,7 +137,7 @@ const isHighlighted = isSelected || isActiveBet;
                   type="button"
                   disabled={!canEditBet}
                   onClick={() => onSelectAnimal(animal.key)}
-                  className={`relative min-h-[80px] overflow-hidden rounded-[1.05rem] border shadow-lg transition-all duration-200 active:scale-[0.965] ${
+                  className={`relative min-h-[70px] overflow-hidden rounded-[1rem] border shadow-lg transition-all duration-200 active:scale-[0.965] ${
                     isHighlighted
                       ? "scale-[1.015] border-amber-100/90 bg-[linear-gradient(145deg,rgba(118,33,10,0.98),rgba(58,10,6,0.98),rgba(16,2,2,0.98))] shadow-[0_0_22px_rgba(251,191,36,0.2)]"
                       : "border-amber-300/15 bg-[linear-gradient(145deg,rgba(34,6,4,0.98),rgba(18,2,2,0.98),rgba(10,1,1,0.98))] hover:border-amber-300/34"
@@ -173,7 +173,7 @@ const isHighlighted = isSelected || isActiveBet;
                     <img
                       src={animalAssets[animal.key]}
                       alt={animal.name}
-                      className={`h-[62px] w-[62px] object-contain drop-shadow-[0_0_16px_rgba(251,191,36,0.45)] transition-transform duration-200 ${
+                      className={`h-[56px] w-[56px] object-contain drop-shadow-[0_0_16px_rgba(251,191,36,0.45)] transition-transform duration-200 ${
                         isHighlighted ? "scale-110" : "scale-100"
                       }`}
                     />
@@ -183,13 +183,13 @@ const isHighlighted = isSelected || isActiveBet;
             })}
           </div>
 
-<div className="mt-2 rounded-[1.15rem] border border-amber-300/18 bg-[linear-gradient(135deg,rgba(18,2,2,0.98),rgba(40,7,4,0.96))] p-2.5 shadow-inner shadow-black/50">
+<div className="mt-1.5 rounded-[1.1rem] border border-amber-300/18 bg-[linear-gradient(135deg,rgba(18,2,2,0.98),rgba(40,7,4,0.96))] p-2 shadow-inner shadow-black/50">
   <div className="mb-2 grid grid-cols-2 gap-2">
     <button
       type="button"
       disabled={!canEditBet}
       onClick={() => onBetModeChange("single")}
-      className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition active:scale-[0.96] ${
+      className={`rounded-xl border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition active:scale-[0.96] ${
         betMode === "single"
           ? "border-amber-100/65 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black"
           : "border-amber-300/18 bg-black/38 text-amber-100"
@@ -202,7 +202,7 @@ const isHighlighted = isSelected || isActiveBet;
       type="button"
       disabled={!canEditBet}
       onClick={() => onBetModeChange("pair")}
-      className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition active:scale-[0.96] ${
+      className={`rounded-xl border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition active:scale-[0.96] ${
         betMode === "pair"
           ? "border-amber-100/65 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black"
           : "border-amber-300/18 bg-black/38 text-amber-100"
@@ -217,7 +217,7 @@ const isHighlighted = isSelected || isActiveBet;
                 type="button"
                 disabled={!canEditBet}
                 onClick={onDecreaseAmount}
-                className="h-[52px] rounded-xl border border-amber-300/20 bg-black/45 text-2xl font-black text-amber-100 shadow-inner shadow-black/45 transition-all duration-150 active:scale-[0.93] active:bg-amber-300/18 disabled:opacity-35"
+                className="h-[46px] rounded-xl border border-amber-300/20 bg-black/45 text-2xl font-black text-amber-100 shadow-inner shadow-black/45 transition-all duration-150 active:scale-[0.93] active:bg-amber-300/18 disabled:opacity-35"
                 aria-label="Decrease bet amount"
               >
                 −
@@ -227,7 +227,7 @@ const isHighlighted = isSelected || isActiveBet;
                 type="button"
                 disabled={!canPlaceBet}
                 onClick={onPlaceBet}
-                className={`h-[52px] rounded-xl border px-3 py-1.5 text-center shadow-inner shadow-black/50 transition-all duration-150 active:scale-[0.95] ${
+                className={`h-[46px] rounded-xl border px-3 py-1.5 text-center shadow-inner shadow-black/50 transition-all duration-150 active:scale-[0.95] ${
                   canPlaceBet
                     ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_16px_rgba(251,191,36,0.2)]"
                     : "border-amber-300/20 bg-[linear-gradient(145deg,rgba(18,2,2,0.99),rgba(34,6,4,0.97))] text-amber-100/45"
@@ -246,14 +246,14 @@ const isHighlighted = isSelected || isActiveBet;
                 type="button"
                 disabled={!canEditBet}
                 onClick={onIncreaseAmount}
-                className="h-[52px] rounded-xl border border-amber-300/20 bg-black/45 text-2xl font-black text-amber-100 shadow-inner shadow-black/45 transition-all duration-150 active:scale-[0.93] active:bg-amber-300/18 disabled:opacity-35"
+                className="h-[46px] rounded-xl border border-amber-300/20 bg-black/45 text-2xl font-black text-amber-100 shadow-inner shadow-black/45 transition-all duration-150 active:scale-[0.93] active:bg-amber-300/18 disabled:opacity-35"
                 aria-label="Increase bet amount"
               >
                 +
               </button>
             </div>
 
-            <div className="mt-2.5 grid grid-cols-3 gap-2">
+            <div className="mt-2 grid grid-cols-3 gap-1.5">
               {QUICK_AMOUNTS.map((amount) => {
                 const isCurrentAmount = numericBetAmount === amount;
 
@@ -263,7 +263,7 @@ const isHighlighted = isSelected || isActiveBet;
                     type="button"
                     disabled={!canEditBet}
                     onClick={() => onQuickAmountSelect(amount)}
-                    className={`min-h-[44px] rounded-xl border px-2 py-2.5 text-[13px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
+                    className={`min-h-[38px] rounded-xl border px-2 py-2 text-[12px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
                       isCurrentAmount
                         ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.16)]"
                         : "border-amber-300/18 bg-[linear-gradient(145deg,rgba(28,5,3,0.99),rgba(44,8,4,0.97))] text-amber-100"

@@ -1731,7 +1731,7 @@ const isCurrent =
           ) : null}
 
 <div
-  className="relative mt-2 min-h-0 flex-1 overflow-hidden rounded-[1.55rem] border border-amber-300/10 bg-black/46 shadow-[inset_0_0_48px_rgba(0,0,0,0.62),inset_0_0_34px_rgba(251,191,36,0.035),0_18px_46px_rgba(0,0,0,0.35)]"
+  className="relative mt-2 min-h-0 flex-1 overflow-visible rounded-[1.55rem] border border-amber-300/10 bg-black/46 shadow-[inset_0_0_48px_rgba(0,0,0,0.62),inset_0_0_34px_rgba(251,191,36,0.035),0_18px_46px_rgba(0,0,0,0.35)]"
   style={{
     backgroundImage: `linear-gradient(to bottom, rgba(5,1,1,0.34), rgba(18,2,2,0.3), rgba(0,0,0,0.68)), url(${ROOM_BACKGROUND})`,
     backgroundSize: "cover",
@@ -1752,19 +1752,15 @@ const isCurrent =
             ) : null}
 
 {showFloatingResultBoard ? (
-  <FloatingResultBoard
-    diceResult={diceResult}
-    activeBet={activeBet}
-    activeBetAnimal={activeBetAnimal ?? null}
-    activeBetDisplayName={activeBetDisplayName}
-    showFinalResultPanel={showFinalResultPanel}
-    isResultPhaseVisualGuard={isResultPhaseVisualGuard}
-    isRollingReconnectView={isRollingReconnectView}
-    isRollingPhase={phase === "rolling"}
-    isResultWin={isResultWin}
-    resultStatusLabel={resultStatusLabel}
-    animalAssets={ANIMAL_ASSETS}
-  />
+<FloatingResultBoard
+  diceResult={diceResult}
+  activeBets={activeBets}
+  showFinalResultPanel={showFinalResultPanel}
+  isResultPhaseVisualGuard={isResultPhaseVisualGuard}
+  isRollingPhase={phase === "rolling"}
+  isResultWin={isResultWin}
+  animalAssets={ANIMAL_ASSETS}
+/>
 ) : null}
 
 {isRollingReconnectView ? (
