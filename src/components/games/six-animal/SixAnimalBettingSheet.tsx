@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 
 import { SIX_ANIMAL_OPTIONS } from "@/lib/gameRules";
+import { naganiAssets } from "@/lib/naganiAssets";
 import type { SixAnimalKey } from "@/types/games";
 
 type ActiveBet = {
@@ -27,6 +28,7 @@ type SixAnimalBettingSheetProps = {
   onDecreaseAmount: () => void;
 };
 const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 15000, 20000] as const;
+const BETTING_BOARD_FRAME = naganiAssets.sixAnimal.ui.bettingBoardFrame;
 
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
@@ -69,15 +71,22 @@ const displayAmount = activeBet?.amount ?? numericBetAmount;
         hasEntered ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0"
       }`}
     >
-      <div
-        className={`pointer-events-auto relative w-full max-w-[386px] overflow-hidden rounded-[1.55rem] border border-amber-300/22 bg-[linear-gradient(145deg,rgba(42,6,4,0.94),rgba(8,1,1,0.92),rgba(38,8,4,0.9))] shadow-2xl shadow-black/85 backdrop-blur-2xl transition-transform duration-500 ease-out ${
-          hasEntered ? "scale-100" : "scale-[0.985]"
-        }`}
-      >
+<div
+  className={`pointer-events-auto relative w-full max-w-[386px] overflow-hidden rounded-[1.55rem] border border-amber-300/12 bg-[linear-gradient(145deg,rgba(28,5,3,0.98),rgba(8,1,1,0.98),rgba(38,8,4,0.96))] shadow-2xl shadow-black/85 backdrop-blur-2xl transition-transform duration-500 ease-out ${
+    hasEntered ? "scale-100" : "scale-[0.985]"
+  }`}
+>
+<img
+  src={BETTING_BOARD_FRAME}
+  alt=""
+  aria-hidden="true"
+  className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[140%] w-[170%] max-w-none -translate-x-1/2 -translate-y-1/2 object-fill opacity-100"
+/>
+<div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(8,1,1,0.18),rgba(8,1,1,0.28))]" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.16),transparent_54%)]" />
         <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/75 to-transparent" />
 
-        <div className="relative z-10 max-h-[54vh] overflow-y-auto p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="relative z-10 max-h-[56vh] overflow-y-auto px-5 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="grid grid-cols-3 gap-1.5">
             {SIX_ANIMAL_OPTIONS.map((animal) => {
               const isSelected = selectedAnimal === animal.key;
@@ -90,10 +99,10 @@ const displayAmount = activeBet?.amount ?? numericBetAmount;
                   type="button"
                   disabled={!canEditBet}
                   onClick={() => onSelectAnimal(animal.key)}
-                  className={`relative min-h-[84px] overflow-hidden rounded-[1.05rem] border shadow-lg transition-all duration-200 active:scale-[0.965] ${
+                  className={`relative min-h-[80px] overflow-hidden rounded-[1.05rem] border shadow-lg transition-all duration-200 active:scale-[0.965] ${
                     isHighlighted
-                      ? "scale-[1.015] border-amber-100/90 bg-[linear-gradient(145deg,rgba(251,191,36,0.24),rgba(92,15,12,0.46),rgba(0,0,0,0.74))] shadow-[0_0_22px_rgba(251,191,36,0.2)]"
-                      : "border-amber-300/13 bg-[linear-gradient(145deg,rgba(52,10,5,0.42),rgba(10,1,1,0.78),rgba(0,0,0,0.84))] hover:border-amber-300/34"
+  ? "scale-[1.015] border-amber-100/90 bg-[linear-gradient(145deg,rgba(118,33,10,0.98),rgba(58,10,6,0.98),rgba(16,2,2,0.98))] shadow-[0_0_22px_rgba(251,191,36,0.2)]"
+  : "border-amber-300/15 bg-[linear-gradient(145deg,rgba(34,6,4,0.98),rgba(18,2,2,0.98),rgba(10,1,1,0.98))] hover:border-amber-300/34"
                   } ${
                     !canEditBet && !isHighlighted ? "opacity-45" : ""
                   } disabled:cursor-not-allowed disabled:opacity-100`}
@@ -102,8 +111,8 @@ const displayAmount = activeBet?.amount ?? numericBetAmount;
                   <div
                     className={`pointer-events-none absolute inset-0 ${
                       isHighlighted
-                        ? "bg-[radial-gradient(circle_at_50%_20%,rgba(251,191,36,0.32),transparent_68%)]"
-                        : "bg-[radial-gradient(circle_at_50%_20%,rgba(251,191,36,0.09),transparent_66%)]"
+                        ? "bg-[radial-gradient(circle_at_50%_20%,rgba(251,191,36,0.26),rgba(58,10,6,0.24)_52%,transparent_72%)]"
+: "bg-[radial-gradient(circle_at_50%_20%,rgba(251,191,36,0.08),rgba(18,2,2,0.3)_58%,transparent_74%)]"
                     }`}
                   />
 
@@ -130,7 +139,7 @@ const displayAmount = activeBet?.amount ?? numericBetAmount;
             })}
           </div>
 
-          <div className="mt-2 rounded-[1.15rem] border border-amber-300/16 bg-[linear-gradient(135deg,rgba(8,1,1,0.74),rgba(45,7,4,0.46))] p-2.5 shadow-inner shadow-black/45">
+          <div className="mt-2 rounded-[1.15rem] border border-amber-300/18 bg-[linear-gradient(135deg,rgba(18,2,2,0.98),rgba(40,7,4,0.96))] p-2.5 shadow-inner shadow-black/50">
             <div className="grid grid-cols-[52px_1fr_52px] items-center gap-2.5">
               <button
                 type="button"
@@ -142,7 +151,7 @@ const displayAmount = activeBet?.amount ?? numericBetAmount;
                 −
               </button>
 
-              <div className="rounded-xl border border-amber-300/20 bg-black/58 px-3 py-2 text-center shadow-inner shadow-black/45">
+              <div className="rounded-xl border border-amber-300/20 bg-[linear-gradient(145deg,rgba(18,2,2,0.99),rgba(34,6,4,0.97))] px-3 py-2 text-center shadow-inner shadow-black/50">
                 <p className="text-[8px] font-black uppercase tracking-[0.24em] text-amber-200/45">
                   MMK
                 </p>
@@ -174,8 +183,8 @@ const displayAmount = activeBet?.amount ?? numericBetAmount;
                     onClick={() => onQuickAmountSelect(amount)}
                     className={`min-h-[44px] rounded-xl border px-2 py-2.5 text-[13px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
                       isCurrentAmount
-                        ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.16)]"
-                        : "border-amber-300/16 bg-[linear-gradient(145deg,rgba(251,191,36,0.08),rgba(0,0,0,0.42))] text-amber-100"
+  ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.16)]"
+  : "border-amber-300/18 bg-[linear-gradient(145deg,rgba(28,5,3,0.99),rgba(44,8,4,0.97))] text-amber-100"
                     } disabled:opacity-35`}
                   >
                     {formatMMK(amount)}

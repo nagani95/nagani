@@ -23,6 +23,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { SixAnimalKey } from "@/types/games";
 
 const ROOM_BACKGROUND = naganiAssets.sixAnimal.room.palaceBgV1;
+const ROYAL_EXIT_DOOR_BUTTON = naganiAssets.sixAnimal.ui.royalExitDoor;
 
 const RESULT_REVEAL_DELAY_MS = 900;
 const SETTLEMENT_POPUP_DELAY_MS = 1400;
@@ -166,6 +167,7 @@ const [threeDiceRunKey, setThreeDiceRunKey] = useState(0);
     useState(false);
   const soundEnabled = ROOM_SOUND_ENABLED;
   const [showRoomIntro, setShowRoomIntro] = useState(true);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [activeBet, setActiveBet] = useState<ActiveBet | null>(null);
   const [showSettlementMoment, setShowSettlementMoment] = useState(false);
 const [settlementWaitingRoundId, setSettlementWaitingRoundId] =
@@ -681,8 +683,10 @@ const isResultWin = phase === "result" && Boolean(activeBet) && matchCount > 0;
     void eventName;
   }
 
-  async function handleLobbyClick() {
+async function handleLobbyClick() {
   if (isQuittingRef.current) return;
+
+  setShowExitConfirm(false);
 
   const currentRoundId = roundIdRef.current;
 
@@ -1211,27 +1215,88 @@ useEffect(() => {
   />
 ) : null}
 
+{showExitConfirm ? (
+  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/72 px-5 backdrop-blur-sm">
+    <div className="relative w-full max-w-[340px] overflow-hidden rounded-[1.75rem] border border-amber-300/28 bg-[linear-gradient(145deg,rgba(45,7,3,0.96),rgba(8,1,1,0.94),rgba(54,12,5,0.9))] p-5 text-center shadow-2xl shadow-black/80">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.18),transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/80 to-transparent" />
+
+      <div className="relative z-10">
+        <img
+          src={ROYAL_EXIT_DOOR_BUTTON}
+          alt=""
+          className="mx-auto h-20 w-20 object-contain drop-shadow-[0_0_18px_rgba(251,191,36,0.48)]"
+        />
+
+        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-amber-200/65">
+          Leave Room
+        </p>
+
+        <p className="mt-2 text-lg font-black text-white">
+          Return to Lobby?
+        </p>
+
+        <p className="mt-2 text-xs font-bold leading-5 text-white/55">
+          If you already placed a bet, the room will wait safely until the round settles.
+        </p>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setShowExitConfirm(false)}
+            className="rounded-xl border border-amber-300/18 bg-black/35 px-4 py-3 text-sm font-black text-amber-100 transition active:scale-[0.96]"
+          >
+            Stay
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLobbyClick}
+            className="rounded-xl border border-amber-100/55 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] px-4 py-3 text-sm font-black text-black shadow-[0_0_16px_rgba(251,191,36,0.16)] transition active:scale-[0.96]"
+          >
+            Leave
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+) : null}
+
       <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden px-2 py-2 sm:px-4">
         <header className="z-20 flex shrink-0 items-center justify-between rounded-2xl border border-amber-300/24 bg-[linear-gradient(135deg,rgba(45,7,3,0.9),rgba(12,2,2,0.78),rgba(70,22,5,0.62))] px-3 py-2 shadow-[0_0_24px_rgba(127,29,29,0.28),inset_0_1px_0_rgba(251,191,36,0.12)] backdrop-blur-md">
 <button
-  onClick={handleLobbyClick}
-  className="text-xs font-black text-amber-300"
+  type="button"
+  onClick={() => setShowExitConfirm(true)}
+  aria-label="Exit to lobby"
+  className="group flex h-[56px] w-[96px] items-center justify-start gap-1"
 >
-  ← Lobby
+  <span className="sr-only">Exit to lobby</span>
+
+  <span className="relative h-[56px] w-[52px] overflow-visible">
+    <img
+      src={ROYAL_EXIT_DOOR_BUTTON}
+      alt=""
+      className="absolute left-1/2 top-1/2 h-[86px] w-[86px] -translate-x-1/2 -translate-y-1/2 scale-[2.05] object-contain drop-shadow-[0_0_12px_rgba(251,191,36,0.48)] transition-transform duration-200 group-active:scale-[1.82]"
+    />
+  </span>
+
+  <span className="relative z-10 text-xs font-black text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.25)] transition-colors group-active:text-amber-100">
+    Exit
+  </span>
 </button>
 
-          <div className="text-center">
-<p className="text-[9px] font-bold uppercase tracking-[0.32em] text-amber-200/75 drop-shadow-[0_0_8px_rgba(251,191,36,0.22)]">
-  Six Animal Live Room
-</p>
-            <p className="text-sm font-black text-white drop-shadow-[0_0_10px_rgba(251,191,36,0.18)]">
-              Live Table
-            </p>
-          </div>
+<div className="text-center">
+  <p className="text-[10px] font-black uppercase tracking-[0.34em] text-amber-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.28)]">
+    Nagani
+  </p>
+  <p className="mt-0.5 text-[13px] font-black tracking-[0.08em] text-white drop-shadow-[0_0_12px_rgba(251,191,36,0.22)]">
+    ၆ ကောင်ဂျင်
+  </p>
+</div>
 
-          <div className="rounded-full border border-amber-300/24 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(120,53,15,0.22))] px-3 py-1 text-[11px] font-black text-amber-100 shadow-inner shadow-black/30">
-            Live
-          </div>
+<div className="flex w-[96px] justify-center rounded-full border border-amber-300/24 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(120,53,15,0.22))] px-3 py-1 text-[11px] font-black text-amber-100 shadow-inner shadow-black/30">
+  Live
+</div>
         </header>
 
         <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.65rem] border border-amber-300/12 bg-[linear-gradient(145deg,rgba(45,7,3,0.62),rgba(10,1,1,0.52),rgba(65,18,5,0.34))] p-2 shadow-[0_18px_58px_rgba(0,0,0,0.52),inset_0_0_42px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(251,191,36,0.08)] backdrop-blur-[2px]">
