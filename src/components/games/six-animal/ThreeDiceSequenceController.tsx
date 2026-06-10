@@ -288,6 +288,8 @@ nextDieTimerRef.current = window.setTimeout(() => {
 
 const shouldShowActiveTableDice = sequenceRunning || holdFinalDiceOnTable;
 
+const stageActiveDieIndex = shouldShowActiveTableDice ? activeDieIndex : -1;
+
 const stageMountedDiceRackMode: MountedDiceRackMode = shouldShowActiveTableDice
   ? "sequence"
   : mountedDiceRackMode;
@@ -302,9 +304,9 @@ const stageMountedDiceRackMode: MountedDiceRackMode = shouldShowActiveTableDice
         onFaceResultChange={handleFaceResultChange}
         debugPhysics={false}
         testMode="trap"
-        activeDieIndex={activeDieIndex}
-        sequenceRunning={shouldShowActiveTableDice}
-displayOnly={!shouldShowActiveTableDice}
+        activeDieIndex={stageActiveDieIndex}
+sequenceRunning={shouldShowActiveTableDice}
+displayOnly={false}
         variant="room"
         mountedDiceRackMode={stageMountedDiceRackMode}
         hideActiveDiceFaces={false}

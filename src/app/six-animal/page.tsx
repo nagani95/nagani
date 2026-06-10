@@ -127,12 +127,19 @@ function RoyalRoomAtmosphere() {
 function RoyalTableChamberBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.18),transparent_22%,transparent_66%,rgba(0,0,0,0.52))]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,transparent_0%,rgba(0,0,0,0.18)_48%,rgba(0,0,0,0.56)_100%)]" />
-      <div className="absolute inset-x-5 top-5 h-px bg-gradient-to-r from-transparent via-amber-200/28 to-transparent" />
-      <div className="absolute left-4 top-10 bottom-10 w-px bg-gradient-to-b from-transparent via-amber-200/18 to-transparent" />
-      <div className="absolute right-4 top-10 bottom-10 w-px bg-gradient-to-b from-transparent via-amber-200/18 to-transparent" />
-      <div className="absolute inset-x-8 bottom-3 h-32 bg-[radial-gradient(circle_at_50%_100%,rgba(127,29,29,0.2),transparent_72%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.1),transparent_24%,rgba(0,0,0,0.5)_100%)]" />
+
+      <div className="absolute inset-y-0 left-0 w-[34%] bg-[linear-gradient(90deg,rgba(30,7,3,0.82),rgba(69,22,8,0.36)_42%,transparent_100%)]" />
+      <div className="absolute inset-y-0 right-0 w-[34%] bg-[linear-gradient(270deg,rgba(30,7,3,0.82),rgba(69,22,8,0.36)_42%,transparent_100%)]" />
+
+      <div className="absolute left-0 top-10 bottom-8 w-20 bg-[linear-gradient(90deg,rgba(120,53,15,0.28),rgba(251,191,36,0.08),transparent)]" />
+      <div className="absolute right-0 top-10 bottom-8 w-20 bg-[linear-gradient(270deg,rgba(120,53,15,0.28),rgba(251,191,36,0.08),transparent)]" />
+
+      <div className="absolute left-5 top-8 bottom-10 w-[2px] bg-gradient-to-b from-transparent via-amber-200/24 to-transparent" />
+      <div className="absolute right-5 top-8 bottom-10 w-[2px] bg-gradient-to-b from-transparent via-amber-200/24 to-transparent" />
+
+      <div className="absolute inset-x-6 bottom-0 h-44 bg-[radial-gradient(ellipse_at_50%_100%,rgba(127,29,29,0.34),rgba(69,10,10,0.18)_38%,transparent_74%)]" />
+      <div className="absolute inset-x-10 top-4 h-px bg-gradient-to-r from-transparent via-amber-200/22 to-transparent" />
     </div>
   );
 }
@@ -622,7 +629,7 @@ const showResultBoardPanel = showRollingResultPanel || showFinalResultPanel;
 const isRollingReconnectView = false;
 
   const showTopPanel = phase === "betting";
-  const showFloatingClosedPanel = phase === "closed";
+  const showFloatingClosedPanel = false;
   const showFloatingResultBoard = showResultBoardPanel;
 const showSettlementSheet =
   showFinalResultPanel && showSettlementMoment && Boolean(activeBet);
@@ -1415,9 +1422,7 @@ const isCurrent =
                   Bets Closed
                 </p>
                 <p className="mt-0.5 text-xs font-black text-white">
-                  {displayCountdown > 0
-                    ? `Dice starting · ${displayCountdown}s`
-                    : "Dice starting"}
+                  Dice starting · {displayCountdown}s
                 </p>
               </div>
             ) : null}

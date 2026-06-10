@@ -1818,22 +1818,9 @@ function DiceHolderShelfKanoteAccent({ table }: { table: TableMeasurements }) {
 }
 
 function DiceHolderBackboardSupports({ table }: { table: TableMeasurements }) {
-  return (
-    <>
-      {/* visual-only wall mounting plate: makes dice holder feel attached to backboard */}
-      <RoundedBox
-        position={[0, 2.28, table.backWallZ + 0.16]}
-        args={[3.38, 0.72, 0.075]}
-        radius={0.025}
-        smoothness={6}
-        receiveShadow
-        castShadow
-      >
-        <meshStandardMaterial {...TABLE_MATERIALS.holderWood} />
-      </RoundedBox>
+  void table;
 
-    </>
-  );
+  return null;
 }
 
 function DiceHolderShelf({ table }: { table: TableMeasurements }) {
