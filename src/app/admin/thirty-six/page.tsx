@@ -2,66 +2,52 @@
 
 import Link from "next/link";
 
-const draws = [
-  {
-    id: "DRAW-1200",
-    name: "Morning Draw",
-    result: "#12",
-    tickets: "31",
-    status: "Published",
-  },
-  {
-    id: "DRAW-1800",
-    name: "Evening Draw",
-    result: "Pending",
-    tickets: "18",
-    status: "Open",
-  },
-];
-
 export default function AdminThirtySixPage() {
   return (
     <main className="min-h-screen bg-[#090202] px-5 py-6 text-white">
-      <section className="mx-auto w-full max-w-6xl">
+      <section className="mx-auto w-full max-w-5xl">
         <Link href="/admin" className="text-sm font-bold text-amber-300">
           ← Admin Home
         </Link>
 
         <header className="mt-6 rounded-[2rem] border border-red-500/25 bg-gradient-to-br from-red-950 via-[#160303] to-black p-6">
           <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-200/60">
-            Animal Draw Operation
+            Admin Module
           </p>
+
           <h1 className="mt-3 text-4xl font-black text-amber-100">
             ၃၆ ကောင်ထီ
           </h1>
+
           <p className="mt-3 text-sm leading-6 text-amber-50/65">
-            Manage draw records, tickets, and published results.
+            Thirty Six admin control is not connected yet. This page is kept as
+            a safe placeholder until the real draw backend, ticket records, and
+            result publishing flow are built.
           </p>
         </header>
 
-        <section className="mt-6 grid gap-4">
-          {draws.map((draw) => (
-            <article
-              key={draw.id}
-              className="rounded-[1.5rem] border border-amber-400/15 bg-black/40 p-5"
-            >
-              <div className="grid gap-4 md:grid-cols-[160px_1fr_120px_120px_140px] md:items-center">
-                <p className="text-xs font-bold text-white/40">{draw.id}</p>
-                <p className="text-lg font-black text-amber-100">
-                  {draw.name}
-                </p>
-                <p className="text-2xl font-black text-amber-100">
-                  {draw.result}
-                </p>
-                <p className="font-bold text-white/70">
-                  {draw.tickets} tickets
-                </p>
-                <p className="text-right text-xs font-black text-emerald-100">
-                  {draw.status}
-                </p>
-              </div>
-            </article>
-          ))}
+        <section className="mt-6 rounded-[1.75rem] border border-amber-400/15 bg-black/40 p-6">
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-amber-200/50">
+            Current Status
+          </p>
+
+          <h2 className="mt-3 text-2xl font-black text-amber-100">
+            Not Live Yet
+          </h2>
+
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
+            No fake draw data is displayed here. Real admin tools will be added
+            only after the Thirty Six backend source-of-truth is designed and
+            locked.
+          </p>
+
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-sm font-bold text-white/55">
+              Protected rule: do not add manual draw controls, fake results, or
+              ticket editing until the real Thirty Six backend foundation is
+              ready.
+            </p>
+          </div>
         </section>
       </section>
     </main>

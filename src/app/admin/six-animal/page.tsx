@@ -1,6 +1,10 @@
 //src>app>admin>six-animal>page.tsx
 
 import Link from "next/link";
+import {
+  clearSixAnimalNextResult,
+  setSixAnimalNextResult,
+} from "@/lib/supabase/sixAnimalControls";
 
 import { createClient } from "@/lib/supabase/server";
 import SixAnimalAdminRefresh from "@/components/admin/SixAnimalAdminRefresh";
@@ -40,13 +44,20 @@ type SixAnimalResult = {
   created_at: string;
 };
 
-type WalletTransaction = {
-  id: string;
-  wallet_id: string;
-  amount: number;
-  transaction_type: string;
-  description: string | null;
-  created_at: string;
+type SixAnimalRoomControl = {
+  room_id: string;
+  control_mode: string;
+  pending_result_animals: unknown;
+  pending_result_set_by: string | null;
+  pending_result_set_at: string | null;
+  updated_at: string | null;
+};
+
+type AdminSixAnimalPageProps = {
+  searchParams?: Promise<{
+    message?: string;
+    error?: string;
+  }>;
 };
 
 function formatAmount(amount: number) {
@@ -93,7 +104,13 @@ function getPhaseTarget(round: SixAnimalRound | null) {
   return null;
 }
 
-export default async function AdminSixAnimalPage() {
+export default async function AdminSixAnimalPage({
+  searchParams,
+}: AdminSixAnimalPageProps) {
+  const params = await searchParams;
+  const successMessage = params?.message;
+  const errorMessage = params?.error;
+
   const supabase = await createClient();
 
   const {
@@ -109,46 +126,35 @@ export default async function AdminSixAnimalPage() {
     .limit(1)
     .maybeSingle<SixAnimalRound>();
 
-  const {
-    data: latestRounds,
-    error: latestRoundsError,
-  } = await supabase
-    .from("six_animal_rounds")
-    .select(
-      "id, room_id, round_number, phase, status, betting_starts_at, betting_ends_at, rolling_starts_at, result_revealed_at, next_round_starts_at, created_at"
-    )
-    .eq("room_id", MAIN_ROOM_ID)
-    .order("round_number", { ascending: false })
-    .limit(8)
-    .returns<SixAnimalRound[]>();
+const currentRoundId = currentRound?.id ?? null;
 
-  const roundIds = latestRounds?.map((round) => round.id) ?? [];
-
-  const {
-    data: roundResults,
-    error: roundResultsError,
-  } = roundIds.length
-    ? await supabase
-        .from("six_animal_results")
-        .select("round_id, result_animals, created_at")
-        .in("round_id", roundIds)
-        .returns<SixAnimalResult[]>()
-    : { data: [], error: null };
-  
-    const {
-  data: latestRoundBets,
-  error: latestRoundBetsError,
-} = roundIds.length
+const {
+  data: currentRoundResult,
+  error: roundResultsError,
+} = currentRoundId
   ? await supabase
-      .from("six_animal_bets")
-      .select(
-        "id, round_id, profile_id, animal, amount, locked, settled, created_at"
-      )
-      .in("round_id", roundIds)
-      .returns<SixAnimalBet[]>()
-  : { data: [], error: null };
+      .from("six_animal_results")
+      .select("round_id, result_animals, created_at")
+      .eq("round_id", currentRoundId)
+      .maybeSingle<SixAnimalResult>()
+  : { data: null, error: null };
 
-  const currentRoundId = currentRound?.id ?? null;
+const {
+  data: roomControl,
+  error: roomControlError,
+} = await supabase
+  .from("six_animal_room_controls")
+  .select(
+    "room_id, control_mode, pending_result_animals, pending_result_set_by, pending_result_set_at, updated_at"
+  )
+  .eq("room_id", MAIN_ROOM_ID)
+  .maybeSingle<SixAnimalRoomControl>();
+
+const pendingResultAnimals = normalizeResultAnimals(
+  roomControl?.pending_result_animals
+);
+
+const hasPendingNextResult = pendingResultAnimals.length === 3;
 
   const {
     data: currentBets,
@@ -164,57 +170,9 @@ export default async function AdminSixAnimalPage() {
         .returns<SixAnimalBet[]>()
     : { data: [], error: null };
 
-  const {
-    data: latestWalletTransactions,
-    error: walletTransactionsError,
-  } = await supabase
-    .from("wallet_transactions")
-    .select("id, wallet_id, amount, transaction_type, description, created_at")
-    .order("created_at", { ascending: false })
-    .limit(8)
-    .returns<WalletTransaction[]>();
-
-  const resultsByRoundId = new Map(
-    (roundResults ?? []).map((result) => [
-      result.round_id,
-      normalizeResultAnimals(result.result_animals),
-    ])
-  );
-
-const currentResultAnimals =
-  currentRoundId && resultsByRoundId.has(currentRoundId)
-    ? resultsByRoundId.get(currentRoundId) ?? []
-    : [];
-
-const latestRoundBetStats = new Map<
-  string,
-  {
-    betCount: number;
-    totalAmount: number;
-    settledCount: number;
-    unsettledCount: number;
-  }
->();
-
-for (const bet of latestRoundBets ?? []) {
-  const current = latestRoundBetStats.get(bet.round_id) ?? {
-    betCount: 0,
-    totalAmount: 0,
-    settledCount: 0,
-    unsettledCount: 0,
-  };
-
-  current.betCount += 1;
-  current.totalAmount += bet.amount;
-
-  if (bet.settled) {
-    current.settledCount += 1;
-  } else {
-    current.unsettledCount += 1;
-  }
-
-  latestRoundBetStats.set(bet.round_id, current);
-}
+const currentResultAnimals = normalizeResultAnimals(
+  currentRoundResult?.result_animals
+);
 
 const totalBetAmount = (currentBets ?? []).reduce(
   (sum, bet) => sum + bet.amount,
@@ -230,15 +188,9 @@ const totalBetAmount = (currentBets ?? []).reduce(
 
 const errors = [
   currentRoundError ? `Current round: ${currentRoundError.message}` : null,
-  latestRoundsError ? `Latest rounds: ${latestRoundsError.message}` : null,
   roundResultsError ? `Round results: ${roundResultsError.message}` : null,
-  latestRoundBetsError
-    ? `Latest round bets: ${latestRoundBetsError.message}`
-    : null,
   currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
-  walletTransactionsError
-    ? `Wallet transactions: ${walletTransactionsError.message}`
-    : null,
+  roomControlError ? `Room control: ${roomControlError.message}` : null,
 ].filter(Boolean);
 
   return (
@@ -256,11 +208,12 @@ const errors = [
           <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h1 className="text-4xl font-black text-amber-100">
-                ၆ ကောင်ဂျင် Admin
+                ၆ ကောင်ဂျင် Monitor
               </h1>
               <p className="mt-3 text-sm leading-6 text-amber-50/65">
-                Read-only backend monitoring for the main Six Animal live room.
-                Backend remains the dealer. Player room logic is untouched.
+Read-only backend monitoring for the main Six Animal live room.
+Manual control is not enabled yet. Backend remains the dealer.
+Player room logic is untouched.
               </p>
             </div>
 
@@ -274,6 +227,22 @@ const errors = [
             </div>
           </div>
         </header>
+
+        {successMessage ? (
+  <section className="mt-6 rounded-[1.5rem] border border-emerald-400/30 bg-emerald-950/30 p-5">
+    <p className="text-sm font-black text-emerald-100">
+      {successMessage}
+    </p>
+  </section>
+) : null}
+
+{errorMessage ? (
+  <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
+    <p className="text-sm font-black text-red-100">
+      {errorMessage}
+    </p>
+  </section>
+) : null}
 
         {errors.length > 0 ? (
           <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
@@ -342,6 +311,104 @@ const errors = [
             </p>
           </div>
         </section>
+
+        <section className="mt-6 rounded-[1.75rem] border border-amber-400/20 bg-gradient-to-br from-amber-950/20 via-black/45 to-red-950/20 p-5">
+  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <div>
+      <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-200/50">
+        Dealer Control
+      </p>
+
+      <h2 className="mt-2 text-2xl font-black text-amber-100">
+        Manual Control Not Enabled
+      </h2>
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+        This panel is prepared for future Six Animal room control. For now,
+        backend auto mode remains the only active dealer. No admin action here
+        changes result, wallet, settlement, dice, or player room state.
+      </p>
+    </div>
+
+    <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 px-4 py-3 text-center">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-100/55">
+        Mode
+      </p>
+      <p className="mt-1 text-lg font-black text-emerald-100">
+        Auto
+      </p>
+    </div>
+  </div>
+
+  <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
+  <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/35">
+    Pending Next Result
+  </p>
+
+  {hasPendingNextResult ? (
+    <div className="mt-3 grid gap-2 md:grid-cols-3">
+      {pendingResultAnimals.map((animal, index) => (
+        <div
+          key={`${animal}-${index}`}
+          className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-center"
+        >
+          <p className="text-xs font-bold text-white/35">
+            Dice {index + 1}
+          </p>
+          <p className="mt-1 text-lg font-black capitalize text-amber-100">
+            {animal}
+          </p>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="mt-3 text-sm font-bold text-white/45">
+      No manual result is pending. Backend auto result will be used.
+    </p>
+  )}
+
+  {roomControl?.pending_result_set_at ? (
+    <p className="mt-3 text-xs font-bold text-white/35">
+      Set at {formatTime(roomControl.pending_result_set_at)}
+    </p>
+  ) : null}
+</div>
+
+<div className="mt-5 grid gap-3 md:grid-cols-4">
+  <button
+    type="button"
+    disabled
+    className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
+  >
+    Set Next Result
+  </button>
+
+  <form action={clearSixAnimalNextResult}>
+    <button
+      type="submit"
+      className="w-full rounded-2xl border border-red-300/25 bg-red-500/12 px-4 py-4 text-sm font-black text-red-100 transition hover:bg-red-300 hover:text-black"
+    >
+      Clear Next Result
+    </button>
+  </form>
+
+  <button
+    type="button"
+    disabled
+    className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
+  >
+    Pause Room
+  </button>
+
+  <button
+    type="button"
+    disabled
+    className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
+  >
+    Resume Room
+  </button>
+</div>
+</section>
 
         <section className="mt-6 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
           <article className="rounded-[1.75rem] border border-amber-400/15 bg-black/40 p-5">
@@ -494,111 +561,6 @@ const errors = [
             {(currentBets ?? []).length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm font-bold text-white/40">
                 No bets in current round.
-              </p>
-            ) : null}
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-[1.75rem] border border-amber-400/15 bg-black/40 p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-200/50">
-            Room History
-          </p>
-          <h2 className="mt-2 text-2xl font-black text-amber-100">
-            Latest Backend Rounds
-          </h2>
-
-          <div className="mt-5 space-y-3">
-{(latestRounds ?? []).map((round) => {
-  const animals = resultsByRoundId.get(round.id) ?? [];
-  const stats = latestRoundBetStats.get(round.id) ?? {
-    betCount: 0,
-    totalAmount: 0,
-    settledCount: 0,
-    unsettledCount: 0,
-  };
-
-  return (
-    <article
-      key={round.id}
-      className="grid gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[110px_110px_1fr_130px_150px_150px]"
-    >
-      <p className="text-xs font-bold text-white/35">
-        #{round.round_number}
-      </p>
-
-      <p
-        className={`text-sm font-black capitalize ${getPhaseTone(
-          round.phase
-        )}`}
-      >
-        {round.phase}
-      </p>
-
-      <p className="text-sm font-black text-amber-100">
-        {animals.length > 0 ? animals.join(" / ") : "—"}
-      </p>
-
-      <p className="text-xs font-black text-white/55">
-        {stats.betCount} bet{stats.betCount === 1 ? "" : "s"}
-      </p>
-
-      <p className="text-xs font-black text-emerald-100">
-        {formatAmount(stats.totalAmount)}
-      </p>
-
-      <div className="text-left text-xs font-black md:text-right">
-        <p className="text-emerald-100">
-          Settled {stats.settledCount}
-        </p>
-        <p
-          className={
-            stats.unsettledCount > 0 ? "text-red-100" : "text-white/35"
-          }
-        >
-          Unsettled {stats.unsettledCount}
-        </p>
-      </div>
-    </article>
-  );
-})}
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-[1.75rem] border border-emerald-400/15 bg-emerald-950/10 p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-200/50">
-            Wallet Visibility
-          </p>
-          <h2 className="mt-2 text-2xl font-black text-amber-100">
-            Latest Wallet Transactions
-          </h2>
-
-          <div className="mt-5 space-y-3">
-            {(latestWalletTransactions ?? []).map((transaction) => (
-              <div
-                key={transaction.id}
-                className="grid gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[180px_1fr_160px_170px]"
-              >
-                <p className="text-xs font-bold text-white/35">
-                  {transaction.transaction_type}
-                </p>
-
-                <p className="text-sm text-white/60">
-                  {transaction.description ?? "No description"}
-                </p>
-
-                <p className="text-sm font-black text-emerald-100">
-                  {formatAmount(transaction.amount)}
-                </p>
-
-                <p className="text-left text-xs font-bold text-white/35 md:text-right">
-                  {formatTime(transaction.created_at)}
-                </p>
-              </div>
-            ))}
-
-            {(latestWalletTransactions ?? []).length === 0 ? (
-              <p className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm font-bold text-white/40">
-                No wallet transactions found.
               </p>
             ) : null}
           </div>

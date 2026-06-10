@@ -41,6 +41,17 @@ export const naganiAssets = {
         "/assets/nagani/six-animal/room/six-animal-palace-room-bg-v1.jpg",
     },
 
+        sounds: {
+      base: "/assets/nagani/six-animal/sounds",
+      betLocked: "/assets/nagani/six-animal/sounds/bet-locked.mp3",
+      betsClosed: "/assets/nagani/six-animal/sounds/bets-closed.mp3",
+      diceReveal: "/assets/nagani/six-animal/sounds/dice-reveal.mp3",
+      result: "/assets/nagani/six-animal/sounds/result.mp3",
+      win: "/assets/nagani/six-animal/sounds/win.mp3",
+      noMatch: "/assets/nagani/six-animal/sounds/no-match.mp3",
+      nextRound: "/assets/nagani/six-animal/sounds/next-round.mp3",
+    },
+
     tableModels: {
       base: "/assets/nagani/six-animal/table-models",
       royalTableV1:
@@ -55,3 +66,4 @@ export const naganiAssets = {
     },
   },
 } as const;
+
