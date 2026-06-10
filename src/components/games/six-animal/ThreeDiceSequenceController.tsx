@@ -76,6 +76,7 @@ export default function ThreeDiceSequenceController({
   const [captureRequestKey, setCaptureRequestKey] = useState(0);
   const [activeDieIndex, setActiveDieIndex] = useState(0);
   const [sequenceRunning, setSequenceRunning] = useState(false);
+  const [holdFinalDiceOnTable, setHoldFinalDiceOnTable] = useState(false);
   const [capturedResults, setCapturedResults] = useState<CapturedDiceResult[]>(
     []
   );
@@ -121,6 +122,7 @@ export default function ThreeDiceSequenceController({
     setSettled(false);
     setFaceCaptureOwner(null);
     setCaptureRequestKey(0);
+    setHoldFinalDiceOnTable(false);
     setSequenceRunning(true);
     setResetKey((value) => value + 1);
   }
@@ -150,13 +152,21 @@ export default function ThreeDiceSequenceController({
     };
   }, []);
 
-  useEffect(() => {
-    if (!enabled || !visualRoundId) {
-      clearTimers();
-      setSequenceRunning(false);
-      setFaceCaptureOwner(null);
-      return;
-    }
+useEffect(() => {
+  if (!visualRoundId) {
+    clearTimers();
+    setSequenceRunning(false);
+    setHoldFinalDiceOnTable(false);
+    setFaceCaptureOwner(null);
+    return;
+  }
+
+  if (!enabled) {
+    clearTimers();
+    setSequenceRunning(false);
+    setFaceCaptureOwner(null);
+    return;
+  }
 
     const sequenceKey = `${runKey}|${visualRoundId}`;
 
@@ -234,10 +244,11 @@ export default function ThreeDiceSequenceController({
       return;
     }
 
-    nextDieTimerRef.current = window.setTimeout(() => {
-      setSequenceRunning(false);
-      nextDieTimerRef.current = null;
-    }, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
+nextDieTimerRef.current = window.setTimeout(() => {
+  setHoldFinalDiceOnTable(true);
+  setSequenceRunning(false);
+  nextDieTimerRef.current = null;
+}, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
   }, [enabled, sequenceRunning, activeDieIndex, faceCaptureOwner]);
 
   useEffect(() => {
@@ -275,9 +286,11 @@ export default function ThreeDiceSequenceController({
     );
   }, [sequenceRunning, capturedResults]);
 
-  const stageMountedDiceRackMode: MountedDiceRackMode = sequenceRunning
-    ? mountedDiceRackMode
-    : mountedDiceRackMode;
+const shouldShowActiveTableDice = sequenceRunning || holdFinalDiceOnTable;
+
+const stageMountedDiceRackMode: MountedDiceRackMode = shouldShowActiveTableDice
+  ? "sequence"
+  : mountedDiceRackMode;
 
   return (
     <div
@@ -290,8 +303,8 @@ export default function ThreeDiceSequenceController({
         debugPhysics={false}
         testMode="trap"
         activeDieIndex={activeDieIndex}
-        sequenceRunning={sequenceRunning}
-        displayOnly={!sequenceRunning}
+        sequenceRunning={shouldShowActiveTableDice}
+displayOnly={!shouldShowActiveTableDice}
         variant="room"
         mountedDiceRackMode={stageMountedDiceRackMode}
         hideActiveDiceFaces={false}

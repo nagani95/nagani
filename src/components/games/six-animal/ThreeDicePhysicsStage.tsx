@@ -100,9 +100,11 @@ const COCKED_RESULT_MESSAGE =
   "Dice stopped at an unreadable angle. Result not accepted.";
 
 const VISIBLE_FACE_CAPTURE_MIN_ROLL_MS = 7600;
-const VISIBLE_FACE_CAPTURE_STABLE_SECONDS = 0.58;
-const VISIBLE_FACE_CAPTURE_SPEED = 1.05;
-const VISIBLE_FACE_HARD_READ_MS = 9200;
+const VISIBLE_FACE_CAPTURE_STABLE_SECONDS = 0.78;
+const VISIBLE_FACE_CAPTURE_SPEED = 0.72;
+const VISIBLE_FACE_HARD_READ_MS = 9800;
+const VISIBLE_FACE_EDGE_SETTLE_LIMIT_MS = 11200;
+const VISIBLE_FACE_EDGE_SETTLE_TILT_DEGREES = 32;
 
 const DICE_HOLDER_X_POSITIONS = [-1.0, 0, 1.0];
 
@@ -927,10 +929,27 @@ function createNearestVisibleResult(result: DiceFaceResult): DiceFaceResult {
   };
 }
 
-function lockVisibleDiceBody(body: RapierRigidBody) {
-  body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-  body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-  body.sleep();
+function softenVisibleDiceBody(body: RapierRigidBody) {
+  const linvel = body.linvel();
+  const angvel = body.angvel();
+
+  body.setLinvel(
+    {
+      x: linvel.x * 0.18,
+      y: linvel.y * 0.18,
+      z: linvel.z * 0.18,
+    },
+    true
+  );
+
+  body.setAngvel(
+    {
+      x: angvel.x * 0.14,
+      y: angvel.y * 0.14,
+      z: angvel.z * 0.14,
+    },
+    true
+  );
 }
 
 function DiceCube({
@@ -961,6 +980,7 @@ const rollStartedAtRef = useRef(0);
 const stableVisibleFaceKeyRef = useRef<string | null>(null);
 const stableVisibleFaceTimeRef = useRef(0);
 const lastCaptureRequestKeyRef = useRef(0);
+const softHoldStartedAtRef = useRef<number | null>(null);
 
 const collider = getDiceColliderConfig(diceColliderPreset);
 const activeDieX = DICE_HOLDER_X_POSITIONS[activeDieIndex] ?? 0;
@@ -991,6 +1011,7 @@ rollStartedAtRef.current = performance.now();
 stableVisibleFaceKeyRef.current = null;
 stableVisibleFaceTimeRef.current = 0;
 lastCaptureRequestKeyRef.current = captureRequestKey;
+softHoldStartedAtRef.current = null;
 
 onSettledChange(false);
 onFaceResultChange(null);
@@ -1078,6 +1099,21 @@ useFrame((_, delta) => {
       Math.abs(angvel.x) * 0.15 +
       Math.abs(angvel.y) * 0.15 +
       Math.abs(angvel.z) * 0.15;
+
+      if (settledRef.current) {
+  const holdAgeMs = softHoldStartedAtRef.current
+    ? performance.now() - softHoldStartedAtRef.current
+    : 0;
+
+  if (holdAgeMs < 760) {
+    softenVisibleDiceBody(body);
+  } else if (movementSpeed < 0.045) {
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  }
+
+  return;
+}
   
 const rotation = body.rotation();
 const visibleResult = detectTopDiceFace(rotation);
@@ -1094,12 +1130,23 @@ const hasControllerCaptureRequest =
 if (hasControllerCaptureRequest && !settledRef.current) {
   lastCaptureRequestKeyRef.current = captureRequestKey;
 
+const diceStillFeelsAlive =
+  rollAgeMs < VISIBLE_FACE_HARD_READ_MS &&
+  (movementSpeed > 0.62 ||
+    visibleResult.tiltDegrees > VISIBLE_FACE_EDGE_SETTLE_TILT_DEGREES);
+
+  if (diceStillFeelsAlive) {
+    softenVisibleDiceBody(body);
+    return;
+  }
+
   const capturedResult = createNearestVisibleResult(visibleResult);
 
   settledRef.current = true;
   stillTimeRef.current = 999;
 
-  lockVisibleDiceBody(body);
+  softHoldStartedAtRef.current = performance.now();
+  softenVisibleDiceBody(body);
 
   onSettledChange(true);
   onFaceResultChange({
@@ -1126,11 +1173,39 @@ if (
   stableVisibleFaceTimeRef.current = 0;
 }
 
-const hasStableVisibleFace =
+const hasComfortablyStableVisibleFace =
   visibleResult.status === "accepted" &&
+  visibleResult.tiltDegrees <= 26 &&
+  movementSpeed < VISIBLE_FACE_CAPTURE_SPEED &&
   stableVisibleFaceTimeRef.current >= VISIBLE_FACE_CAPTURE_STABLE_SECONDS;
 
+const hasStableVisibleFace = hasComfortablyStableVisibleFace;
+
 const hasReachedHardRead = rollAgeMs >= VISIBLE_FACE_HARD_READ_MS;
+const shouldGiveCockedDiceMoreSettleTime =
+  hasReachedHardRead &&
+  rollAgeMs < VISIBLE_FACE_EDGE_SETTLE_LIMIT_MS &&
+  visibleResult.tiltDegrees > VISIBLE_FACE_EDGE_SETTLE_TILT_DEGREES;
+
+if (
+  hasReachedHardRead &&
+  shouldGiveCockedDiceMoreSettleTime &&
+  !settledRef.current
+) {
+  const settleDirection = activeDieIndex === 1 ? -1 : 1;
+
+  softenVisibleDiceBody(body);
+  body.setAngvel(
+    {
+      x: 0.42 * settleDirection,
+      y: 0.12 * settleDirection,
+      z: 0.36 * settleDirection,
+    },
+    true
+  );
+
+  return;
+}
 
 if ((hasStableVisibleFace || hasReachedHardRead) && !settledRef.current) {
   const capturedResult = hasStableVisibleFace
@@ -1140,7 +1215,8 @@ if ((hasStableVisibleFace || hasReachedHardRead) && !settledRef.current) {
   settledRef.current = true;
   stillTimeRef.current = 999;
 
-  lockVisibleDiceBody(body);
+  softHoldStartedAtRef.current = performance.now();
+softenVisibleDiceBody(body);
 
   onSettledChange(true);
   onFaceResultChange({
@@ -1168,7 +1244,8 @@ if (movementSpeed < 0.12) {
 if (stillTimeRef.current > 1.35 && !settledRef.current) {
   settledRef.current = true;
 
-  lockVisibleDiceBody(body);
+  softHoldStartedAtRef.current = performance.now();
+softenVisibleDiceBody(body);
 
   onSettledChange(true);
   onFaceResultChange({
@@ -1318,6 +1395,40 @@ function TableRunwayDepthLayer({ table }: { table: TableMeasurements }) {
         />
       </mesh>
 
+            {/* visual-only royal felt center depth; no collider */}
+      <mesh
+        position={[0, table.floorY + 0.116, table.floorZ + 1.22]}
+        rotation={[table.settlingSlopeAngle, 0, 0]}
+        receiveShadow
+      >
+        <boxGeometry args={[table.floorWidth - 1.28, 0.005, 2.95]} />
+        <meshStandardMaterial
+          color="#7d0714"
+          roughness={1}
+          metalness={0}
+          transparent
+          opacity={0.18}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* visual-only soft front shadow; no collider */}
+      <mesh
+        position={[0, table.floorY + 0.118, table.frontEdgeZ - 0.72]}
+        rotation={[table.settlingSlopeAngle, 0, 0]}
+        receiveShadow
+      >
+        <boxGeometry args={[table.floorWidth - 0.92, 0.005, 0.72]} />
+        <meshStandardMaterial
+          color="#230105"
+          roughness={1}
+          metalness={0}
+          transparent
+          opacity={0.22}
+          depthWrite={false}
+        />
+      </mesh>
+
       {/* visual-only rear shadow where dice leaves the holder area; no collider */}
       <mesh
         position={[0, table.floorY + 0.112, table.backEdgeZ + 0.72]}
@@ -1327,6 +1438,40 @@ function TableRunwayDepthLayer({ table }: { table: TableMeasurements }) {
         <boxGeometry args={[table.floorWidth - 0.82, 0.006, 0.42]} />
         <meshStandardMaterial
           {...TABLE_MATERIALS.runwayBackShadow}
+          depthWrite={false}
+        />
+      </mesh>
+
+            {/* visual-only back wall / runway seam cover; no collider */}
+      <mesh
+        position={[0, table.floorY + 0.13, table.backEdgeZ + 0.18]}
+        rotation={[table.slopeAngle, 0, 0]}
+        receiveShadow
+      >
+        <boxGeometry args={[table.floorWidth - 0.46, 0.012, 0.22]} />
+        <meshStandardMaterial
+          color="#0b0102"
+          roughness={0.9}
+          metalness={0.02}
+          transparent
+          opacity={0.42}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* visual-only soft red cove above the seam; no collider */}
+      <mesh
+        position={[0, table.floorY + 0.138, table.backEdgeZ + 0.34]}
+        rotation={[table.slopeAngle, 0, 0]}
+        receiveShadow
+      >
+        <boxGeometry args={[table.floorWidth - 0.72, 0.006, 0.34]} />
+        <meshStandardMaterial
+          color="#3b0308"
+          roughness={1}
+          metalness={0}
+          transparent
+          opacity={0.2}
           depthWrite={false}
         />
       </mesh>
@@ -1443,6 +1588,38 @@ function TableBackboardDepth({ table }: { table: TableMeasurements }) {
         />
       </mesh>
 
+            {/* visual-only warm palace glow behind dice holder; no collider */}
+      <mesh
+        position={[0, 2.08, table.backWallZ + 0.162]}
+        receiveShadow
+      >
+        <boxGeometry args={[3.42, 0.34, 0.018]} />
+        <meshStandardMaterial
+          color="#8a4a18"
+          roughness={0.72}
+          metalness={0.08}
+          transparent
+          opacity={0.16}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* visual-only lower holder shadow; no collider */}
+      <mesh
+        position={[0, 1.82, table.backWallZ + 0.164]}
+        receiveShadow
+      >
+        <boxGeometry args={[3.2, 0.16, 0.018]} />
+        <meshStandardMaterial
+          color="#080101"
+          roughness={0.9}
+          metalness={0.02}
+          transparent
+          opacity={0.26}
+          depthWrite={false}
+        />
+      </mesh>
+
       {/* visual-only lower shadow behind chute/tray; no collider */}
       <mesh
         position={[0, -0.42, table.backWallZ + 0.16]}
@@ -1542,15 +1719,17 @@ function TableBackboard({ table }: { table: TableMeasurements }) {
 function DiceHolderShelfDepth({ table }: { table: TableMeasurements }) {
   return (
     <>
-      {/* visual-only front brass edge on holder shelf; no collider */}
-      <mesh
+      {/* visual-only rounded front brass edge on holder shelf; no collider */}
+      <RoundedBox
         position={[0, 2.17, table.backWallZ + 0.43]}
+        args={[3.06, 0.052, 0.062]}
+        radius={0.018}
+        smoothness={8}
         receiveShadow
         castShadow
       >
-        <boxGeometry args={[3.0, 0.035, 0.045]} />
         <meshStandardMaterial {...TABLE_MATERIALS.holderShelfGoldEdge} />
-      </mesh>
+      </RoundedBox>
 
       {/* visual-only underside shadow; no collider */}
       <mesh
@@ -1560,6 +1739,38 @@ function DiceHolderShelfDepth({ table }: { table: TableMeasurements }) {
         <boxGeometry args={[3.05, 0.045, 0.05]} />
         <meshStandardMaterial
           {...TABLE_MATERIALS.holderShelfShadow}
+          depthWrite={false}
+        />
+      </mesh>
+
+            {/* visual-only shelf contact shadow against back wall; no collider */}
+      <mesh
+        position={[0, 2.04, table.backWallZ + 0.235]}
+        receiveShadow
+      >
+        <boxGeometry args={[3.12, 0.055, 0.026]} />
+        <meshStandardMaterial
+          color="#070101"
+          roughness={0.86}
+          metalness={0.02}
+          transparent
+          opacity={0.36}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* visual-only warm lacquer top glow on shelf; no collider */}
+      <mesh
+        position={[0, 2.145, table.backWallZ + 0.345]}
+        receiveShadow
+      >
+        <boxGeometry args={[2.82, 0.012, 0.22]} />
+        <meshStandardMaterial
+          color="#6f120d"
+          roughness={0.78}
+          metalness={0.04}
+          transparent
+          opacity={0.18}
           depthWrite={false}
         />
       </mesh>
@@ -1682,13 +1893,32 @@ function TrapdoorFlaps({
               <meshStandardMaterial {...TABLE_MATERIALS.goldTrim} />
             </mesh>
 
-            {/* simple flat door panel under the dice */}
-            <mesh position={[0, -0.02, 0.31]} receiveShadow castShadow>
-              <boxGeometry args={[0.78, 0.05, 0.58]} />
+            {/* lacquer trapdoor panel under the dice */}
+            <RoundedBox
+              position={[0, -0.02, 0.31]}
+              args={[0.78, 0.055, 0.58]}
+              radius={0.025}
+              smoothness={6}
+              receiveShadow
+              castShadow
+            >
               <meshStandardMaterial
                 {...(isDoorOpen
                   ? TABLE_MATERIALS.trapdoorOpen
                   : TABLE_MATERIALS.trapdoorClosed)}
+              />
+            </RoundedBox>
+
+            {/* visual-only inset shadow on trapdoor */}
+            <mesh position={[0, -0.052, 0.31]} receiveShadow>
+              <boxGeometry args={[0.58, 0.01, 0.38]} />
+              <meshStandardMaterial
+                color="#170202"
+                roughness={0.82}
+                metalness={0.02}
+                transparent
+                opacity={0.28}
+                depthWrite={false}
               />
             </mesh>
 
@@ -1768,34 +1998,15 @@ function StumbleBar({
 
   return (
     <>
-      <mesh
+      <group
         position={[0, 0.36, table.backWallZ + 0.78]}
         rotation={[0.12, 0, 0]}
-        receiveShadow
-        castShadow
       >
-        <boxGeometry args={[3.35, 0.072, 0.18]} />
-        <meshStandardMaterial {...TABLE_MATERIALS.goldAccent} />
-      </mesh>
-
-            {/* visual-only support brackets so the deflector bar does not feel floating */}
-      {[-1, 1].map((side) => (
-        <group
-          key={`stumble-bar-support-${side}`}
-          position={[side * 1.72, 0.16, table.backWallZ + 0.78]}
-          rotation={[0.12, 0, 0]}
-        >
-          <mesh receiveShadow castShadow>
-            <boxGeometry args={[0.09, 0.42, 0.11]} />
-            <meshStandardMaterial {...TABLE_MATERIALS.goldAccent} />
-          </mesh>
-
-          <mesh position={[0, -0.24, 0.035]} receiveShadow castShadow>
-            <boxGeometry args={[0.18, 0.08, 0.16]} />
-            <meshStandardMaterial {...TABLE_MATERIALS.darkBorder} />
-          </mesh>
-        </group>
-      ))}
+        <mesh receiveShadow castShadow rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.072, 0.072, table.floorWidth - 0.28, 32]} />
+          <meshStandardMaterial {...TABLE_MATERIALS.goldAccent} />
+        </mesh>
+      </group>
 
 <CuboidCollider
   args={[1.675, 0.04, 0.095]}
@@ -1827,6 +2038,22 @@ function FrontLipLacquerDepth({ table }: { table: TableMeasurements }) {
       >
         <boxGeometry args={[table.floorWidth - 0.28, 0.06, 0.035]} />
         <meshStandardMaterial {...TABLE_MATERIALS.frontLipLacquerSheen} />
+      </mesh>
+
+            {/* visual-only heavy front lacquer depth; no collider */}
+      <mesh
+        position={[0, table.frontBorderY - 0.08, table.frontEdgeZ + 0.23]}
+        receiveShadow
+      >
+        <boxGeometry args={[table.floorWidth - 0.36, 0.13, 0.032]} />
+        <meshStandardMaterial
+          color="#070101"
+          roughness={0.82}
+          metalness={0.04}
+          transparent
+          opacity={0.32}
+          depthWrite={false}
+        />
       </mesh>
 
       {/* visual-only lower shadow for heavier furniture feeling; no collider */}
@@ -1909,14 +2136,16 @@ function FrontLip({ table }: { table: TableMeasurements }) {
   <meshStandardMaterial {...TABLE_MATERIALS.darkBorder} />
 </RoundedBox>
 
-<mesh
+<RoundedBox
   position={[0, table.frontBorderY + 0.16, table.frontEdgeZ - 0.08]}
+  args={[table.floorWidth - 0.42, 0.07, 0.095]}
+  radius={0.028}
+  smoothness={8}
   receiveShadow
   castShadow
 >
-  <boxGeometry args={[table.floorWidth - 0.42, 0.045, 0.075]} />
   <meshStandardMaterial {...TABLE_MATERIALS.goldTrim} />
-</mesh>
+</RoundedBox>
 
 <FrontLipLacquerDepth table={table} />
 <FrontLipKanoteStrip table={table} />
@@ -2060,14 +2289,17 @@ function TraySideRails({ table }: { table: TableMeasurements }) {
         <meshStandardMaterial {...TABLE_MATERIALS.darkBorder} />
       </RoundedBox>
 
-      <mesh
+      <RoundedBox
         position={[-table.halfWidth + 0.16, table.sideRailY + 0.72, table.floorZ]}
         rotation={[table.slopeAngle, 0, 0]}
+        args={[0.07, 0.07, table.floorDepth - 0.46]}
+        radius={0.026}
+        smoothness={8}
         receiveShadow
+        castShadow
       >
-        <boxGeometry args={[0.055, 0.055, table.floorDepth - 0.46]} />
         <meshStandardMaterial {...TABLE_MATERIALS.sideGoldRail} />
-      </mesh>
+      </RoundedBox>
 
 <CuboidCollider
   args={[0.13, 1.08, table.halfDepth]}
@@ -2090,14 +2322,17 @@ friction={0.24}
         <meshStandardMaterial {...TABLE_MATERIALS.darkBorder} />
       </RoundedBox>
 
-      <mesh
+      <RoundedBox
         position={[table.halfWidth - 0.16, table.sideRailY + 0.72, table.floorZ]}
         rotation={[table.slopeAngle, 0, 0]}
+        args={[0.07, 0.07, table.floorDepth - 0.46]}
+        radius={0.026}
+        smoothness={8}
         receiveShadow
+        castShadow
       >
-        <boxGeometry args={[0.055, 0.055, table.floorDepth - 0.46]} />
         <meshStandardMaterial {...TABLE_MATERIALS.sideGoldRail} />
-      </mesh>
+      </RoundedBox>
 
 <CuboidCollider
   args={[0.13, 1.08, table.halfDepth]}
@@ -2390,6 +2625,18 @@ captureRequestKey?: number;
         position={[0, 3.15, -1.15]}
         intensity={0.82}
         color="#ffd08a"
+      />
+
+            <pointLight
+        position={[2.45, 2.25, 2.4]}
+        intensity={0.38}
+        color="#d59642"
+      />
+
+      <pointLight
+        position={[-2.45, 2.1, 2.2]}
+        intensity={0.32}
+        color="#b86f2e"
       />
 
       <Physics debug={debugPhysics} gravity={[0, -13.2, 0]}>
