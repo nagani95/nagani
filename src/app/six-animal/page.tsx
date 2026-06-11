@@ -24,6 +24,7 @@ import type { SixAnimalKey } from "@/types/games";
 
 const ROOM_BACKGROUND = naganiAssets.sixAnimal.room.palaceBgV1;
 const ROYAL_EXIT_DOOR_BUTTON = naganiAssets.sixAnimal.ui.royalExitDoor;
+const NAGANI_LOGO = "/assets/nagani/shared/logo/nagani-logo-concept-v1.png";
 
 const RESULT_REVEAL_DELAY_MS = 900;
 const SETTLEMENT_POPUP_DELAY_MS = 1400;
@@ -1760,6 +1761,7 @@ async function handlePlaceBet() {
   countdown={displayCountdown}
   phase={phase}
   exitDoorAsset={ROYAL_EXIT_DOOR_BUTTON}
+  logoAsset={NAGANI_LOGO}
   onExitClick={() => setShowExitConfirm(true)}
 />
 ) : null}
@@ -1771,11 +1773,11 @@ async function handlePlaceBet() {
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/80 to-transparent" />
 
       <div className="relative z-10">
-<div className="mx-auto -mb-1 -mt-4 flex h-[112px] w-[128px] items-center justify-center overflow-visible">
+<div className="mx-auto -mb-1 -mt-2 flex h-[86px] w-[104px] items-center justify-center overflow-visible">
   <img
     src={ROYAL_EXIT_DOOR_BUTTON}
     alt=""
-    className="h-[150px] w-[150px] max-w-none object-contain drop-shadow-[0_0_22px_rgba(251,191,36,0.5)]"
+    className="h-[92px] w-[92px] max-w-none object-contain drop-shadow-[0_0_18px_rgba(251,191,36,0.45)]"
   />
 </div>
 
@@ -1819,15 +1821,15 @@ async function handlePlaceBet() {
   type="button"
   onClick={() => setShowExitConfirm(true)}
   aria-label="Exit to lobby"
-  className="group flex h-[56px] w-[96px] items-center justify-start gap-1"
+  className="group flex h-[52px] w-[82px] items-center justify-start gap-1"
 >
   <span className="sr-only">Exit to lobby</span>
 
-  <span className="relative h-[56px] w-[52px] overflow-visible">
+  <span className="relative h-[52px] w-[42px] overflow-visible">
     <img
       src={ROYAL_EXIT_DOOR_BUTTON}
       alt=""
-      className="absolute left-1/2 top-1/2 h-[86px] w-[86px] -translate-x-1/2 -translate-y-1/2 scale-[2.05] object-contain drop-shadow-[0_0_12px_rgba(251,191,36,0.48)] transition-transform duration-200 group-active:scale-[1.82]"
+      className="absolute left-1/2 top-1/2 h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.42)] transition-transform duration-200 group-active:scale-[0.92]"
     />
   </span>
 
@@ -1835,14 +1837,12 @@ async function handlePlaceBet() {
     Exit
   </span>
 </button>
-
-<div className="text-center">
-  <p className="text-[10px] font-black uppercase tracking-[0.34em] text-amber-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.28)]">
-    Nagani
-  </p>
-  <p className="mt-0.5 text-[13px] font-black tracking-[0.08em] text-white drop-shadow-[0_0_12px_rgba(251,191,36,0.22)]">
-    ၆ ကောင်ဂျင်
-  </p>
+<div className="flex min-w-0 flex-1 justify-center px-2">
+  <img
+    src={NAGANI_LOGO}
+    alt="နဂါးနီ"
+    className="h-[54px] w-[92px] object-contain drop-shadow-[0_0_14px_rgba(251,191,36,0.32)]"
+  />
 </div>
 
 <div className="flex w-[96px] flex-col items-end gap-1.5">

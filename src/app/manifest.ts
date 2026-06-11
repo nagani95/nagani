@@ -14,5 +14,12 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#2d0703",
     orientation: "portrait",
     categories: ["games", "entertainment"],
+    icons: [
+      {
+        src: "/assets/nagani/shared/logo/nagani-logo-concept-v1.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
   };
 }
