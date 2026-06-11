@@ -16,6 +16,7 @@ import SettlementPopup from "@/components/games/six-animal/SettlementPopup";
 import FloatingResultBoard from "@/components/games/six-animal/FloatingResultBoard";
 import { RoyalRoomAtmosphere } from "@/components/games/six-animal/RoyalRoomAtmosphere";
 import RoyalTableChamberBackdrop from "@/components/games/six-animal/RoyalTableChamberBackdrop";
+import RoyalRoomTopBar from "@/components/games/six-animal/RoyalRoomTopBar";
 import RoomIntroOverlay from "@/components/games/six-animal/RoomIntroOverlay";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import { convertThreeDicePayloadToMyanmarResult } from "@/lib/threeDiceResultAdapter";
@@ -1763,6 +1764,12 @@ async function handlePlaceBet() {
   exitDoorAsset={ROYAL_EXIT_DOOR_BUTTON}
   logoAsset={NAGANI_LOGO}
   onExitClick={() => setShowExitConfirm(true)}
+  showRoomControls
+  isBackgroundMusicMuted={isBackgroundMusicMuted}
+  isFullscreenMode={isFullscreenMode}
+  canUseFullscreen={canUseFullscreen}
+  onBackgroundMusicToggle={handleBackgroundMusicToggle}
+  onFullscreenToggle={handleFullscreenToggle}
 />
 ) : null}
 
@@ -1816,147 +1823,17 @@ async function handlePlaceBet() {
 ) : null}
 
       <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden px-2 py-2 sm:px-4">
-        <header className="z-20 flex shrink-0 items-center justify-between rounded-2xl border border-amber-300/24 bg-[linear-gradient(135deg,rgba(45,7,3,0.9),rgba(12,2,2,0.78),rgba(70,22,5,0.62))] px-3 py-2 shadow-[0_0_24px_rgba(127,29,29,0.28),inset_0_1px_0_rgba(251,191,36,0.12)] backdrop-blur-md">
-<button
-  type="button"
-  onClick={() => setShowExitConfirm(true)}
-  aria-label="Exit to lobby"
-  className="group flex h-[52px] w-[82px] items-center justify-start gap-1"
->
-  <span className="sr-only">Exit to lobby</span>
-
-  <span className="relative h-[52px] w-[42px] overflow-visible">
-    <img
-      src={ROYAL_EXIT_DOOR_BUTTON}
-      alt=""
-      className="absolute left-1/2 top-1/2 h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.42)] transition-transform duration-200 group-active:scale-[0.92]"
-    />
-  </span>
-
-  <span className="relative z-10 text-xs font-black text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.25)] transition-colors group-active:text-amber-100">
-    Exit
-  </span>
-</button>
-<div className="flex min-w-0 flex-1 justify-center px-2">
-  <img
-    src={NAGANI_LOGO}
-    alt="နဂါးနီ"
-    className="h-[54px] w-[92px] object-contain drop-shadow-[0_0_14px_rgba(251,191,36,0.32)]"
-  />
-</div>
-
-<div className="flex w-[96px] flex-col items-end gap-1.5">
-  <div className="flex w-[82px] justify-center rounded-full border border-amber-300/24 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(120,53,15,0.22))] px-3 py-1 text-[10px] font-black text-amber-100 shadow-inner shadow-black/30">
-    Live
-  </div>
-
-  <div className="flex items-center gap-1.5">
-    <button
-      type="button"
-      onClick={handleBackgroundMusicToggle}
-      aria-label={
-        isBackgroundMusicMuted
-          ? "Turn background music on"
-          : "Turn background music off"
-      }
-      title={isBackgroundMusicMuted ? "Music Off" : "Music On"}
-      className={`group relative flex h-10 w-10 items-center justify-center rounded-full border shadow-[0_0_14px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-200 active:scale-[0.94] ${
-        isBackgroundMusicMuted
-          ? "border-red-300/30 bg-[linear-gradient(135deg,rgba(127,29,29,0.9),rgba(69,10,10,0.85))] text-red-100"
-          : "border-emerald-300/30 bg-[linear-gradient(135deg,rgba(6,78,59,0.92),rgba(6,95,70,0.84))] text-emerald-100"
-      }`}
-    >
-      <span className="sr-only">
-        {isBackgroundMusicMuted
-          ? "Turn background music on"
-          : "Turn background music off"}
-      </span>
-
-      {!isBackgroundMusicMuted ? (
-        <svg
-          viewBox="0 0 24 24"
-          className="relative z-10 h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M5 9v6h4l5 4V5l-5 4H5z" />
-          <path className="animate-pulse" d="M16 9.5a4.5 4.5 0 0 1 0 5" />
-          <path className="animate-pulse" d="M18.5 7a8 8 0 0 1 0 10" />
-        </svg>
-      ) : (
-        <svg
-          viewBox="0 0 24 24"
-          className="relative z-10 h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M5 9v6h4l5 4V5l-5 4H5z" />
-          <path d="M4 4l16 16" />
-        </svg>
-      )}
-    </button>
-
-    <button
-      type="button"
-      onClick={handleFullscreenToggle}
-      disabled={!canUseFullscreen}
-      aria-label={isFullscreenMode ? "Exit fullscreen" : "Enter fullscreen"}
-      title={isFullscreenMode ? "Exit Fullscreen" : "Fullscreen"}
-      className={`group relative flex h-10 w-10 items-center justify-center rounded-full border shadow-[0_0_14px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-200 active:scale-[0.94] disabled:opacity-35 ${
-        isFullscreenMode
-          ? "border-amber-200/45 bg-[linear-gradient(135deg,rgba(146,64,14,0.92),rgba(120,53,15,0.84))] text-amber-100"
-          : "border-amber-300/30 bg-[linear-gradient(135deg,rgba(45,7,3,0.92),rgba(92,26,8,0.84))] text-amber-100"
-      }`}
-    >
-      <span className="sr-only">
-        {isFullscreenMode ? "Exit fullscreen" : "Enter fullscreen"}
-      </span>
-
-      {isFullscreenMode ? (
-        <svg
-          viewBox="0 0 24 24"
-          className="relative z-10 h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M8 3v5H3" />
-          <path d="M16 3v5h5" />
-          <path d="M8 21v-5H3" />
-          <path d="M16 21v-5h5" />
-        </svg>
-      ) : (
-        <svg
-          viewBox="0 0 24 24"
-          className="relative z-10 h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M3 9V3h6" />
-          <path d="M21 9V3h-6" />
-          <path d="M3 15v6h6" />
-          <path d="M21 15v6h-6" />
-        </svg>
-      )}
-    </button>
-  </div>
-</div>
-        </header>
+        <RoyalRoomTopBar
+  exitDoorAsset={ROYAL_EXIT_DOOR_BUTTON}
+  logoAsset={NAGANI_LOGO}
+  onExitClick={() => setShowExitConfirm(true)}
+  showRoomControls
+  isBackgroundMusicMuted={isBackgroundMusicMuted}
+  isFullscreenMode={isFullscreenMode}
+  canUseFullscreen={canUseFullscreen}
+  onBackgroundMusicToggle={handleBackgroundMusicToggle}
+  onFullscreenToggle={handleFullscreenToggle}
+/>
 
         <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.65rem] border border-amber-300/12 bg-[linear-gradient(145deg,rgba(45,7,3,0.62),rgba(10,1,1,0.52),rgba(65,18,5,0.34))] p-2 shadow-[0_18px_58px_rgba(0,0,0,0.52),inset_0_0_42px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(251,191,36,0.08)] backdrop-blur-[2px]">
           {showTopPanel ? (
