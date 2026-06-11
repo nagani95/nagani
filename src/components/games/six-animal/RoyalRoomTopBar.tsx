@@ -50,7 +50,7 @@ export default function RoyalRoomTopBar({
         </span>
 
         <span className="relative z-10 text-xs font-black text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.25)] transition-colors group-active:text-amber-100">
-          Exit
+          ထွက်
         </span>
       </button>
 
