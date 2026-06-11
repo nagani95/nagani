@@ -196,7 +196,7 @@ const isHighlighted = isSelected || isActiveBet;
           : "border-amber-300/18 bg-black/38 text-amber-100"
       } disabled:opacity-35`}
     >
-      Single
+      မောင်း
     </button>
 
     <button
@@ -209,7 +209,7 @@ const isHighlighted = isSelected || isActiveBet;
           : "border-amber-300/18 bg-black/38 text-amber-100"
       } disabled:opacity-35`}
     >
-      Two Animals
+      ကြိုး
     </button>
   </div>
 
