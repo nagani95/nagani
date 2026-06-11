@@ -28,7 +28,17 @@ const ROYAL_EXIT_DOOR_BUTTON = naganiAssets.sixAnimal.ui.royalExitDoor;
 const RESULT_REVEAL_DELAY_MS = 900;
 const SETTLEMENT_POPUP_DELAY_MS = 1400;
 
-const ROOM_SOUND_ENABLED = false;
+const ROOM_SOUND_ENABLED = true;
+const ROOM_SOUND_VOLUME = 0.72;
+
+const ROOM_BACKGROUND_MUSIC_SRC =
+  "/assets/nagani/sounds/six-animal/room-bgm.mp3";
+
+const ROOM_BACKGROUND_MUSIC_VOLUME = 0.28;
+const ROOM_BACKGROUND_MUSIC_FADE_MS = 700;
+const ROOM_BACKGROUND_MUSIC_FADE_STEP_MS = 40;
+const ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY =
+  "nagani-six-animal-bgm-muted";
 
 const SIX_ANIMAL_ROOM_UUID = "11111111-1111-1111-1111-111111111111";
 const BET_AMOUNT_STEP = 1000;
@@ -118,13 +128,32 @@ type ActiveBet = {
 };
 
 type SixAnimalSoundEvent =
-  | "bet-locked"
+  | "loading"
+  | "betting-round"
   | "bets-closed"
-  | "dice-reveal"
-  | "round-result"
-  | "round-win"
-  | "round-no-match"
-  | "next-round";
+  | "dice-drop"
+  | "result-reveal"
+  | "settlement-round"
+  | "bet-locked";
+
+const SIX_ANIMAL_SOUND_SRC: Record<SixAnimalSoundEvent, string> = {
+  loading: "/assets/nagani/sounds/six-animal/loading.mp3",
+  "betting-round": "/assets/nagani/sounds/six-animal/betting-round.mp3",
+  "bets-closed": "/assets/nagani/sounds/six-animal/bets-closed.mp3",
+  "dice-drop": "/assets/nagani/sounds/six-animal/dice-drop.mp3",
+  "result-reveal": "/assets/nagani/sounds/six-animal/result-reveal.mp3",
+  "settlement-round": "/assets/nagani/sounds/six-animal/settlement-round.mp3",
+  "bet-locked": "/assets/nagani/sounds/six-animal/bet-locked.mp3",
+};
+const SIX_ANIMAL_SOUND_VOLUME: Record<SixAnimalSoundEvent, number> = {
+  loading: 0.42,
+  "betting-round": 0.52,
+  "bets-closed": 0.62,
+  "dice-drop": 0.78,
+  "result-reveal": 0.58,
+  "settlement-round": 0.7,
+  "bet-locked": 0.5,
+};
 
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
@@ -190,7 +219,9 @@ const [visualActiveRoundId, setVisualActiveRoundId] = useState<string | null>(nu
 const [threeDiceRunKey, setThreeDiceRunKey] = useState(0);
   const [shouldPlayLiveDiceSequence, setShouldPlayLiveDiceSequence] =
     useState(false);
-  const soundEnabled = ROOM_SOUND_ENABLED;
+const [isBackgroundMusicMuted, setIsBackgroundMusicMuted] = useState(false);
+
+const gameSoundEnabled = ROOM_SOUND_ENABLED;
   const [showRoomIntro, setShowRoomIntro] = useState(true);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [activeBets, setActiveBets] = useState<ActiveBet[]>([]);
@@ -208,6 +239,13 @@ const resultRevealTimerRef = useRef<number | null>(null);
 const settlementMomentTimerRef = useRef<number | null>(null);
 const localRollingStartTimerRef = useRef<number | null>(null);
 const lastDiceSoundCountRef = useRef(0);
+const roomAudioUnlockedRef = useRef(false);
+const roomAudioPoolRef = useRef<
+  Partial<Record<SixAnimalSoundEvent, HTMLAudioElement>>
+>({});
+const lastPhaseSoundKeyRef = useRef<string | null>(null);
+const backgroundMusicAudioRef = useRef<HTMLAudioElement | null>(null);
+const backgroundMusicFadeTimerRef = useRef<number | null>(null);
 
   // Refs for Realtime Websocket closures to prevent stale state
 const phaseRef = useRef(phase);
@@ -298,8 +336,8 @@ setPhaseTargetAt(null);
   setShouldPlayLiveDiceSequence(true);
   shouldPlayLiveDiceSequenceRef.current = true;
 
-  lastDiceSoundCountRef.current = 0;
-  setThreeDiceRunKey((value) => value + 1);
+lastDiceSoundCountRef.current = 0;
+setThreeDiceRunKey((value) => value + 1);
 }
 
 async function applyLiveRound(round: LiveSixAnimalRound) {
@@ -771,10 +809,167 @@ const isResultWin =
         )} MMK`
       : "—";
 
-  function playRoomSound(eventName: SixAnimalSoundEvent) {
-    if (!soundEnabled) return;
-    void eventName;
+function getRoomAudio(eventName: SixAnimalSoundEvent) {
+  const existingAudio = roomAudioPoolRef.current[eventName];
+
+  if (existingAudio) {
+    return existingAudio;
   }
+
+  const audio = new Audio(SIX_ANIMAL_SOUND_SRC[eventName]);
+  audio.preload = "auto";
+  audio.volume = SIX_ANIMAL_SOUND_VOLUME[eventName] ?? ROOM_SOUND_VOLUME;
+
+  roomAudioPoolRef.current[eventName] = audio;
+
+  return audio;
+}
+
+function playRoomSound(eventName: SixAnimalSoundEvent) {
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+
+  const audio = getRoomAudio(eventName);
+
+  try {
+    audio.currentTime = 0;
+    void audio.play().catch(() => {
+      // Browser may still block audio on some devices.
+      // Keep silent fail for test mode.
+    });
+  } catch {
+    // Keep sound non-blocking. Game flow must never depend on audio.
+  }
+}
+
+function getBackgroundMusicAudio() {
+  if (backgroundMusicAudioRef.current) {
+    return backgroundMusicAudioRef.current;
+  }
+
+  const audio = new Audio(ROOM_BACKGROUND_MUSIC_SRC);
+  audio.preload = "auto";
+  audio.loop = true;
+  audio.volume = ROOM_BACKGROUND_MUSIC_VOLUME;
+
+  backgroundMusicAudioRef.current = audio;
+
+  return audio;
+}
+
+function clearBackgroundMusicFadeTimer() {
+  if (!backgroundMusicFadeTimerRef.current) return;
+
+  window.clearInterval(backgroundMusicFadeTimerRef.current);
+  backgroundMusicFadeTimerRef.current = null;
+}
+
+function fadeBackgroundMusicTo(targetVolume: number, pauseWhenDone = false) {
+  const audio = getBackgroundMusicAudio();
+
+  clearBackgroundMusicFadeTimer();
+
+  const startVolume = audio.volume;
+  const startedAt = Date.now();
+
+  backgroundMusicFadeTimerRef.current = window.setInterval(() => {
+    const progress = Math.min(
+      1,
+      (Date.now() - startedAt) / ROOM_BACKGROUND_MUSIC_FADE_MS
+    );
+
+    audio.volume = startVolume + (targetVolume - startVolume) * progress;
+
+    if (progress < 1) return;
+
+    clearBackgroundMusicFadeTimer();
+    audio.volume = targetVolume;
+
+    if (pauseWhenDone) {
+      audio.pause();
+    }
+  }, ROOM_BACKGROUND_MUSIC_FADE_STEP_MS);
+}
+
+function syncBackgroundMusic() {
+  if (!ROOM_SOUND_ENABLED) return;
+
+  const audio = getBackgroundMusicAudio();
+
+  if (!roomAudioUnlockedRef.current || isBackgroundMusicMuted) {
+    fadeBackgroundMusicTo(0, true);
+    return;
+  }
+
+  try {
+    if (audio.paused) {
+      audio.volume = 0;
+
+      void audio.play().then(() => {
+        fadeBackgroundMusicTo(ROOM_BACKGROUND_MUSIC_VOLUME);
+      }).catch(() => {
+        // Browser may still block if user has not interacted.
+      });
+
+      return;
+    }
+
+    fadeBackgroundMusicTo(ROOM_BACKGROUND_MUSIC_VOLUME);
+  } catch {
+    // Background music must never affect game flow.
+  }
+}
+
+function handleBackgroundMusicToggle() {
+  setIsBackgroundMusicMuted((currentValue) => {
+    const nextValue = !currentValue;
+
+    try {
+      window.localStorage.setItem(
+        ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY,
+        String(nextValue)
+      );
+    } catch {
+      // Keep preference saving non-blocking.
+    }
+
+    return nextValue;
+  });
+}
+
+function playCurrentPhaseSound() {
+  const currentPhase = phaseRef.current;
+
+  if (currentPhase === "loading") {
+    playRoomSound("loading");
+    return;
+  }
+
+  if (currentPhase === "betting") {
+    playRoomSound("betting-round");
+    return;
+  }
+
+  if (currentPhase === "closed") {
+    playRoomSound("bets-closed");
+  }
+}
+
+function unlockRoomAudio() {
+  if (!gameSoundEnabled) return;
+  if (roomAudioUnlockedRef.current) return;
+
+  roomAudioUnlockedRef.current = true;
+
+  (Object.keys(SIX_ANIMAL_SOUND_SRC) as SixAnimalSoundEvent[]).forEach(
+    (eventName) => {
+      getRoomAudio(eventName).load();
+    }
+  );
+
+  playCurrentPhaseSound();
+  syncBackgroundMusic();
+}
 
 function handleLobbyClick() {
   setShowExitConfirm(false);
@@ -937,7 +1132,7 @@ if (user) {
     };
   }, [supabase]);
 
-  useEffect(() => {
+useEffect(() => {
   let cancelled = false;
 
   const pollLatestRound = async () => {
@@ -956,6 +1151,10 @@ if (user) {
 }, [supabase]);
 
 useEffect(() => {
+  syncBackgroundMusic();
+}, [isBackgroundMusicMuted]);
+
+useEffect(() => {
   if (phase === "loading" || isWaitingForNextRound) {
     setShowRoomIntro(true);
     return;
@@ -967,18 +1166,6 @@ useEffect(() => {
 
   return () => window.clearTimeout(introTimer);
 }, [phase, isWaitingForNextRound]);
-
-useEffect(() => {
-  return () => {
-    if (resultRevealTimerRef.current) {
-      window.clearTimeout(resultRevealTimerRef.current);
-    }
-
-    if (settlementMomentTimerRef.current) {
-      window.clearTimeout(settlementMomentTimerRef.current);
-    }
-  };
-}, []);
 
 useEffect(() => {
   if (!phaseTargetAt) return;
@@ -1065,6 +1252,69 @@ useEffect(() => {
   };
 }, [shouldConfirmBrowserRefresh]);
 
+useEffect(() => {
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+
+  const soundRoundId = roundId || "boot";
+
+  const phaseSoundEvent: SixAnimalSoundEvent | null =
+    phase === "loading" || isWaitingForNextRound
+      ? "loading"
+      : phase === "betting"
+        ? "betting-round"
+        : phase === "closed"
+          ? "bets-closed"
+          : null;
+
+  if (!phaseSoundEvent) return;
+
+  const soundKey = `${phaseSoundEvent}:${soundRoundId}:${
+    isWaitingForNextRound ? "waiting" : "live"
+  }`;
+
+  if (lastPhaseSoundKeyRef.current === soundKey) return;
+
+  lastPhaseSoundKeyRef.current = soundKey;
+  playRoomSound(phaseSoundEvent);
+}, [phase, roundId, isWaitingForNextRound, gameSoundEnabled]);
+
+useEffect(() => {
+  return () => {
+    if (resultRevealTimerRef.current) {
+      window.clearTimeout(resultRevealTimerRef.current);
+    }
+
+    if (settlementMomentTimerRef.current) {
+      window.clearTimeout(settlementMomentTimerRef.current);
+    }
+
+    if (backgroundMusicFadeTimerRef.current) {
+      window.clearInterval(backgroundMusicFadeTimerRef.current);
+      backgroundMusicFadeTimerRef.current = null;
+    }
+
+    if (backgroundMusicAudioRef.current) {
+      backgroundMusicAudioRef.current.pause();
+      backgroundMusicAudioRef.current = null;
+    }
+  };
+}, []);
+
+useEffect(() => {
+  try {
+    const storedValue = window.localStorage.getItem(
+      ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY
+    );
+
+    if (storedValue === "true") {
+      setIsBackgroundMusicMuted(true);
+    }
+  } catch {
+    // Keep preference loading non-blocking.
+  }
+}, []);
+
   function handleThreeDiceComplete(
   payload: ThreeDiceRoundPayload,
   payloadRoundId?: string | null
@@ -1133,6 +1383,7 @@ settlementMomentTimerRef.current = window.setTimeout(() => {
 
   setShowSettlementMoment(true);
   showSettlementMomentRef.current = true;
+  playRoomSound("settlement-round");
 
   settlementMomentTimerRef.current = null;
 }, SETTLEMENT_POPUP_DELAY_MS);
@@ -1146,8 +1397,7 @@ settlementMomentTimerRef.current = window.setTimeout(() => {
     ? resultNames.filter((item) => item === activeBet.animalNameMm).length
     : 0;
 
-  playRoomSound("round-result");
-  playRoomSound(completedMatchCount > 0 ? "round-win" : "round-no-match");
+void completedMatchCount;
 
   // Important:
   // In live-room mode, the browser does not settle the round,
@@ -1156,6 +1406,22 @@ settlementMomentTimerRef.current = window.setTimeout(() => {
   resultRevealTimerRef.current = null;
 }, RESULT_REVEAL_DELAY_MS);
   }
+
+  function handleDiceDrop(
+  dieNumber: number,
+  payloadRoundId?: string | null
+) {
+  if (
+    !payloadRoundId ||
+    payloadRoundId !== visualActiveRoundIdRef.current ||
+    payloadRoundId !== roundIdRef.current
+  ) {
+    return;
+  }
+
+  void dieNumber;
+  playRoomSound("dice-drop");
+}
 
 function handleThreeDiceProgress(
   payload: ThreeDiceRoundPayload,
@@ -1179,7 +1445,7 @@ function handleThreeDiceProgress(
     const resultNames = convertThreeDicePayloadToMyanmarResult(payload);
 
     if (resultNames.length > lastDiceSoundCountRef.current) {
-      playRoomSound("dice-reveal");
+      playRoomSound("result-reveal");
       lastDiceSoundCountRef.current = resultNames.length;
     }
 
@@ -1419,7 +1685,8 @@ async function handlePlaceBet() {
 
   return (
     <main
-      className="relative isolate h-[100dvh] overflow-hidden bg-black text-white"
+  onPointerDownCapture={unlockRoomAudio}
+  className="relative isolate h-[100dvh] overflow-hidden bg-black text-white"
       style={{
         backgroundImage: `radial-gradient(circle at 50% 4%, rgba(251,191,36,0.08), transparent 34%), linear-gradient(135deg, rgba(8,1,1,0.52), rgba(32,5,5,0.32), rgba(0,0,0,0.78)), url(${ROOM_BACKGROUND})`,
         backgroundSize: "cover",
@@ -1534,8 +1801,70 @@ async function handlePlaceBet() {
   </p>
 </div>
 
-<div className="flex w-[96px] justify-center rounded-full border border-amber-300/24 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(120,53,15,0.22))] px-3 py-1 text-[11px] font-black text-amber-100 shadow-inner shadow-black/30">
-  Live
+<div className="flex w-[96px] flex-col items-end gap-1.5">
+  <div className="flex w-[82px] justify-center rounded-full border border-amber-300/24 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(120,53,15,0.22))] px-3 py-1 text-[10px] font-black text-amber-100 shadow-inner shadow-black/30">
+    Live
+  </div>
+
+  <button
+onClick={handleBackgroundMusicToggle}
+aria-label={
+  isBackgroundMusicMuted
+    ? "Turn background music on"
+    : "Turn background music off"
+}
+title={isBackgroundMusicMuted ? "Music Off" : "Music On"}
+    className={`group relative flex h-11 w-11 items-center justify-center rounded-full border shadow-[0_0_14px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-200 active:scale-[0.94] ${
+      isBackgroundMusicMuted
+        ? "border-red-300/30 bg-[linear-gradient(135deg,rgba(127,29,29,0.9),rgba(69,10,10,0.85))] text-red-100"
+        : "border-emerald-300/30 bg-[linear-gradient(135deg,rgba(6,78,59,0.92),rgba(6,95,70,0.84))] text-emerald-100"
+    }`}
+  >
+<span className="sr-only">
+  {isBackgroundMusicMuted
+    ? "Turn background music on"
+    : "Turn background music off"}
+</span>
+
+    {!isBackgroundMusicMuted ? (
+      <>
+        <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-300/10 blur-[2px] transition-opacity duration-200 group-hover:opacity-100" />
+
+        <svg
+          viewBox="0 0 24 24"
+          className="relative z-10 h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M5 9v6h4l5 4V5l-5 4H5z" />
+          <path className="animate-pulse" d="M16 9.5a4.5 4.5 0 0 1 0 5" />
+          <path className="animate-pulse" d="M18.5 7a8 8 0 0 1 0 10" />
+        </svg>
+      </>
+    ) : (
+      <>
+        <span className="pointer-events-none absolute inset-0 rounded-full bg-red-300/10 blur-[2px]" />
+
+        <svg
+          viewBox="0 0 24 24"
+          className="relative z-10 h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M5 9v6h4l5 4V5l-5 4H5z" />
+          <path d="M4 4l16 16" />
+        </svg>
+      </>
+    )}
+  </button>
 </div>
         </header>
 
@@ -1815,11 +2144,12 @@ const isCurrent =
 
             <div className="relative z-10 flex h-full min-h-0 items-center justify-center p-2">
               <div className="relative h-full w-full max-w-[980px]">
-                <ThreeDiceSequenceController
-                  enabled={shouldEnableDiceController}
-                  runKey={threeDiceRunKey}
-                  onComplete={handleThreeDiceComplete}
-                  onProgress={handleThreeDiceProgress}
+<ThreeDiceSequenceController
+  enabled={shouldEnableDiceController}
+  runKey={threeDiceRunKey}
+  onComplete={handleThreeDiceComplete}
+  onProgress={handleThreeDiceProgress}
+  onDiceDrop={handleDiceDrop}
                   className="h-full min-h-[430px] w-full"
                   showInternalResultStrip={false}
                   mountedDiceRackMode={effectiveMountedDiceRackMode}

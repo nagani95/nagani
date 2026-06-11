@@ -30,12 +30,12 @@ type ThreeDiceSequenceControllerProps = {
     payload: ThreeDiceRoundPayload,
     visualRoundId?: string | null
   ) => void;
+  onDiceDrop?: (dieNumber: number, visualRoundId?: string | null) => void;
   visualRoundId?: string | null;
   className?: string;
   showInternalResultStrip?: boolean;
   mountedDiceRackMode?: MountedDiceRackMode;
 
-  // Kept for page compatibility. Not used in current natural visible-dice mode.
   serverRngResults?: string[];
   rollingStartedAt?: string | null;
 };
@@ -66,6 +66,7 @@ export default function ThreeDiceSequenceController({
   runKey,
   onComplete,
   onProgress,
+  onDiceDrop,
   visualRoundId = null,
   className = "",
   showInternalResultStrip = true,
@@ -94,8 +95,10 @@ export default function ThreeDiceSequenceController({
   const forceCaptureTimerRef = useRef<number | null>(null);
   const nextDieTimerRef = useRef<number | null>(null);
 
-  const onProgressRef = useRef(onProgress);
-  const onCompleteRef = useRef(onComplete);
+const onProgressRef = useRef(onProgress);
+const onCompleteRef = useRef(onComplete);
+const onDiceDropRef = useRef(onDiceDrop);
+const lastDiceDropSoundKeyRef = useRef<string | null>(null);
 
   function clearTimers() {
     if (forceCaptureTimerRef.current) {
@@ -116,6 +119,7 @@ export default function ThreeDiceSequenceController({
     capturedResultsOwnerRef.current = roundId;
     capturedDieNumbersRef.current.clear();
     completionSentRef.current = false;
+    lastDiceDropSoundKeyRef.current = null;
 
     setCapturedResults([]);
     setActiveDieIndex(0);
@@ -145,6 +149,10 @@ export default function ThreeDiceSequenceController({
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  useEffect(() => {
+  onDiceDropRef.current = onDiceDrop;
+}, [onDiceDrop]);
 
   useEffect(() => {
     return () => {
@@ -177,6 +185,22 @@ useEffect(() => {
     lastStartedSequenceKeyRef.current = sequenceKey;
     resetSequenceForNewRun(visualRoundId);
   }, [enabled, runKey, visualRoundId]);
+
+  useEffect(() => {
+  if (!enabled || !sequenceRunning) return;
+
+  const ownerRoundId = activeVisualRoundIdRef.current;
+
+  if (!ownerRoundId) return;
+
+  const dieNumber = activeDieIndex + 1;
+  const soundKey = `${ownerRoundId}:${dieNumber}:${resetKey}`;
+
+  if (lastDiceDropSoundKeyRef.current === soundKey) return;
+
+  lastDiceDropSoundKeyRef.current = soundKey;
+  onDiceDropRef.current?.(dieNumber, ownerRoundId);
+}, [enabled, sequenceRunning, activeDieIndex, resetKey]);
 
   useEffect(() => {
     if (!enabled || !sequenceRunning) return;
