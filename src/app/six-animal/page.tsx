@@ -220,6 +220,8 @@ const [threeDiceRunKey, setThreeDiceRunKey] = useState(0);
   const [shouldPlayLiveDiceSequence, setShouldPlayLiveDiceSequence] =
     useState(false);
 const [isBackgroundMusicMuted, setIsBackgroundMusicMuted] = useState(false);
+const [isFullscreenMode, setIsFullscreenMode] = useState(false);
+const [canUseFullscreen, setCanUseFullscreen] = useState(false);
 
 const gameSoundEnabled = ROOM_SOUND_ENABLED;
   const [showRoomIntro, setShowRoomIntro] = useState(true);
@@ -937,6 +939,36 @@ function handleBackgroundMusicToggle() {
   });
 }
 
+function syncFullscreenState() {
+  setIsFullscreenMode(Boolean(document.fullscreenElement));
+}
+
+async function handleFullscreenToggle() {
+  if (!canUseFullscreen) return;
+
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    await document.documentElement.requestFullscreen();
+  } catch {
+    // Some mobile browsers block fullscreen.
+    // Keep this non-blocking.
+  }
+}
+
+async function exitFullscreenIfNeeded() {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    }
+  } catch {
+    // Keep navigation non-blocking.
+  }
+}
+
 function playCurrentPhaseSound() {
   const currentPhase = phaseRef.current;
 
@@ -971,8 +1003,9 @@ function unlockRoomAudio() {
   syncBackgroundMusic();
 }
 
-function handleLobbyClick() {
+async function handleLobbyClick() {
   setShowExitConfirm(false);
+  await exitFullscreenIfNeeded();
   router.push("/");
 }
 
@@ -1313,6 +1346,17 @@ useEffect(() => {
   } catch {
     // Keep preference loading non-blocking.
   }
+}, []);
+
+useEffect(() => {
+  setCanUseFullscreen(Boolean(document.fullscreenEnabled));
+  syncFullscreenState();
+
+  document.addEventListener("fullscreenchange", syncFullscreenState);
+
+  return () => {
+    document.removeEventListener("fullscreenchange", syncFullscreenState);
+  };
 }, []);
 
   function handleThreeDiceComplete(
@@ -1806,30 +1850,29 @@ async function handlePlaceBet() {
     Live
   </div>
 
-  <button
-onClick={handleBackgroundMusicToggle}
-aria-label={
-  isBackgroundMusicMuted
-    ? "Turn background music on"
-    : "Turn background music off"
-}
-title={isBackgroundMusicMuted ? "Music Off" : "Music On"}
-    className={`group relative flex h-11 w-11 items-center justify-center rounded-full border shadow-[0_0_14px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-200 active:scale-[0.94] ${
-      isBackgroundMusicMuted
-        ? "border-red-300/30 bg-[linear-gradient(135deg,rgba(127,29,29,0.9),rgba(69,10,10,0.85))] text-red-100"
-        : "border-emerald-300/30 bg-[linear-gradient(135deg,rgba(6,78,59,0.92),rgba(6,95,70,0.84))] text-emerald-100"
-    }`}
-  >
-<span className="sr-only">
-  {isBackgroundMusicMuted
-    ? "Turn background music on"
-    : "Turn background music off"}
-</span>
+  <div className="flex items-center gap-1.5">
+    <button
+      type="button"
+      onClick={handleBackgroundMusicToggle}
+      aria-label={
+        isBackgroundMusicMuted
+          ? "Turn background music on"
+          : "Turn background music off"
+      }
+      title={isBackgroundMusicMuted ? "Music Off" : "Music On"}
+      className={`group relative flex h-10 w-10 items-center justify-center rounded-full border shadow-[0_0_14px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-200 active:scale-[0.94] ${
+        isBackgroundMusicMuted
+          ? "border-red-300/30 bg-[linear-gradient(135deg,rgba(127,29,29,0.9),rgba(69,10,10,0.85))] text-red-100"
+          : "border-emerald-300/30 bg-[linear-gradient(135deg,rgba(6,78,59,0.92),rgba(6,95,70,0.84))] text-emerald-100"
+      }`}
+    >
+      <span className="sr-only">
+        {isBackgroundMusicMuted
+          ? "Turn background music on"
+          : "Turn background music off"}
+      </span>
 
-    {!isBackgroundMusicMuted ? (
-      <>
-        <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-300/10 blur-[2px] transition-opacity duration-200 group-hover:opacity-100" />
-
+      {!isBackgroundMusicMuted ? (
         <svg
           viewBox="0 0 24 24"
           className="relative z-10 h-5 w-5"
@@ -1844,11 +1887,7 @@ title={isBackgroundMusicMuted ? "Music Off" : "Music On"}
           <path className="animate-pulse" d="M16 9.5a4.5 4.5 0 0 1 0 5" />
           <path className="animate-pulse" d="M18.5 7a8 8 0 0 1 0 10" />
         </svg>
-      </>
-    ) : (
-      <>
-        <span className="pointer-events-none absolute inset-0 rounded-full bg-red-300/10 blur-[2px]" />
-
+      ) : (
         <svg
           viewBox="0 0 24 24"
           className="relative z-10 h-5 w-5"
@@ -1862,9 +1901,60 @@ title={isBackgroundMusicMuted ? "Music Off" : "Music On"}
           <path d="M5 9v6h4l5 4V5l-5 4H5z" />
           <path d="M4 4l16 16" />
         </svg>
-      </>
-    )}
-  </button>
+      )}
+    </button>
+
+    <button
+      type="button"
+      onClick={handleFullscreenToggle}
+      disabled={!canUseFullscreen}
+      aria-label={isFullscreenMode ? "Exit fullscreen" : "Enter fullscreen"}
+      title={isFullscreenMode ? "Exit Fullscreen" : "Fullscreen"}
+      className={`group relative flex h-10 w-10 items-center justify-center rounded-full border shadow-[0_0_14px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-200 active:scale-[0.94] disabled:opacity-35 ${
+        isFullscreenMode
+          ? "border-amber-200/45 bg-[linear-gradient(135deg,rgba(146,64,14,0.92),rgba(120,53,15,0.84))] text-amber-100"
+          : "border-amber-300/30 bg-[linear-gradient(135deg,rgba(45,7,3,0.92),rgba(92,26,8,0.84))] text-amber-100"
+      }`}
+    >
+      <span className="sr-only">
+        {isFullscreenMode ? "Exit fullscreen" : "Enter fullscreen"}
+      </span>
+
+      {isFullscreenMode ? (
+        <svg
+          viewBox="0 0 24 24"
+          className="relative z-10 h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M8 3v5H3" />
+          <path d="M16 3v5h5" />
+          <path d="M8 21v-5H3" />
+          <path d="M16 21v-5h5" />
+        </svg>
+      ) : (
+        <svg
+          viewBox="0 0 24 24"
+          className="relative z-10 h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 9V3h6" />
+          <path d="M21 9V3h-6" />
+          <path d="M3 15v6h6" />
+          <path d="M21 15v6h-6" />
+        </svg>
+      )}
+    </button>
+  </div>
 </div>
         </header>
 
