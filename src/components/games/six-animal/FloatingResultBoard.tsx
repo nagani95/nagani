@@ -3,12 +3,17 @@
 "use client";
 
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
+import ActiveBetsSummaryPanel from "./ActiveBetsSummaryPanel";
 import type { SixAnimalKey } from "@/types/games";
 
 type FloatingResultBoardActiveBet = {
   betType: "single" | "pair";
+  animalKey: SixAnimalKey;
+  animalKey2?: SixAnimalKey | null;
   animalNameMm: string;
   animalNameMm2?: string | null;
+  amount: number;
+  roundNumber: number;
 };
 
 type FloatingResultBoardProps = {
@@ -23,25 +28,6 @@ type FloatingResultBoardProps = {
 
 function getAnimalByNameMm(nameMm: string) {
   return SIX_ANIMAL_OPTIONS.find((animal) => animal.nameMm === nameMm);
-}
-
-function formatBetLabel(bet: FloatingResultBoardActiveBet) {
-  if (bet.betType === "pair" && bet.animalNameMm2) {
-    return `${bet.animalNameMm} + ${bet.animalNameMm2}`;
-  }
-
-  return bet.animalNameMm;
-}
-
-function getCompactBetLabel(activeBets: FloatingResultBoardActiveBet[]) {
-  if (activeBets.length === 0) return "";
-
-  const visibleBets = activeBets.slice(0, 2).map(formatBetLabel);
-  const hiddenCount = activeBets.length - visibleBets.length;
-
-  return hiddenCount > 0
-    ? `${visibleBets.join(" · ")} +${hiddenCount}`
-    : visibleBets.join(" · ");
 }
 
 function isResultNameMatchedByBet(
@@ -77,7 +63,6 @@ export default function FloatingResultBoard({
   isResultWin,
   animalAssets,
 }: FloatingResultBoardProps) {
-  const betLabel = getCompactBetLabel(activeBets);
   const isRevealing = isRollingPhase || isResultPhaseVisualGuard;
 
   return (
@@ -86,6 +71,7 @@ export default function FloatingResultBoard({
         {Array.from({ length: SIX_ANIMAL_RULES.diceCount }).map((_, index) => {
           const nameMm = diceResult[index];
           const animal = nameMm ? getAnimalByNameMm(nameMm) : null;
+
           const isCurrent =
             isRevealing &&
             index === diceResult.length &&
@@ -106,8 +92,10 @@ export default function FloatingResultBoard({
               key={`royal-mystery-result-box-${index}`}
               className={`relative flex h-[70px] w-[70px] shrink-0 items-center justify-center overflow-hidden rounded-[1.15rem] border shadow-[0_18px_30px_rgba(0,0,0,0.62),inset_0_2px_0_rgba(255,224,150,0.2),inset_0_-16px_22px_rgba(0,0,0,0.42)] ${
                 isMatched
-                  ? "border-emerald-200/65 bg-[linear-gradient(145deg,rgba(139,18,22,0.98),rgba(85,8,10,0.98),rgba(33,2,4,0.98))]"
-                  : "border-amber-200/42 bg-[linear-gradient(145deg,rgba(142,18,22,0.98),rgba(92,9,12,0.98),rgba(36,2,4,0.98))]"
+                  ? "border-emerald-200/70 bg-[linear-gradient(135deg,rgba(16,185,129,0.24),rgba(120,53,15,0.52),rgba(45,7,3,0.96))] shadow-[0_0_24px_rgba(16,185,129,0.26),0_18px_30px_rgba(0,0,0,0.62)]"
+                  : animal
+                    ? "border-amber-100/75 bg-[linear-gradient(135deg,rgba(250,204,21,0.42),rgba(180,83,9,0.5),rgba(69,10,10,0.98))] shadow-[0_0_24px_rgba(251,191,36,0.26),0_18px_30px_rgba(0,0,0,0.62)]"
+                    : "border-amber-200/42 bg-[linear-gradient(145deg,rgba(142,18,22,0.98),rgba(92,9,12,0.98),rgba(36,2,4,0.98))]"
               }`}
             >
               <div className="pointer-events-none absolute inset-[5px] rounded-[0.88rem] border border-amber-100/18" />
@@ -122,11 +110,27 @@ export default function FloatingResultBoard({
               <div className="pointer-events-none absolute bottom-2 right-2 h-1.5 w-1.5 rounded-full bg-black/32" />
 
               {animal ? (
-                <img
-                  src={animalAssets[animal.key]}
-                  alt=""
-                  className="relative z-10 h-[46px] w-[46px] object-contain drop-shadow-[0_0_13px_rgba(251,191,36,0.48)]"
-                />
+                <div className="pointer-events-none absolute right-2.5 top-2.5 z-20 h-2 w-2 rounded-full bg-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.9)]" />
+              ) : null}
+
+              {animal ? (
+                <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden">
+                  <div className="pointer-events-none absolute inset-0 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] bg-[radial-gradient(circle_at_50%_44%,rgba(255,246,196,0.34),rgba(251,191,36,0.2)_34%,transparent_68%)]" />
+
+                  <div className="pointer-events-none absolute inset-[8px] rounded-xl border border-amber-100/28 bg-[linear-gradient(135deg,rgba(255,255,255,0.1),transparent_42%,rgba(0,0,0,0.18))]" />
+
+                  <div className="pointer-events-none absolute h-[60px] w-[60px] animate-[resultRevealRing_900ms_ease-out_1] rounded-full border border-amber-100/34 shadow-[0_0_22px_rgba(251,191,36,0.36)]" />
+
+                  <div className="pointer-events-none absolute inset-y-[-25%] left-[-48%] w-[42%] rotate-12 animate-[resultLightSweep_1.45s_ease-out_1] bg-gradient-to-r from-transparent via-amber-50/50 to-transparent" />
+
+                  <img
+                    src={animalAssets[animal.key]}
+                    alt=""
+                    className="relative z-10 h-[50px] w-[50px] animate-[resultAnimalPop_520ms_cubic-bezier(0.2,1.2,0.25,1)_1] object-contain brightness-110 drop-shadow-[0_0_18px_rgba(251,191,36,0.76)]"
+                  />
+
+                  <div className="pointer-events-none absolute bottom-2 h-[4px] w-10 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] rounded-full bg-amber-100/70 blur-[3px]" />
+                </div>
               ) : (
                 <span
                   className={`relative z-10 text-[34px] font-black leading-none ${
@@ -151,11 +155,72 @@ export default function FloatingResultBoard({
         })}
       </div>
 
-      {betLabel ? (
-        <div className="mx-auto mt-2 max-w-[270px] truncate rounded-full border border-amber-300/18 bg-black/36 px-3 py-1 text-center text-[10px] font-black text-amber-100/86 shadow-md shadow-black/40 backdrop-blur-sm">
-          {betLabel}
-        </div>
-      ) : null}
+      <ActiveBetsSummaryPanel
+        activeBets={activeBets}
+        compact
+        className="pointer-events-auto mx-auto mt-2 w-full max-w-[170px]"
+      />
+
+      <style jsx>{`
+        @keyframes resultAnimalPop {
+          0% {
+            opacity: 0;
+            transform: scale(0.62) translateY(5px);
+            filter: brightness(1.8);
+          }
+
+          58% {
+            opacity: 1;
+            transform: scale(1.14) translateY(-1px);
+            filter: brightness(1.35);
+          }
+
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            filter: brightness(1);
+          }
+        }
+
+        @keyframes resultRevealRing {
+          0% {
+            opacity: 0.9;
+            transform: scale(0.58);
+          }
+
+          100% {
+            opacity: 0;
+            transform: scale(1.28);
+          }
+        }
+
+        @keyframes resultLightSweep {
+          0% {
+            transform: translateX(0%) rotate(12deg);
+            opacity: 0;
+          }
+
+          22% {
+            opacity: 1;
+          }
+
+          100% {
+            transform: translateX(390%) rotate(12deg);
+            opacity: 0;
+          }
+        }
+
+        @keyframes resultSpotlightPulse {
+          0%,
+          100% {
+            opacity: 0.55;
+          }
+
+          50% {
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }

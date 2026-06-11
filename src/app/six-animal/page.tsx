@@ -72,6 +72,9 @@ function secondsUntil(targetIso: string | null | undefined) {
 function getRoundPhaseTargetAt(round: LiveSixAnimalRound) {
   if (round.phase === "betting") return round.betting_ends_at;
   if (round.phase === "closed") return round.rolling_starts_at;
+  if (round.phase === "rolling") {
+    return round.result_revealed_at ?? round.next_round_starts_at;
+  }
   if (round.phase === "result") return round.next_round_starts_at;
 
   return null;
@@ -111,6 +114,7 @@ type ActiveBet = {
   animalNameMm2?: string | null;
   amount: number;
   roundNumber: number;
+  
 };
 
 type SixAnimalSoundEvent =
@@ -331,6 +335,7 @@ const restoredActiveBets = backendBets
 
 const hasJoinedCurrentBrowserRound = joinedRoundIdRef.current === round.id;
 const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
+
 const isRefreshOrLateJoinToInProgressRound =
   !isJoinableBettingRound && !hasJoinedCurrentBrowserRound;
 
@@ -339,10 +344,13 @@ if (isRefreshOrLateJoinToInProgressRound) {
   setShouldPlayLiveDiceSequence(false);
   setRoundId(round.id);
   setRoundNumber(round.round_number);
-  setPhase("loading");
-  setPhaseTargetAt(null);
-  setRollingStartedAt(null);
-  setCountdown(0);
+const waitingTargetAt =
+  round.next_round_starts_at ?? getRoundPhaseTargetAt(round);
+
+setPhase("loading");
+setPhaseTargetAt(waitingTargetAt);
+setRollingStartedAt(null);
+setCountdown(secondsUntil(waitingTargetAt));
   setIsWaitingForNextRound(true);
   setServerRngResults([]);
   setActiveBets([]);
@@ -768,30 +776,9 @@ const isResultWin =
     void eventName;
   }
 
-async function handleLobbyClick() {
-  if (isQuittingRef.current) return;
-
+function handleLobbyClick() {
   setShowExitConfirm(false);
-
-  const currentRoundId = roundIdRef.current;
-
-  if (isWaitingForNextRound || !currentRoundId) {
-    router.push("/");
-    return;
-  }
-
-const backendBets = await fetchCurrentUserBetsForRound(currentRoundId);
-
-if (backendBets.length === 0) {
   router.push("/");
-  return;
-}
-
-  joinedRoundIdRef.current = currentRoundId;
-  setJoinedRoundId(currentRoundId);
-
-  isQuittingRef.current = true;
-  setIsQuitting(true);
 }
 
 async function fetchCurrentUserBetsForRound(roundIdToCheck: string) {
@@ -847,14 +834,18 @@ async function fetchLatestLiveRound() {
     const fetchInitialRoomData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (user) {
-        const { data: wallet } = await supabase
-          .from("wallets")
-          .select("balance")
-          .eq("profile_id", user.id)
-          .single();
-        if (wallet) setWalletBalance(wallet.balance);
-      }
+let fetchedWalletBalance = 0;
+
+if (user) {
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("profile_id", user.id)
+    .single();
+
+  fetchedWalletBalance = Number(wallet?.balance ?? 0);
+  setWalletBalance(fetchedWalletBalance);
+}
 
             const { data: activeRound, error: activeRoundError } = await supabase
         .from("six_animal_rounds")
@@ -868,6 +859,17 @@ async function fetchLatestLiveRound() {
       if (activeRoundError) {
         console.error("[SixAnimal] active round fetch error:", activeRoundError);
       }
+
+      if (user && fetchedWalletBalance < SIX_ANIMAL_RULES.minBet) {
+  const existingRoundBets = activeRound
+    ? await fetchCurrentUserBetsForRound(activeRound.id)
+    : [];
+
+  if (existingRoundBets.length === 0) {
+    router.replace("/");
+    return;
+  }
+}
 
       if (activeRound) {
         await applyLiveRound(activeRound as LiveSixAnimalRound);
@@ -979,9 +981,9 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  if (phase === "loading" || phase === "rolling" || !phaseTargetAt) {
-    return;
-  }
+  if (!phaseTargetAt) return;
+  if (phase === "loading" && !isWaitingForNextRound) return;
+  if (phase === "rolling" && !isWaitingForNextRound) return;
 
   const syncCountdown = () => {
     setCountdown(secondsUntil(phaseTargetAt));
@@ -992,7 +994,7 @@ useEffect(() => {
   const timer = window.setInterval(syncCountdown, 500);
 
   return () => window.clearInterval(timer);
-}, [phase, phaseTargetAt]);
+}, [phase, phaseTargetAt, isWaitingForNextRound]);
 
 useEffect(() => {
   if (phase !== "closed") return;
@@ -1210,13 +1212,6 @@ function handleBetModeChange(nextMode: BetMode) {
   if (!canEditBet) return;
 
   setBetMode(nextMode);
-
-  if (nextMode === "single") {
-    setSelectedPairAnimals([]);
-    return;
-  }
-
-  setSelectedAnimal(null);
 }
   function clampBetAmount(amount: number) {
   if (!canAffordMinBet) return SIX_ANIMAL_RULES.minBet;
@@ -1448,10 +1443,14 @@ async function handlePlaceBet() {
       ) : null}
 
 {showRoomIntro ? (
-  <RoomIntroOverlay
-    roomBackground={ROOM_BACKGROUND}
-    isWaitingForNextRound={isWaitingForNextRound}
-  />
+<RoomIntroOverlay
+  roomBackground={ROOM_BACKGROUND}
+  isWaitingForNextRound={isWaitingForNextRound}
+  countdown={displayCountdown}
+  phase={phase}
+  exitDoorAsset={ROYAL_EXIT_DOOR_BUTTON}
+  onExitClick={() => setShowExitConfirm(true)}
+/>
 ) : null}
 
 {showExitConfirm ? (
@@ -1461,11 +1460,13 @@ async function handlePlaceBet() {
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/80 to-transparent" />
 
       <div className="relative z-10">
-        <img
-          src={ROYAL_EXIT_DOOR_BUTTON}
-          alt=""
-          className="mx-auto h-20 w-20 object-contain drop-shadow-[0_0_18px_rgba(251,191,36,0.48)]"
-        />
+<div className="mx-auto -mb-1 -mt-4 flex h-[112px] w-[128px] items-center justify-center overflow-visible">
+  <img
+    src={ROYAL_EXIT_DOOR_BUTTON}
+    alt=""
+    className="h-[150px] w-[150px] max-w-none object-contain drop-shadow-[0_0_22px_rgba(251,191,36,0.5)]"
+  />
+</div>
 
         <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-amber-200/65">
           Leave Room
@@ -1476,7 +1477,7 @@ async function handlePlaceBet() {
         </p>
 
         <p className="mt-2 text-xs font-bold leading-5 text-white/55">
-          If you already placed a bet, the room will wait safely until the round settles.
+         Your placed bets stay active. You can return to the lobby now.
         </p>
 
         <div className="mt-5 grid grid-cols-2 gap-2">
@@ -1703,6 +1704,7 @@ const isCurrent =
                           </p>
                         </div>
                       </div>
+
                     </>
                   ) : null}
                 </div>
@@ -1848,64 +1850,6 @@ visualRoundId={heldVisualRoundId}
   onPlaceBet={handlePlaceBet}
 />
 
-{phase === "betting" && activeBets.length > 0 ? (
-  <div className="pointer-events-none absolute inset-x-0 bottom-6 z-50 flex justify-center px-5">
-    <div className="w-full max-w-[330px] overflow-hidden rounded-[1.15rem] border border-amber-300/22 bg-[linear-gradient(145deg,rgba(46,8,3,0.86),rgba(9,1,1,0.88),rgba(63,15,5,0.72))] p-2.5 shadow-2xl shadow-black/75 backdrop-blur-md">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.16),transparent_66%)]" />
-
-      <div className="relative z-10">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-[8px] font-black uppercase tracking-[0.26em] text-amber-200/65">
-            Your Bets
-          </p>
-          <p className="text-[10px] font-black text-amber-100">
-            {formatMMK(totalActiveBetAmount)} MMK
-          </p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-1.5">
-{activeBets.map((bet) => {
-  const betSlipKey =
-    bet.betType === "pair" && bet.animalKey2
-      ? `pair-${getPairKey(bet.animalKey, bet.animalKey2)}`
-      : `single-${bet.animalKey}`;
-
-  return (
-    <div
-      key={betSlipKey}
-              className="flex min-h-[42px] items-center gap-1.5 rounded-xl border border-amber-300/18 bg-[linear-gradient(145deg,rgba(72,15,5,0.92),rgba(15,1,1,0.92))] px-2 py-1 shadow-inner shadow-black/45"
-            >
-{bet.betType === "pair" && bet.animalKey2 ? (
-  <div className="flex shrink-0 items-center -space-x-2">
-    <img
-      src={ANIMAL_ASSETS[bet.animalKey]}
-      alt=""
-      className="h-7 w-7 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
-    />
-    <img
-      src={ANIMAL_ASSETS[bet.animalKey2]}
-      alt=""
-      className="h-7 w-7 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
-    />
-  </div>
-) : (
-  <img
-    src={ANIMAL_ASSETS[bet.animalKey]}
-    alt=""
-    className="h-8 w-8 shrink-0 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
-  />
-)}
-              <span className="min-w-0 truncate text-[10px] font-black text-amber-100">
-                {formatMMK(bet.amount)}
-              </span>
-    </div>
-  );
-})}
-        </div>
-      </div>
-    </div>
-  </div>
-) : null}
           </div>
         </section>
       </div>

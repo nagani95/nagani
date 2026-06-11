@@ -1937,25 +1937,37 @@ function WaitingDiceRack({
   return (
     <>
       {DICE_HOLDER_X_POSITIONS.map((x, index) => {
-                const shouldShowWaitingDie =
-          mountedDiceRackMode === "ready"
-            ? true
-            : mountedDiceRackMode === "sequence" && sequenceRunning
-              ? index > activeDieIndex
-              : false;
+        const isRackWaitingForSequence =
+          mountedDiceRackMode === "sequence" && !sequenceRunning;
+
+        const shouldShowWaitingDie =
+          mountedDiceRackMode === "ready" ||
+          isRackWaitingForSequence ||
+          (mountedDiceRackMode === "sequence" &&
+            sequenceRunning &&
+            index > activeDieIndex);
 
         if (!shouldShowWaitingDie) return null;
 
-const waitingDiePosition: [number, number, number] = [
-  x,
-  2.82,
-  table.backWallZ + 0.42,
-];
+        const waitingDiePosition: [number, number, number] = [
+          x,
+          2.82,
+          table.backWallZ + 0.42,
+        ];
 
         const waitingDieScale = 0.92;
+        const baseRotation = DISPLAY_DICE_ROTATIONS[index] ?? [0, 0, 0];
 
-        const waitingDieRotation: [number, number, number] =
-          DISPLAY_DICE_ROTATIONS[index] ?? [0, 0, 0];
+        const waitingPreviewOffset =
+          mountedDiceRackMode === "ready" || isRackWaitingForSequence
+            ? activeDieIndex + index + 1
+            : 0;
+
+        const waitingDieRotation: [number, number, number] = [
+          baseRotation[0] + Math.sin(waitingPreviewOffset * 1.7) * 0.08,
+          baseRotation[1] + Math.cos(waitingPreviewOffset * 1.3) * 0.1,
+          baseRotation[2] + Math.sin(waitingPreviewOffset * 2.1) * 0.07,
+        ];
 
         return (
           <group
@@ -1964,7 +1976,7 @@ const waitingDiePosition: [number, number, number] = [
             rotation={waitingDieRotation}
             scale={[waitingDieScale, waitingDieScale, waitingDieScale]}
           >
-<DiceVisual shapePreset={diceShapePreset} />
+            <DiceVisual shapePreset={diceShapePreset} />
           </group>
         );
       })}

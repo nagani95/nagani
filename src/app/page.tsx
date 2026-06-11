@@ -26,6 +26,8 @@ const games = [
   },
 ];
 
+const SIX_ANIMAL_MIN_BALANCE = 1000;
+
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
@@ -48,6 +50,22 @@ if (user) {
 
   walletBalance = Number(wallet?.balance ?? 0);
 }
+
+const canEnterSixAnimal = walletBalance >= SIX_ANIMAL_MIN_BALANCE;
+
+const lobbyGames = games.map((game) => {
+  if (game.href !== "/six-animal") return game;
+
+  if (canEnterSixAnimal) return game;
+
+  return {
+    ...game,
+    subtitle: "Minimum 1,000 MMK balance required",
+    tag: "Need Balance",
+    isLocked: true,
+    lockedReason: "Deposit at least 1,000 MMK to enter",
+  };
+});
 
   return (
     <AppShell>
@@ -109,7 +127,7 @@ if (user) {
   statusLabel="Open"
 />
 
-      <LobbyGameCards games={games} />
+      <LobbyGameCards games={lobbyGames} />
 
       <LobbyRecentActivity />
     </AppShell>

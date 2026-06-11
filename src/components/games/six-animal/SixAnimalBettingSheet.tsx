@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ActiveBetsSummaryPanel from "./ActiveBetsSummaryPanel";
 
 import { SIX_ANIMAL_OPTIONS } from "@/lib/gameRules";
 import { naganiAssets } from "@/lib/naganiAssets";
@@ -253,27 +254,32 @@ const isHighlighted = isSelected || isActiveBet;
               </button>
             </div>
 
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              {QUICK_AMOUNTS.map((amount) => {
-                const isCurrentAmount = numericBetAmount === amount;
+<div className="mt-2 grid grid-cols-3 gap-1.5">
+  {QUICK_AMOUNTS.map((amount) => {
+    const isCurrentAmount = numericBetAmount === amount;
 
-                return (
-                  <button
-                    key={amount}
-                    type="button"
-                    disabled={!canEditBet}
-                    onClick={() => onQuickAmountSelect(amount)}
-                    className={`min-h-[38px] rounded-xl border px-2 py-2 text-[12px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
-                      isCurrentAmount
-                        ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.16)]"
-                        : "border-amber-300/18 bg-[linear-gradient(145deg,rgba(28,5,3,0.99),rgba(44,8,4,0.97))] text-amber-100"
-                    } disabled:opacity-35`}
-                  >
-                    {formatMMK(amount)}
-                  </button>
-                );
-              })}
-            </div>
+    return (
+      <button
+        key={amount}
+        type="button"
+        disabled={!canEditBet}
+        onClick={() => onQuickAmountSelect(amount)}
+        className={`min-h-[38px] rounded-xl border px-2 py-2 text-[12px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
+          isCurrentAmount
+            ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.16)]"
+            : "border-amber-300/18 bg-[linear-gradient(145deg,rgba(28,5,3,0.99),rgba(44,8,4,0.97))] text-amber-100"
+        } disabled:opacity-35`}
+      >
+        {formatMMK(amount)}
+      </button>
+    );
+  })}
+</div>
+
+<ActiveBetsSummaryPanel
+  activeBets={activeBets}
+  className="mt-3"
+/>
 
           </div>
         </div>

@@ -27,6 +27,12 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
+function getSettlementBetKey(bet: SettlementBet) {
+  return bet.betType === "pair" && bet.animalKey2
+    ? `pair-${[bet.animalKey, bet.animalKey2].sort().join("-")}`
+    : `single-${bet.animalKey}`;
+}
+
 export default function SettlementPopup({
   settlementBets,
   totalBetAmount,
@@ -36,34 +42,34 @@ export default function SettlementPopup({
   isResultWin,
   animalAssets,
 }: SettlementPopupProps) {
-const matchedBetCount = settlementBets.filter((bet) =>
-  bet.betType === "pair" ? bet.matchCount === 2 : bet.matchCount > 0
-).length;
+  const matchedBetCount = settlementBets.filter((bet) =>
+    bet.betType === "pair" ? bet.matchCount === 2 : bet.matchCount > 0
+  ).length;
+
+  const resultLine =
+    matchedBetCount > 0
+      ? `${matchedBetCount}/${settlementBets.length} tickets matched`
+      : "No tickets matched";
 
   return (
     <div
-      className={`pointer-events-none absolute inset-x-3 top-[60%] z-50 mx-auto max-w-[390px] -translate-y-1/2 overflow-hidden rounded-[1.45rem] border p-2.5 shadow-[0_22px_54px_rgba(0,0,0,0.82),inset_0_1px_0_rgba(251,191,36,0.16),inset_0_-18px_32px_rgba(0,0,0,0.34)] backdrop-blur-xl ${
+      className={`pointer-events-none absolute inset-x-3 top-[58%] z-50 mx-auto max-w-[380px] -translate-y-1/2 overflow-hidden rounded-[1.35rem] border p-3 shadow-[0_24px_58px_rgba(0,0,0,0.84),inset_0_1px_0_rgba(251,191,36,0.14)] backdrop-blur-xl ${
         isResultWin
-          ? "border-emerald-300/28 bg-[linear-gradient(145deg,rgba(6,78,59,0.34),rgba(5,1,1,0.82),rgba(45,7,3,0.66))]"
-          : "border-red-300/22 bg-[linear-gradient(145deg,rgba(92,15,12,0.48),rgba(5,1,1,0.84),rgba(45,7,3,0.62))]"
+          ? "border-emerald-300/28 bg-[linear-gradient(145deg,rgba(6,78,59,0.38),rgba(5,1,1,0.86),rgba(45,7,3,0.68))]"
+          : "border-red-300/22 bg-[linear-gradient(145deg,rgba(92,15,12,0.5),rgba(5,1,1,0.88),rgba(45,7,3,0.64))]"
       }`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.12),transparent_64%)]" />
-      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/55 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-300/25 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-4 left-0 w-px bg-gradient-to-b from-transparent via-amber-200/20 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-4 right-0 w-px bg-gradient-to-b from-transparent via-amber-200/20 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.12),transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/55 to-transparent" />
 
       <div className="relative z-10">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-200/55">
-              Settlement
+            <p className="text-[8px] font-black uppercase tracking-[0.24em] text-amber-200/55">
+              Settlement Receipt
             </p>
-            <p className="mt-0.5 truncate text-sm font-black text-white">
-              {matchedBetCount > 0
-                ? `${matchedBetCount}/${settlementBets.length} animals matched`
-                : "No animals matched"}
+            <p className="mt-1 truncate text-sm font-black text-white">
+              {resultLine}
             </p>
           </div>
 
@@ -78,72 +84,87 @@ const matchedBetCount = settlementBets.filter((bet) =>
           </div>
         </div>
 
-        <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <div className="mt-3 max-h-[150px] space-y-1.5 overflow-y-auto pr-1">
           {settlementBets.map((bet) => {
             const isMatched =
-  bet.betType === "pair" ? bet.matchCount === 2 : bet.matchCount > 0;
+              bet.betType === "pair" ? bet.matchCount === 2 : bet.matchCount > 0;
+
+            const matchLabel =
+              bet.betType === "pair"
+                ? `${bet.matchCount}/2`
+                : `${bet.matchCount}/3`;
 
             return (
               <div
-                key={
-  bet.betType === "pair" && bet.animalKey2
-    ? `pair-${bet.animalKey}-${bet.animalKey2}`
-    : `single-${bet.animalKey}`
-}
-                className={`grid grid-cols-[34px_1fr_auto] items-center gap-1.5 rounded-xl border px-2 py-1.5 shadow-inner shadow-black/35 ${
+                key={getSettlementBetKey(bet)}
+                className={`grid min-h-[44px] grid-cols-[58px_1fr_auto] items-center gap-2 rounded-xl border px-2 py-1.5 shadow-inner shadow-black/35 ${
                   isMatched
-                    ? "border-emerald-300/24 bg-emerald-400/10"
-                    : "border-amber-300/12 bg-black/28"
+                    ? "border-emerald-300/26 bg-emerald-400/10"
+                    : "border-amber-300/12 bg-black/30"
                 }`}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-300/14 bg-black/24">
-{bet.betType === "pair" && bet.animalKey2 ? (
-  <div className="flex items-center -space-x-2">
-    <img
-      src={animalAssets[bet.animalKey]}
-      alt=""
-      className="h-6 w-6 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
-    />
-    <img
-      src={animalAssets[bet.animalKey2]}
-      alt=""
-      className="h-6 w-6 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
-    />
-  </div>
-) : (
-  <img
-    src={animalAssets[bet.animalKey]}
-    alt=""
-    className="h-7 w-7 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
-  />
-)}
-                </div>
+<div className="flex h-9 w-[58px] items-center justify-center">
+  {bet.betType === "pair" && bet.animalKey2 ? (
+    <div className="grid grid-cols-2 gap-1">
+      <div className="flex h-8 w-7 items-center justify-center rounded-lg border border-amber-300/14 bg-black/28">
+        <img
+          src={animalAssets[bet.animalKey]}
+          alt=""
+          className="h-6 w-6 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+        />
+      </div>
+
+      <div className="flex h-8 w-7 items-center justify-center rounded-lg border border-amber-300/14 bg-black/28">
+        <img
+          src={animalAssets[bet.animalKey2]}
+          alt=""
+          className="h-6 w-6 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+        />
+      </div>
+    </div>
+  ) : (
+    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-300/14 bg-black/28">
+      <img
+        src={animalAssets[bet.animalKey]}
+        alt=""
+        className="h-7 w-7 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.38)]"
+      />
+    </div>
+  )}
+</div>
 
                 <div className="min-w-0">
-                  <p className="truncate text-[10px] font-black text-white">
-                    {formatMMK(bet.amount)}
-                  </p>
-                  <p className="text-[7px] font-black uppercase tracking-[0.12em] text-white/42">
-                    Bet
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[11px] font-black text-white">
+                      {formatMMK(bet.amount)} MMK
+                    </p>
+
+                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/45">
+                      {bet.betType === "pair" ? "Pair" : "Single"}
+                    </span>
+                  </div>
+
+                  <p className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
+                    Return {formatMMK(bet.payout)} MMK
                   </p>
                 </div>
 
                 <div
-                  className={`rounded-full px-1.5 py-0.5 text-[8px] font-black ${
+                  className={`rounded-full px-2 py-1 text-[8px] font-black tabular-nums ${
                     isMatched
                       ? "bg-emerald-300 text-black"
                       : "bg-white/8 text-white/45"
                   }`}
                 >
-                  {bet.betType === "pair" ? `${bet.matchCount}/2` : `${bet.matchCount}/3`}
+                  {matchLabel}
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
-          <div className="rounded-xl border border-amber-300/12 bg-black/28 p-2 text-center shadow-inner shadow-black/30">
+        <div className="mt-3 grid grid-cols-3 gap-1.5">
+          <div className="rounded-xl border border-amber-300/12 bg-black/30 p-2 text-center shadow-inner shadow-black/30">
             <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
               Total Bet
             </p>
@@ -152,7 +173,7 @@ const matchedBetCount = settlementBets.filter((bet) =>
             </p>
           </div>
 
-          <div className="rounded-xl border border-amber-300/12 bg-black/28 p-2 text-center shadow-inner shadow-black/30">
+          <div className="rounded-xl border border-amber-300/12 bg-black/30 p-2 text-center shadow-inner shadow-black/30">
             <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
               Return
             </p>
