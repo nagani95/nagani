@@ -99,12 +99,17 @@ const ACCEPTED_RESULT_MESSAGE = "Top face accepted and captured.";
 const COCKED_RESULT_MESSAGE =
   "Dice stopped at an unreadable angle. Result not accepted.";
 
-const VISIBLE_FACE_CAPTURE_MIN_ROLL_MS = 7600;
-const VISIBLE_FACE_CAPTURE_STABLE_SECONDS = 0.78;
-const VISIBLE_FACE_CAPTURE_SPEED = 0.72;
+const VISIBLE_FACE_CAPTURE_MIN_ROLL_MS = 6200;
+const VISIBLE_FACE_CAPTURE_STABLE_SECONDS = 0.42;
+const VISIBLE_FACE_CAPTURE_SPEED = 1.05;
 const VISIBLE_FACE_HARD_READ_MS = 9800;
 const VISIBLE_FACE_EDGE_SETTLE_LIMIT_MS = 11200;
 const VISIBLE_FACE_EDGE_SETTLE_TILT_DEGREES = 32;
+const TARGET_PERFORMANCE_START_MS = 3200;
+const TARGET_PERFORMANCE_FULL_MS = 6200;
+const TARGET_PERFORMANCE_END_MS = 9000;
+const STRICT_READABLE_RESULT_CONFIDENCE = 92;
+const STRICT_READABLE_RESULT_MAX_TILT_DEGREES = 23;
 
 const DICE_HOLDER_X_POSITIONS = [-1.0, 0, 1.0];
 
@@ -929,6 +934,33 @@ function createNearestVisibleResult(result: DiceFaceResult): DiceFaceResult {
   };
 }
 
+function isStrictReadableVisibleResult(result: DiceFaceResult) {
+  return (
+    result.status === "accepted" &&
+    result.confidence >= STRICT_READABLE_RESULT_CONFIDENCE &&
+    result.tiltDegrees <= STRICT_READABLE_RESULT_MAX_TILT_DEGREES
+  );
+}
+
+function createStrictReadableVisibleResult(
+  result: DiceFaceResult
+): DiceFaceResult {
+  if (isStrictReadableVisibleResult(result)) {
+    return {
+      ...result,
+      message: "Clear readable dice face captured.",
+    };
+  }
+
+  return {
+    ...result,
+    status: "cocked",
+    label: "Cocked / Reroll",
+    nearestLabel: result.nearestLabel,
+    message: `Unreadable dice angle. Nearest ${result.nearestLabel}, ${result.confidence}% confidence, ${result.tiltDegrees}° tilt. Reroll required.`,
+  };
+}
+
 function softenVisibleDiceBody(body: RapierRigidBody) {
   const linvel = body.linvel();
   const angvel = body.angvel();
@@ -952,6 +984,108 @@ function softenVisibleDiceBody(body: RapierRigidBody) {
   );
 }
 
+function createTargetAwareCaptureMessage({
+  targetAnimal,
+  capturedResult,
+  defaultMessage,
+}: {
+  targetAnimal?: DiceAnimalLabel | null;
+  capturedResult: DiceFaceResult;
+  defaultMessage: string;
+}) {
+if (capturedResult.status !== "accepted") {
+  return capturedResult.message || defaultMessage;
+}
+
+if (!targetAnimal) {
+  return defaultMessage;
+}
+
+  if (capturedResult.label === targetAnimal) {
+    return `Visible dice matched target ${targetAnimal}.`;
+  }
+
+  return `Visible dice captured as ${capturedResult.label}; target ${targetAnimal} not matched.`;
+}
+
+function applySoftTargetPerformance({
+  body,
+  targetAnimal,
+  rollAgeMs,
+  movementSpeed,
+}: {
+  body: RapierRigidBody;
+  targetAnimal?: DiceAnimalLabel | null;
+  rollAgeMs: number;
+  movementSpeed: number;
+}) {
+  if (!targetAnimal) return;
+  if (rollAgeMs < TARGET_PERFORMANCE_START_MS) return;
+  if (rollAgeMs > TARGET_PERFORMANCE_END_MS) return;
+
+  const targetDirection = getDiceFaceDirectionByLabel(targetAnimal);
+  if (!targetDirection) return;
+
+  const rotation = body.rotation();
+  const quaternion = new Quaternion(
+    rotation.x,
+    rotation.y,
+    rotation.z,
+    rotation.w
+  );
+
+  const targetWorldDirection = targetDirection
+    .applyQuaternion(quaternion)
+    .normalize();
+
+  const alignment = MathUtils.clamp(targetWorldDirection.dot(worldUp), -1, 1);
+  const targetAngle = Math.acos(alignment);
+
+  const correctionAxis = targetWorldDirection.clone().cross(worldUp);
+
+  if (correctionAxis.lengthSq() < 0.00001) {
+    const angvel = body.angvel();
+
+    body.setAngvel(
+      {
+        x: angvel.x * 0.94,
+        y: angvel.y * 0.94,
+        z: angvel.z * 0.94,
+      },
+      true
+    );
+
+    return;
+  }
+
+  correctionAxis.normalize();
+
+  const ageBlend = MathUtils.clamp(
+    (rollAgeMs - TARGET_PERFORMANCE_START_MS) /
+      (TARGET_PERFORMANCE_FULL_MS - TARGET_PERFORMANCE_START_MS),
+    0,
+    1
+  );
+
+  const speedBlend = MathUtils.clamp((2.4 - movementSpeed) / 2.0, 0, 1);
+  const correctionStrength =
+    MathUtils.clamp(targetAngle * 1.15, 0, 1.18) *
+    ageBlend *
+    (0.35 + speedBlend * 0.65);
+
+  const spinKeep = MathUtils.lerp(0.98, 0.86, ageBlend);
+  const angvel = body.angvel();
+
+  body.setAngvel(
+    {
+      x: angvel.x * spinKeep + correctionAxis.x * correctionStrength,
+      y: angvel.y * spinKeep + correctionAxis.y * correctionStrength,
+      z: angvel.z * spinKeep + correctionAxis.z * correctionStrength,
+    },
+    true
+  );
+}
+
 function DiceCube({
   resetKey,
   onSettledChange,
@@ -961,7 +1095,10 @@ function DiceCube({
   diceShapePreset,
   diceColliderPreset,
   hideActiveDiceFaces,
-  captureRequestKey = 0,
+captureRequestKey = 0,
+targetAnimal = null,
+targetPerformanceEnabled = false,
+strictReadableResultGate = false,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -972,6 +1109,9 @@ function DiceCube({
   diceColliderPreset: DiceColliderPreset;
 hideActiveDiceFaces?: boolean;
   captureRequestKey?: number;
+  targetAnimal?: DiceAnimalLabel | null;
+  targetPerformanceEnabled?: boolean;
+  strictReadableResultGate?: boolean;
 }) {
 const bodyRef = useRef<RapierRigidBody | null>(null);
 const stillTimeRef = useRef(0);
@@ -1140,21 +1280,37 @@ const diceStillFeelsAlive =
     return;
   }
 
-  const capturedResult = createNearestVisibleResult(visibleResult);
+  const capturedResult = strictReadableResultGate
+  ? createStrictReadableVisibleResult(visibleResult)
+  : createNearestVisibleResult(visibleResult);
 
-  settledRef.current = true;
-  stillTimeRef.current = 999;
+settledRef.current = true;
+stillTimeRef.current = 999;
 
-  softHoldStartedAtRef.current = performance.now();
-  softenVisibleDiceBody(body);
+softHoldStartedAtRef.current = performance.now();
 
-  onSettledChange(true);
-  onFaceResultChange({
-    ...capturedResult,
-    message: "Nearest visible dice face captured by dice director.",
-  });
+softenVisibleDiceBody(body);
+
+onSettledChange(true);
+onFaceResultChange({
+  ...capturedResult,
+  message: createTargetAwareCaptureMessage({
+    targetAnimal,
+    capturedResult,
+    defaultMessage: "Nearest visible dice face captured by dice director.",
+  }),
+});
 
   return;
+}
+
+if (targetPerformanceEnabled) {
+  applySoftTargetPerformance({
+    body,
+    targetAnimal,
+    rollAgeMs,
+    movementSpeed,
+  });
 }
 
 if (
@@ -1175,7 +1331,9 @@ if (
 
 const hasComfortablyStableVisibleFace =
   visibleResult.status === "accepted" &&
-  visibleResult.tiltDegrees <= 26 &&
+  (strictReadableResultGate
+    ? isStrictReadableVisibleResult(visibleResult)
+    : visibleResult.tiltDegrees <= 26) &&
   movementSpeed < VISIBLE_FACE_CAPTURE_SPEED &&
   stableVisibleFaceTimeRef.current >= VISIBLE_FACE_CAPTURE_STABLE_SECONDS;
 
@@ -1208,23 +1366,32 @@ if (
 }
 
 if ((hasStableVisibleFace || hasReachedHardRead) && !settledRef.current) {
-  const capturedResult = hasStableVisibleFace
+const capturedResult = strictReadableResultGate
+  ? createStrictReadableVisibleResult(visibleResult)
+  : hasStableVisibleFace
     ? visibleResult
     : createNearestVisibleResult(visibleResult);
 
-  settledRef.current = true;
-  stillTimeRef.current = 999;
+settledRef.current = true;
+stillTimeRef.current = 999;
 
-  softHoldStartedAtRef.current = performance.now();
+softHoldStartedAtRef.current = performance.now();
+
 softenVisibleDiceBody(body);
 
-  onSettledChange(true);
-  onFaceResultChange({
-    ...capturedResult,
-    message: hasStableVisibleFace
-      ? "Stable visible dice face captured and held."
-      : "Nearest visible dice face captured and held at performance limit.",
-  });
+const defaultMessage = hasStableVisibleFace
+  ? "Stable visible dice face captured and held."
+  : "Nearest visible dice face captured and held at performance limit.";
+
+onSettledChange(true);
+onFaceResultChange({
+  ...capturedResult,
+  message: createTargetAwareCaptureMessage({
+    targetAnimal,
+    capturedResult,
+    defaultMessage,
+  }),
+});
 
   return;
 }
@@ -1247,11 +1414,19 @@ if (stillTimeRef.current > 1.35 && !settledRef.current) {
   softHoldStartedAtRef.current = performance.now();
 softenVisibleDiceBody(body);
 
-  onSettledChange(true);
-  onFaceResultChange({
-    ...visibleResult,
-    message: "Naturally stopped visible dice face captured and held.",
-  });
+const capturedResult = strictReadableResultGate
+  ? createStrictReadableVisibleResult(visibleResult)
+  : visibleResult;
+
+onSettledChange(true);
+onFaceResultChange({
+  ...capturedResult,
+message: createTargetAwareCaptureMessage({
+  targetAnimal,
+  capturedResult,
+  defaultMessage: "Naturally stopped visible dice face captured and held.",
+}),
+});
 }
   });
 
@@ -1395,39 +1570,22 @@ function TableRunwayDepthLayer({ table }: { table: TableMeasurements }) {
         />
       </mesh>
 
-            {/* visual-only royal felt center depth; no collider */}
-      <mesh
-        position={[0, table.floorY + 0.116, table.floorZ + 1.22]}
-        rotation={[table.settlingSlopeAngle, 0, 0]}
-        receiveShadow
-      >
-        <boxGeometry args={[table.floorWidth - 1.28, 0.005, 2.95]} />
-        <meshStandardMaterial
-          color="#7d0714"
-          roughness={1}
-          metalness={0}
-          transparent
-          opacity={0.18}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* visual-only soft front shadow; no collider */}
-      <mesh
-        position={[0, table.floorY + 0.118, table.frontEdgeZ - 0.72]}
-        rotation={[table.settlingSlopeAngle, 0, 0]}
-        receiveShadow
-      >
-        <boxGeometry args={[table.floorWidth - 0.92, 0.005, 0.72]} />
-        <meshStandardMaterial
-          color="#230105"
-          roughness={1}
-          metalness={0}
-          transparent
-          opacity={0.22}
-          depthWrite={false}
-        />
-      </mesh>
+{/* visual-only very soft royal floor depth; no collider */}
+<mesh
+  position={[0, table.floorY + 0.116, table.floorZ + 0.82]}
+  rotation={[table.settlingSlopeAngle, 0, 0]}
+  receiveShadow
+>
+  <boxGeometry args={[table.floorWidth - 1.42, 0.004, 3.65]} />
+  <meshStandardMaterial
+    color="#8b0714"
+    roughness={1}
+    metalness={0}
+    transparent
+    opacity={0.075}
+    depthWrite={false}
+  />
+</mesh>
 
       {/* visual-only rear shadow where dice leaves the holder area; no collider */}
       <mesh
@@ -1550,10 +1708,14 @@ function TableRunway({ table }: { table: TableMeasurements }) {
         receiveShadow
       >
         <boxGeometry args={[table.floorWidth - 0.72, 0.006, table.floorDepth - 1.28]} />
-        <meshStandardMaterial
-          {...TABLE_MATERIALS.runwayInset}
-          depthWrite={false}
-        />
+<meshStandardMaterial
+  color="#8d0715"
+  roughness={1}
+  metalness={0}
+  transparent
+  opacity={0.11}
+  depthWrite={false}
+/>
       </mesh>
 
       <TableRunwayDepthLayer table={table} />
@@ -2579,7 +2741,10 @@ function DicePhysicsScene({
   hideActiveDiceFaces,
   showDice = true,
   forceShowStumbleBar = false,
-  captureRequestKey = 0,
+captureRequestKey = 0,
+targetAnimal = null,
+targetPerformanceEnabled = false,
+strictReadableResultGate = false,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -2597,6 +2762,9 @@ hideActiveDiceFaces?: boolean;
 showDice?: boolean;
 forceShowStumbleBar?: boolean;
 captureRequestKey?: number;
+targetAnimal?: DiceAnimalLabel | null;
+targetPerformanceEnabled?: boolean;
+strictReadableResultGate?: boolean;
 }) {
   const shouldRenderActiveDice =
     !displayOnly && showDice && sequenceRunning;
@@ -2661,6 +2829,9 @@ captureRequestKey?: number;
   diceColliderPreset={diceColliderPreset}
   hideActiveDiceFaces={hideActiveDiceFaces}
   captureRequestKey={captureRequestKey}
+targetAnimal={targetAnimal}
+targetPerformanceEnabled={targetPerformanceEnabled}
+strictReadableResultGate={strictReadableResultGate}
 />
 ) : null}
       </Physics>
@@ -2700,7 +2871,10 @@ export default function ThreeDicePhysicsStage({
   hideActiveDiceFaces = false,
   showDice = true,
   forceShowStumbleBar = false,
-  captureRequestKey = 0,
+captureRequestKey = 0,
+targetAnimal = null,
+targetPerformanceEnabled = false,
+strictReadableResultGate = false,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -2718,6 +2892,9 @@ hideActiveDiceFaces?: boolean;
 showDice?: boolean;
 forceShowStumbleBar?: boolean;
 captureRequestKey?: number;
+targetAnimal?: DiceAnimalLabel | null;
+targetPerformanceEnabled?: boolean;
+strictReadableResultGate?: boolean;
 }) {
 const effectiveDiceShapePreset: DiceShapePreset =
   variant === "lab" ? diceShapePreset : PRODUCTION_DICE_SHAPE_PRESET;
@@ -2759,6 +2936,9 @@ const cameraConfig =
   showDice={showDice}
   forceShowStumbleBar={forceShowStumbleBar}
   captureRequestKey={captureRequestKey}
+targetAnimal={targetAnimal}
+targetPerformanceEnabled={targetPerformanceEnabled}
+strictReadableResultGate={strictReadableResultGate}
 />
     </Canvas>
   );

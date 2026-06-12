@@ -19,7 +19,6 @@ import RoyalTableChamberBackdrop from "@/components/games/six-animal/RoyalTableC
 import RoyalRoomTopBar from "@/components/games/six-animal/RoyalRoomTopBar";
 import RoomIntroOverlay from "@/components/games/six-animal/RoomIntroOverlay";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
-import { convertThreeDicePayloadToMyanmarResult } from "@/lib/threeDiceResultAdapter";
 import { createClient } from "@/lib/supabase/client";
 import type { SixAnimalKey } from "@/types/games";
 
@@ -258,6 +257,7 @@ const isQuittingRef = useRef(isQuitting);
 const joinedRoundIdRef = useRef<string | null>(null);
 const shouldPlayLiveDiceSequenceRef = useRef(false);
 const diceResultRef = useRef<string[]>([]);
+const serverRngResultsRef = useRef<string[]>([]);
 const isVisualDiceCompleteRef = useRef(false);
 const visualDiceStatusRef = useRef<VisualDiceStatus>("idle");
 
@@ -307,6 +307,18 @@ setShowInRoomNextRoundPause(false);
 showInRoomNextRoundPauseRef.current = false;
 
 lastDiceSoundCountRef.current = 0;
+}
+
+function getBackendResultNames(revealCount = SIX_ANIMAL_RULES.diceCount) {
+  return serverRngResultsRef.current
+    .slice(0, revealCount)
+    .map((animalKey) =>
+      SIX_ANIMAL_OPTIONS.find((animal) => animal.key === animalKey)
+    )
+    .filter((animal): animal is (typeof SIX_ANIMAL_OPTIONS)[number] =>
+      Boolean(animal)
+    )
+    .map((animal) => animal.nameMm);
 }
 
 function startLocalDiceFlow(round: LiveSixAnimalRound) {
@@ -576,6 +588,7 @@ useEffect(() => {
   joinedRoundIdRef.current = joinedRoundId;
 shouldPlayLiveDiceSequenceRef.current = shouldPlayLiveDiceSequence;
 diceResultRef.current = diceResult;
+serverRngResultsRef.current = serverRngResults;
 isVisualDiceCompleteRef.current = isVisualDiceComplete;
   visualDiceStatusRef.current = visualDiceStatus;
 visualCompleteRoundIdRef.current = visualCompleteRoundId;
@@ -1361,10 +1374,12 @@ useEffect(() => {
   };
 }, []);
 
-  function handleThreeDiceComplete(
+function handleThreeDiceComplete(
   payload: ThreeDiceRoundPayload,
   payloadRoundId?: string | null
 ) {
+  void payload;
+
   if (
     !payloadRoundId ||
     payloadRoundId !== visualActiveRoundIdRef.current ||
@@ -1373,85 +1388,73 @@ useEffect(() => {
     return;
   }
 
-    if (
+  if (
     isVisualDiceCompleteRef.current &&
     visualCompleteRoundIdRef.current === payloadRoundId
   ) {
     return;
   }
-    const resultNames = convertThreeDicePayloadToMyanmarResult(payload);
 
-    if (resultNames.length !== SIX_ANIMAL_RULES.diceCount) return;
+  const resultNames = getBackendResultNames(SIX_ANIMAL_RULES.diceCount);
 
-const completedRoundId = roundIdRef.current;
+  if (resultNames.length !== SIX_ANIMAL_RULES.diceCount) return;
 
-diceResultRef.current = resultNames;
-isVisualDiceCompleteRef.current = true;
-visualCompleteRoundIdRef.current = completedRoundId;
+  const completedRoundId = roundIdRef.current;
 
-setDiceResult(resultNames);
-setIsVisualDiceComplete(true);
+  diceResultRef.current = resultNames;
+  isVisualDiceCompleteRef.current = true;
+  visualCompleteRoundIdRef.current = completedRoundId;
 
-setVisualDiceStatus("complete");
-visualDiceStatusRef.current = "complete";
+  setDiceResult(resultNames);
+  setIsVisualDiceComplete(true);
 
-setVisualCompleteRoundId(payloadRoundId);
-visualCompleteRoundIdRef.current = payloadRoundId;
-// Keep the completed visual round id locked during result/settlement hold.
-// clearVisibleDiceRoundState() will clear it safely when the next betting round is applied.
-setVisualActiveRoundId(payloadRoundId);
-visualActiveRoundIdRef.current = payloadRoundId;
+  setVisualDiceStatus("complete");
+  visualDiceStatusRef.current = "complete";
 
-// Die 3 completed. Hard-stop the dice controller.
-// Do not keep enabled=true for result hold, because enabled still means "can run".
-setShouldPlayLiveDiceSequence(false);
-shouldPlayLiveDiceSequenceRef.current = false;
+  setVisualCompleteRoundId(payloadRoundId);
+  visualCompleteRoundIdRef.current = payloadRoundId;
 
-setShowSettlementMoment(false);
-showSettlementMomentRef.current = false;
+  setVisualActiveRoundId(payloadRoundId);
+  visualActiveRoundIdRef.current = payloadRoundId;
 
-setSettlementWaitingRoundId(payloadRoundId);
-settlementWaitingRoundIdRef.current = payloadRoundId;
-setPhase("result");
+  setShouldPlayLiveDiceSequence(false);
+  shouldPlayLiveDiceSequenceRef.current = false;
 
-if (settlementMomentTimerRef.current) {
-  window.clearTimeout(settlementMomentTimerRef.current);
-}
+  setShowSettlementMoment(false);
+  showSettlementMomentRef.current = false;
 
-settlementMomentTimerRef.current = window.setTimeout(() => {
-  if (
-    settlementWaitingRoundIdRef.current !== payloadRoundId ||
-    roundIdRef.current !== payloadRoundId
-  ) {
-    settlementMomentTimerRef.current = null;
-    return;
+  setSettlementWaitingRoundId(payloadRoundId);
+  settlementWaitingRoundIdRef.current = payloadRoundId;
+  setPhase("result");
+
+  if (settlementMomentTimerRef.current) {
+    window.clearTimeout(settlementMomentTimerRef.current);
   }
 
-  setShowSettlementMoment(true);
-  showSettlementMomentRef.current = true;
-  playRoomSound("settlement-round");
-
-  settlementMomentTimerRef.current = null;
-}, SETTLEMENT_POPUP_DELAY_MS);
-
-    if (resultRevealTimerRef.current) {
-      window.clearTimeout(resultRevealTimerRef.current);
+  settlementMomentTimerRef.current = window.setTimeout(() => {
+    if (
+      settlementWaitingRoundIdRef.current !== payloadRoundId ||
+      roundIdRef.current !== payloadRoundId
+    ) {
+      settlementMomentTimerRef.current = null;
+      return;
     }
 
-    resultRevealTimerRef.current = window.setTimeout(() => {
-  const completedMatchCount = activeBet
-    ? resultNames.filter((item) => item === activeBet.animalNameMm).length
-    : 0;
+    setShowSettlementMoment(true);
+    showSettlementMomentRef.current = true;
+    playRoomSound("settlement-round");
 
-void completedMatchCount;
+    settlementMomentTimerRef.current = null;
+  }, SETTLEMENT_POPUP_DELAY_MS);
 
-  // Important:
-  // In live-room mode, the browser does not settle the round,
-  // does not update backend result, and does not force phase = result.
-  // Backend cron + advance_six_animal_room controls result timing.
-  resultRevealTimerRef.current = null;
-}, RESULT_REVEAL_DELAY_MS);
+  if (resultRevealTimerRef.current) {
+    window.clearTimeout(resultRevealTimerRef.current);
   }
+
+  resultRevealTimerRef.current = window.setTimeout(() => {
+    resultRevealTimerRef.current = null;
+  }, RESULT_REVEAL_DELAY_MS);
+}
 
   function handleDiceDrop(
   dieNumber: number,
@@ -1482,21 +1485,27 @@ function handleThreeDiceProgress(
   }
 
   if (
-  isVisualDiceCompleteRef.current &&
-  visualCompleteRoundIdRef.current === payloadRoundId
-) {
-  return;
-}
-
-    const resultNames = convertThreeDicePayloadToMyanmarResult(payload);
-
-    if (resultNames.length > lastDiceSoundCountRef.current) {
-      playRoomSound("result-reveal");
-      lastDiceSoundCountRef.current = resultNames.length;
-    }
-
-    setDiceResult(resultNames);
+    isVisualDiceCompleteRef.current &&
+    visualCompleteRoundIdRef.current === payloadRoundId
+  ) {
+    return;
   }
+
+  const revealCount = Math.min(
+    payload.results.length,
+    SIX_ANIMAL_RULES.diceCount
+  );
+
+  const resultNames = getBackendResultNames(revealCount);
+
+  if (resultNames.length > lastDiceSoundCountRef.current) {
+    playRoomSound("result-reveal");
+    lastDiceSoundCountRef.current = resultNames.length;
+  }
+
+  diceResultRef.current = resultNames;
+  setDiceResult(resultNames);
+}
   
 function handleSelectAnimal(animal: SixAnimalKey) {
   if (!canEditBet) return;
@@ -2117,15 +2126,17 @@ const isCurrent =
   onComplete={handleThreeDiceComplete}
   onProgress={handleThreeDiceProgress}
   onDiceDrop={handleDiceDrop}
-                  className="h-full min-h-[430px] w-full"
-                  showInternalResultStrip={false}
-                  mountedDiceRackMode={effectiveMountedDiceRackMode}
-                  serverRngResults={serverRngResults}
-rollingStartedAt={
-  phase === "rolling" || isResultPhaseVisualGuard ? rollingStartedAt : null
-}
-visualRoundId={heldVisualRoundId}
-                />
+  className="h-full min-h-[430px] w-full"
+  showInternalResultStrip={false}
+  mountedDiceRackMode={effectiveMountedDiceRackMode}
+  serverRngResults={serverRngResults}
+  targetPerformanceEnabled
+  strictReadableResultGate
+  rollingStartedAt={
+    phase === "rolling" || isResultPhaseVisualGuard ? rollingStartedAt : null
+  }
+  visualRoundId={heldVisualRoundId}
+/>
               </div>
             </div>
 

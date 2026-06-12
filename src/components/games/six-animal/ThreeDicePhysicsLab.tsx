@@ -606,6 +606,9 @@ onClick={() => {
   diceColliderPreset={diceColliderPreset}
   showDice={effectiveShowDice}
   forceShowStumbleBar={cleanTableShotMode}
+  targetAnimal={targetCorrectionTestEnabled ? targetAnimal : null}
+  targetPerformanceEnabled={targetCorrectionTestEnabled}
+  strictReadableResultGate={targetCorrectionTestEnabled}
 />
   </div>
 </section>

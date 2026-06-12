@@ -15,9 +15,10 @@ import ThreeDicePhysicsStage, {
 
 const EXPECTED_DICE_RESULT_COUNT = 3;
 
-const LIVE_DICE_CONFIRM_HOLD_MS = 1300;
+const LIVE_DICE_CONFIRM_HOLD_MS = 1550;
 const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 1800;
 const LIVE_DICE_DIRECTOR_CAPTURE_MS = 8200;
+const LIVE_DICE_READABLE_REROLL_DELAY_MS = 520;
 
 type ThreeDiceSequenceControllerProps = {
   enabled: boolean;
@@ -37,28 +38,42 @@ type ThreeDiceSequenceControllerProps = {
   mountedDiceRackMode?: MountedDiceRackMode;
 
   serverRngResults?: string[];
+  targetPerformanceEnabled?: boolean;
+strictReadableResultGate?: boolean;
   rollingStartedAt?: string | null;
 };
 
 function createVisibleCapturedResult(
   result: DiceFaceResult,
   dieNumber: number
-): CapturedDiceResult {
-  const visibleLabel = (
-    result.status === "accepted" ? result.label : result.nearestLabel
-  ) as DiceAnimalLabel;
+): CapturedDiceResult | null {
+  if (result.status !== "accepted") {
+    return null;
+  }
+
+  const visibleLabel = result.label as DiceAnimalLabel;
 
   return {
     ...result,
     status: "accepted",
     label: visibleLabel,
     nearestLabel: visibleLabel,
-    message:
-      result.status === "accepted"
-        ? result.message || "Visible dice face captured."
-        : "Nearest visible dice face captured for natural dice test.",
+    message: result.message || "Visible dice face captured.",
     dieNumber,
   };
+}
+
+function mapBackendAnimalToDiceLabel(
+  animalKey?: string | null
+): DiceAnimalLabel | null {
+  if (animalKey === "tiger") return "Tiger";
+  if (animalKey === "dragon") return "Dragon";
+  if (animalKey === "rooster") return "Rooster";
+  if (animalKey === "fish") return "Fish";
+  if (animalKey === "crab") return "Crab";
+  if (animalKey === "elephant") return "Elephant";
+
+  return null;
 }
 
 export default function ThreeDiceSequenceController({
@@ -71,6 +86,9 @@ export default function ThreeDiceSequenceController({
   className = "",
   showInternalResultStrip = true,
   mountedDiceRackMode = enabled ? "sequence" : "ready",
+serverRngResults = [],
+targetPerformanceEnabled = false,
+strictReadableResultGate = false,
 }: ThreeDiceSequenceControllerProps) {
   const [resetKey, setResetKey] = useState(1);
   const [, setSettled] = useState(false);
@@ -91,6 +109,7 @@ export default function ThreeDiceSequenceController({
   const capturedResultsOwnerRef = useRef<string | null>(null);
   const capturedDieNumbersRef = useRef<Set<number>>(new Set());
   const completionSentRef = useRef(false);
+  const readableRerollAttemptsRef = useRef<Record<number, number>>({});
 
   const forceCaptureTimerRef = useRef<number | null>(null);
   const nextDieTimerRef = useRef<number | null>(null);
@@ -119,6 +138,7 @@ const lastDiceDropSoundKeyRef = useRef<string | null>(null);
     capturedResultsOwnerRef.current = roundId;
     capturedDieNumbersRef.current.clear();
     completionSentRef.current = false;
+    readableRerollAttemptsRef.current = {};
     lastDiceDropSoundKeyRef.current = null;
 
     setCapturedResults([]);
@@ -240,19 +260,41 @@ useEffect(() => {
 
     clearTimers();
 
-    capturedDieNumbersRef.current.add(dieNumber);
-    capturedResultsOwnerRef.current = activeVisualRoundIdRef.current;
+const capturedResult = createVisibleCapturedResult(
+  faceCaptureOwner.result,
+  dieNumber
+);
 
-    setCapturedResults((current) => {
-      const withoutDuplicate = current.filter(
-        (result) => result.dieNumber !== dieNumber
-      );
+if (!capturedResult) {
+  readableRerollAttemptsRef.current[dieNumber] =
+    (readableRerollAttemptsRef.current[dieNumber] ?? 0) + 1;
 
-      return [
-        ...withoutDuplicate,
-        createVisibleCapturedResult(faceCaptureOwner.result, dieNumber),
-      ].sort((a, b) => a.dieNumber - b.dieNumber);
-    });
+  setSettled(false);
+  setFaceCaptureOwner(null);
+  setCaptureRequestKey(0);
+
+  nextDieTimerRef.current = window.setTimeout(() => {
+    setResetKey((value) => value + 1);
+    nextDieTimerRef.current = null;
+  }, LIVE_DICE_READABLE_REROLL_DELAY_MS);
+
+  return;
+}
+
+readableRerollAttemptsRef.current[dieNumber] = 0;
+
+capturedDieNumbersRef.current.add(dieNumber);
+capturedResultsOwnerRef.current = activeVisualRoundIdRef.current;
+
+setCapturedResults((current) => {
+  const withoutDuplicate = current.filter(
+    (result) => result.dieNumber !== dieNumber
+  );
+
+  return [...withoutDuplicate, capturedResult].sort(
+    (a, b) => a.dieNumber - b.dieNumber
+  );
+});
 
     setSettled(false);
     setFaceCaptureOwner(null);
@@ -318,6 +360,10 @@ const stageMountedDiceRackMode: MountedDiceRackMode = shouldShowActiveTableDice
   ? "sequence"
   : mountedDiceRackMode;
 
+  const activeTargetAnimal = mapBackendAnimalToDiceLabel(
+  serverRngResults[activeDieIndex]
+);
+
   return (
     <div
       className={`relative h-full min-h-[360px] overflow-hidden rounded-[1.6rem] border border-amber-300/15 bg-black/35 ${className}`}
@@ -335,6 +381,9 @@ displayOnly={false}
         mountedDiceRackMode={stageMountedDiceRackMode}
         hideActiveDiceFaces={false}
         captureRequestKey={captureRequestKey}
+        targetAnimal={activeTargetAnimal}
+        targetPerformanceEnabled={targetPerformanceEnabled}
+strictReadableResultGate={strictReadableResultGate}
       />
 
       {showInternalResultStrip ? (
