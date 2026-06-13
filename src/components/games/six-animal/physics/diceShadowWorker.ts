@@ -50,8 +50,10 @@ const ACCEPTED_MOTION_SCORE = 58;
 const PREMIUM_MOTION_SCORE = 74;
 const RECORDED_TRAJECTORY_REPLAY_TIME_SCALE = 1.35;
 
-const SHADOW_ATTEMPT_MIN = 760;
-const SHADOW_ATTEMPT_MAX = 980;
+const SHADOW_ATTEMPT_MIN = 180;
+const SHADOW_ATTEMPT_MAX = 420;
+const SHADOW_EARLY_ACCEPT_MIN_ATTEMPTS = 120;
+const SHADOW_EARLY_ACCEPT_SOUL_SCORE = 72;
 
 const MIN_RAW_SOUL_ACTIVE_SECONDS = 3.7;
 const IDEAL_RAW_SOUL_ACTIVE_MIN_SECONDS = 3.85;
@@ -1035,6 +1037,15 @@ function runOneDieShadowAttemptLoop(
     ) {
       bestAcceptedMatchedAttempt = attempt;
     }
+    if (
+  bestAcceptedMatchedAttempt &&
+  attemptNumber >= SHADOW_EARLY_ACCEPT_MIN_ATTEMPTS &&
+  (bestAcceptedMatchedAttempt.motionGrade === "premium" ||
+    getSoulSelectionScore(bestAcceptedMatchedAttempt) >=
+      SHADOW_EARLY_ACCEPT_SOUL_SCORE)
+) {
+  return bestAcceptedMatchedAttempt;
+}
   }
 
   if (bestAcceptedMatchedAttempt) {

@@ -487,21 +487,57 @@ if (restoredActiveBets.length === 0) {
   }
 
 if (nextPhase === "closed") {
-  const hasStartedLocalDiceFlow =
-    visualStartedRoundIdRef.current === round.id &&
-    shouldPlayLiveDiceSequenceRef.current;
+  const backendResultKeys = round.result_animals || [];
 
-  setServerRngResults(round.result_animals || []);
+  const canPrepareShadowDice =
+    Boolean(round.rolling_starts_at) &&
+    backendResultKeys.length === SIX_ANIMAL_RULES.diceCount;
 
-  if (hasStartedLocalDiceFlow) {
-    setPhase("rolling");
-    phaseRef.current = "rolling";
-    setPhaseTargetAt(null);
+  if (!canPrepareShadowDice) {
+    setServerRngResults(backendResultKeys);
+    serverRngResultsRef.current = backendResultKeys;
+
+    setShouldPlayLiveDiceSequence(false);
+    shouldPlayLiveDiceSequenceRef.current = false;
+
+    clearVisibleDiceRoundState();
     return;
   }
 
-  setShouldPlayLiveDiceSequence(false);
-  clearVisibleDiceRoundState();
+  if (visualStartedRoundIdRef.current !== round.id) {
+    clearVisibleDiceRoundState();
+
+    visualStartedRoundIdRef.current = round.id;
+
+    visualActiveRoundIdRef.current = round.id;
+    setVisualActiveRoundId(round.id);
+
+    setIsVisualDiceComplete(false);
+    isVisualDiceCompleteRef.current = false;
+
+    setVisualCompleteRoundId(null);
+    visualCompleteRoundIdRef.current = null;
+
+    setDiceResult([]);
+    diceResultRef.current = [];
+
+    lastDiceSoundCountRef.current = 0;
+
+    setThreeDiceRunKey((value) => value + 1);
+  }
+
+  setServerRngResults(backendResultKeys);
+  serverRngResultsRef.current = backendResultKeys;
+
+  setRollingStartedAt(round.rolling_starts_at);
+
+  setVisualDiceStatus("playing");
+  visualDiceStatusRef.current = "playing";
+
+  setShouldPlayLiveDiceSequence(true);
+  shouldPlayLiveDiceSequenceRef.current = true;
+
+  return;
 }
 
 if (nextPhase === "rolling") {
@@ -778,14 +814,29 @@ const showSettlementSheet =
   showFinalResultPanel && showSettlementMoment && hasActiveBets;
 const showNextRoundPause = false;
 
-const heldVisualRoundId =
-  visualActiveRoundId ?? (showFinalResultPanel ? visualCompleteRoundId : null);
+const fallbackVisualRoundId =
+  roundId && (phase === "closed" || phase === "rolling" || isResultPhaseVisualGuard)
+    ? roundId
+    : null;
 
-const shouldEnableDiceController =
+const heldVisualRoundId =
+  visualActiveRoundId ??
+  fallbackVisualRoundId ??
+  (showFinalResultPanel ? visualCompleteRoundId : null);
+
+const canPrepareShadowDice =
+  phase === "closed" &&
+  Boolean(roundId) &&
+  Boolean(rollingStartedAt) &&
+  serverRngResults.length === SIX_ANIMAL_RULES.diceCount;
+
+const canPlayShadowDice =
   shouldPlayLiveDiceSequence &&
   visualDiceStatus === "playing" &&
-  !showFinalResultPanel &&
   (phase === "rolling" || isResultPhaseVisualGuard);
+
+const shouldEnableDiceController =
+  !showFinalResultPanel && (canPrepareShadowDice || canPlayShadowDice);
 
 const shouldConfirmBrowserRefresh =
   !showRoomIntro &&
@@ -2130,11 +2181,6 @@ const isCurrent =
   showInternalResultStrip={false}
   mountedDiceRackMode={effectiveMountedDiceRackMode}
   serverRngResults={serverRngResults}
-  targetPerformanceEnabled
-  strictReadableResultGate
-  rollingStartedAt={
-    phase === "rolling" || isResultPhaseVisualGuard ? rollingStartedAt : null
-  }
   visualRoundId={heldVisualRoundId}
 />
               </div>
