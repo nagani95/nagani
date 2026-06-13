@@ -1,4 +1,4 @@
-//src>components>nagani>LobbyGameCards.tsx
+// src/components/nagani/LobbyGameCards.tsx
 
 import Link from "next/link";
 
@@ -18,22 +18,13 @@ type LobbyGameCardsProps = {
 export default function LobbyGameCards({ games }: LobbyGameCardsProps) {
   return (
     <section className="mt-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-200/50">
-            Choose Table
-          </p>
-          <h3 className="mt-1 text-sm font-black uppercase tracking-[0.25em] text-amber-200">
-            Main Games
-          </h3>
-        </div>
-
-        <Link
-          href="/live"
-          className="rounded-full border border-red-300/20 bg-red-400/10 px-3 py-2 text-xs font-black text-red-100"
-        >
-          Live Results
-        </Link>
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-200/50">
+          Choose Table
+        </p>
+        <h3 className="mt-1 text-sm font-black uppercase tracking-[0.25em] text-amber-200">
+          Main Games
+        </h3>
       </div>
 
       {games.map((game, index) => {

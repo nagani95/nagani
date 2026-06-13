@@ -1,4 +1,4 @@
-//src>components>profile>ProfileSupportSecurity.tsx
+// src/components/profile/ProfileSupportSecurity.tsx
 
 export default function ProfileSupportSecurity() {
   return (
@@ -23,19 +23,21 @@ export default function ProfileSupportSecurity() {
           <span className="font-black text-amber-100">1.</span> Keep your member
           account private and do not share access.
         </p>
+
         <p>
           <span className="font-black text-amber-100">2.</span> Wallet requests
-          appear inside Cashier tickets.
+          appear inside the Cashier ticket list.
         </p>
+
         <p>
-          <span className="font-black text-amber-100">3.</span> Game and wallet
-          records are stored inside History.
+          <span className="font-black text-amber-100">3.</span> Use the Cashier
+          page to review deposit and withdraw request status.
         </p>
       </div>
 
       <p className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3 text-xs leading-5 text-white/40">
-        Frontend preview only. Real profile, account status, wallet balance, and
-        logout will be connected after backend authentication.
+        For wallet or account help, contact the cashier/admin team and include
+        your member ID when reporting an issue.
       </p>
     </section>
   );

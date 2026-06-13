@@ -1,4 +1,4 @@
-//src>components>games>six-animal>FloatingResultBoard.tsx
+//src>components>games>six-animal>RoyalTableChamberBackdrop.tsx
 
 export default function RoyalTableChamberBackdrop() {
   return (

@@ -1,20 +1,20 @@
-//src>components>nagani>LobbyRecentActivity.tsx
+// src/components/nagani/LobbyRecentActivity.tsx
 
 const activities = [
   {
     label: "၆ ကောင်ဂျင်",
-    detail: "Latest table result ready",
-    value: "ကျား / နဂါး / ငါး",
+    detail: "Six Animal live room is ready for MVP play.",
+    value: "Open",
   },
   {
-    label: "၃၆ ကောင်ထီ",
-    detail: "Morning draw published",
-    value: "#12",
+    label: "Wallet",
+    detail: "Check your balance before entering the table.",
+    value: "Secure",
   },
   {
-    label: "Winner",
-    detail: "Member 4821 received payout",
-    value: "15,000 MMK",
+    label: "Player Center",
+    detail: "Use cashier, history, and profile from the lobby.",
+    value: "Ready",
   },
 ];
 
@@ -24,10 +24,10 @@ export default function LobbyRecentActivity() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/40">
-            Recent Activity
+            Player Center
           </p>
           <h3 className="mt-2 text-lg font-black text-amber-100">
-            Live Floor Pulse
+            Nagani Table Status
           </h3>
         </div>
 
@@ -61,8 +61,8 @@ export default function LobbyRecentActivity() {
       </div>
 
       <p className="mt-4 text-xs leading-5 text-white/40">
-        Mock activity shown for frontend preview. Backend will later provide
-        trusted live results, winners, and wallet-safe records.
+        Enter the Six Animal room, place your bet, watch the dice result, and
+        review your wallet activity from the player center.
       </p>
     </section>
   );

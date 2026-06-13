@@ -1,4 +1,4 @@
-//src>components>profile>ProfileQuickActions.tsx
+// src/components/profile/ProfileQuickActions.tsx
 
 import Link from "next/link";
 
@@ -8,12 +8,12 @@ const quickActions = [
     href: "/cashier",
   },
   {
-    label: "View History",
-    href: "/history",
+    label: "Enter Six Animal",
+    href: "/six-animal",
   },
   {
-    label: "Live Results",
-    href: "/live",
+    label: "Back to Lobby",
+    href: "/",
   },
 ];
 
@@ -31,7 +31,7 @@ export default function ProfileQuickActions() {
         </div>
 
         <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-100">
-          Fast
+          Ready
         </div>
       </div>
 

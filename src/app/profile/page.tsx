@@ -7,29 +7,9 @@ import AppShell from "@/components/layout/AppShell";
 import ProfileAccountStatus from "@/components/profile/ProfileAccountStatus";
 import ProfileMemberCard from "@/components/profile/ProfileMemberCard";
 import ProfileQuickActions from "@/components/profile/ProfileQuickActions";
-import ProfileStatsGrid from "@/components/profile/ProfileStatsGrid";
 import ProfileSupportSecurity from "@/components/profile/ProfileSupportSecurity";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/supabase/auth";
-
-const memberStats = [
-  {
-    label: "Total Bets",
-    value: "0",
-  },
-  {
-    label: "Wins",
-    value: "0",
-  },
-  {
-    label: "Wallet Tickets",
-    value: "0",
-  },
-  {
-    label: "Member Level",
-    value: "Bronze",
-  },
-];
 
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
@@ -64,8 +44,7 @@ export default async function ProfilePage() {
 
   const balance = Number(wallet?.balance ?? 0);
 
-  const memberName =
-    profile?.username || user.email || (user.is_anonymous ? "Demo Player" : "Nagani Member");
+  const memberName = profile?.username || user.email || "Nagani Member";
 
   return (
     <AppShell>
@@ -84,8 +63,6 @@ export default async function ProfilePage() {
         memberId={formatMemberId(user.id)}
         balanceLabel={`${formatMMK(balance)} MMK`}
       />
-
-      <ProfileStatsGrid stats={memberStats} />
 
       <ProfileAccountStatus />
 

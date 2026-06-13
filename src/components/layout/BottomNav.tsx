@@ -1,4 +1,4 @@
-//src>components>layout>BottomNav.tsx
+// src/components/layout/BottomNav.tsx
 
 "use client";
 
@@ -11,16 +11,8 @@ const navItems = [
     href: "/",
   },
   {
-    label: "Live",
-    href: "/live",
-  },
-  {
     label: "Cashier",
     href: "/cashier",
-  },
-  {
-    label: "History",
-    href: "/history",
   },
   {
     label: "Profile",
@@ -32,7 +24,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed left-1/2 z-50 grid w-[calc(100%-1.25rem)] max-w-md -translate-x-1/2 grid-cols-5 rounded-[1.75rem] border border-amber-300/25 bg-[#080403]/95 p-1.5 shadow-2xl shadow-black/80 backdrop-blur-2xl [bottom:calc(0.75rem+env(safe-area-inset-bottom))]">
+    <nav className="fixed left-1/2 z-50 grid w-[calc(100%-1.25rem)] max-w-md -translate-x-1/2 grid-cols-3 rounded-[1.75rem] border border-amber-300/25 bg-[#080403]/95 p-1.5 shadow-2xl shadow-black/80 backdrop-blur-2xl [bottom:calc(0.75rem+env(safe-area-inset-bottom))]">
       {navItems.map((item) => {
         const isActive =
           item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);

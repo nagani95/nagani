@@ -1,30 +1,30 @@
-//src>components>profile>ProfileAccountStatus.tsx
+// src/components/profile/ProfileAccountStatus.tsx
 
-type AccountStatusItem = {
+type AccountInfoItem = {
   label: string;
   value: string;
   tone: "green" | "gold";
 };
 
-const accountStatusItems: AccountStatusItem[] = [
+const accountInfoItems: AccountInfoItem[] = [
   {
-    label: "Wallet Access",
-    value: "Active",
+    label: "Wallet",
+    value: "Available",
     tone: "green",
   },
   {
-    label: "Game Access",
-    value: "Open",
-    tone: "green",
+    label: "Six Animal",
+    value: "Use Balance",
+    tone: "gold",
   },
   {
-    label: "Review Status",
-    value: "Standard",
+    label: "Cashier",
+    value: "Review Flow",
     tone: "gold",
   },
 ];
 
-function getToneClass(tone: AccountStatusItem["tone"]) {
+function getToneClass(tone: AccountInfoItem["tone"]) {
   if (tone === "green") {
     return "border-emerald-400/20 bg-emerald-400/10 text-emerald-100";
   }
@@ -38,20 +38,20 @@ export default function ProfileAccountStatus() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-200/60">
-            Account Status
+            Account Center
           </p>
           <h3 className="mt-2 text-lg font-black text-amber-100">
-            Member Access
+            Member Guide
           </h3>
         </div>
 
         <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">
-          Clear
+          Ready
         </div>
       </div>
 
       <div className="mt-4 space-y-3">
-        {accountStatusItems.map((item) => (
+        {accountInfoItems.map((item) => (
           <div
             key={item.label}
             className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/30 px-4 py-3"

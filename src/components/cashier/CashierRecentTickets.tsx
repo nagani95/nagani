@@ -47,9 +47,19 @@ export default function CashierRecentTickets({
           Ledger
         </div>
       </div>
+<div className="mt-4 space-y-3">
+  {tickets.length === 0 ? (
+    <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-center">
+      <p className="text-sm font-black text-amber-100">
+        No wallet tickets yet
+      </p>
+      <p className="mt-2 text-xs leading-5 text-white/45">
+        Deposit and withdraw requests will appear here after you submit them.
+      </p>
+    </div>
+  ) : null}
 
-      <div className="mt-4 space-y-3">
-        {tickets.map((ticket) => (
+  {tickets.map((ticket) => (
           <div
             key={ticket.id}
             className="rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg shadow-black/20"

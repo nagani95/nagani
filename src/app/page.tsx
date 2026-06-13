@@ -7,7 +7,6 @@ import LobbyGameCards from "@/components/nagani/LobbyGameCards";
 import LobbyHero from "@/components/nagani/LobbyHero";
 import LobbyRecentActivity from "@/components/nagani/LobbyRecentActivity";
 import { naganiAssets } from "@/lib/naganiAssets";
-import { signInAnonymously } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
 
@@ -20,9 +19,11 @@ const games = [
   },
   {
     title: "Thirty Six",
-    subtitle: "Traditional 36-animal draw game",
+    subtitle: "Coming soon after Six Animal MVP launch",
     href: "/thirty-six",
-    tag: "Draw Game",
+    tag: "Coming Soon",
+    isLocked: true,
+    lockedReason: "Coming soon",
   },
 ];
 
@@ -110,14 +111,6 @@ const lobbyGames = games.map((game) => {
     Register
   </Link>
 
-  <form action={signInAnonymously}>
-    <button
-      type="submit"
-      className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-bold text-amber-200 transition-colors hover:bg-amber-400/20 hover:text-white"
-    >
-      Play Demo
-    </button>
-  </form>
 </div>
 )}
       </header>

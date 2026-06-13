@@ -1,4 +1,4 @@
-//src>components>cashier>CashierNote.tsx
+// src/components/cashier/CashierNote.tsx
 
 export default function CashierNote() {
   return (
@@ -23,23 +23,26 @@ export default function CashierNote() {
           <span className="font-black text-amber-100">1.</span> Submit a deposit
           or withdraw request.
         </p>
+
         <p>
-          <span className="font-black text-amber-100">2.</span> The ticket stays
-          pending while it waits for review.
+          <span className="font-black text-amber-100">2.</span> Your request
+          stays pending while the cashier reviews it.
         </p>
+
         <p>
           <span className="font-black text-amber-100">3.</span> Confirmed
-          tickets update wallet balance after backend settlement.
+          requests update your wallet balance.
         </p>
+
         <p>
-          <span className="font-black text-amber-100">4.</span> Rejected tickets
-          will show a review note later.
+          <span className="font-black text-amber-100">4.</span> Rejected
+          requests will remain visible in your wallet ticket history.
         </p>
       </div>
 
       <p className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3 text-xs leading-5 text-white/40">
-        Frontend preview only. Final wallet balance, approval, rejection, and
-        ledger records must come from the backend.
+        Please check your request amount and note before submitting. Wallet
+        tickets are reviewed before your balance is updated.
       </p>
     </section>
   );
