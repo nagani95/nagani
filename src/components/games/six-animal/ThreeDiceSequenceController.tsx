@@ -206,6 +206,10 @@ useEffect(() => {
     resetSequenceForNewRun(visualRoundId);
   }, [enabled, runKey, visualRoundId]);
 
+  const activeTargetAnimal = mapBackendAnimalToDiceLabel(
+  serverRngResults[activeDieIndex]
+);
+
   useEffect(() => {
   if (!enabled || !sequenceRunning) return;
 
@@ -265,7 +269,11 @@ const capturedResult = createVisibleCapturedResult(
   dieNumber
 );
 
-if (!capturedResult) {
+const targetMismatch =
+  Boolean(targetPerformanceEnabled && activeTargetAnimal) &&
+  capturedResult?.label !== activeTargetAnimal;
+
+if (!capturedResult || targetMismatch) {
   readableRerollAttemptsRef.current[dieNumber] =
     (readableRerollAttemptsRef.current[dieNumber] ?? 0) + 1;
 
@@ -315,7 +323,14 @@ nextDieTimerRef.current = window.setTimeout(() => {
   setSequenceRunning(false);
   nextDieTimerRef.current = null;
 }, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
-  }, [enabled, sequenceRunning, activeDieIndex, faceCaptureOwner]);
+  }, [
+  enabled,
+  sequenceRunning,
+  activeDieIndex,
+  faceCaptureOwner,
+  activeTargetAnimal,
+  targetPerformanceEnabled,
+]);
 
   useEffect(() => {
     if (capturedResults.length === 0) return;
@@ -359,10 +374,6 @@ const stageActiveDieIndex = shouldShowActiveTableDice ? activeDieIndex : -1;
 const stageMountedDiceRackMode: MountedDiceRackMode = shouldShowActiveTableDice
   ? "sequence"
   : mountedDiceRackMode;
-
-  const activeTargetAnimal = mapBackendAnimalToDiceLabel(
-  serverRngResults[activeDieIndex]
-);
 
   return (
     <div
