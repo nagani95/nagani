@@ -220,6 +220,7 @@ export default function ThreeDiceSequenceController({
   const capturedDieNumbersRef = useRef<Set<number>>(new Set());
 const rerollAttemptsByDieRef = useRef<Record<number, number>>({});
 const completionSentRef = useRef(false);
+const visualSequenceInFlightRef = useRef(false);
 
   const nextDieTimerRef = useRef<number | null>(null);
 
@@ -477,9 +478,10 @@ const completionSentRef = useRef(false);
 
     activeVisualRoundIdRef.current = roundId;
     capturedResultsOwnerRef.current = roundId;
-    capturedDieNumbersRef.current.clear();
+capturedDieNumbersRef.current.clear();
 rerollAttemptsByDieRef.current = {};
 completionSentRef.current = false;
+visualSequenceInFlightRef.current = true;
 lastDiceDropSoundKeyRef.current = null;
 
     setCapturedResults([]);
@@ -557,23 +559,42 @@ const handleFaceResultChange = useCallback(
   }, []);
 
   useEffect(() => {
-    if (!visualRoundId) {
-      clearTimers();
-      clearShadowWorkers();
-      setSequenceRunning(false);
-      setHoldFinalDiceOnTable(false);
-      setFaceCaptureOwner(null);
-      setShadowPreparing(false);
-      setShadowError(null);
-      return;
-    }
+if (!visualRoundId) {
+  const hasLockedVisualRound =
+    visualSequenceInFlightRef.current &&
+    Boolean(activeVisualRoundIdRef.current) &&
+    !completionSentRef.current;
 
-    if (!enabled) {
-      clearTimers();
-      setSequenceRunning(false);
-      setFaceCaptureOwner(null);
-      return;
-    }
+  if (hasLockedVisualRound) {
+    return;
+  }
+
+  clearTimers();
+  clearShadowWorkers();
+  visualSequenceInFlightRef.current = false;
+  setSequenceRunning(false);
+  setHoldFinalDiceOnTable(false);
+  setFaceCaptureOwner(null);
+  setShadowPreparing(false);
+  setShadowError(null);
+  return;
+}
+
+if (!enabled) {
+  const hasLockedVisualRound =
+    visualSequenceInFlightRef.current &&
+    activeVisualRoundIdRef.current === visualRoundId &&
+    !completionSentRef.current;
+
+  if (hasLockedVisualRound) {
+    return;
+  }
+
+  clearTimers();
+  setSequenceRunning(false);
+  setFaceCaptureOwner(null);
+  return;
+}
 
     const targetAnimals = serverRngResults
       .slice(0, EXPECTED_DICE_RESULT_COUNT)
@@ -616,9 +637,14 @@ const handleFaceResultChange = useCallback(
   const activeShadowTrajectory = shadowTrajectories[activeDieIndex] ?? null;
   const activeShadowFrames = activeShadowTrajectory?.frames ?? null;
   const hasActiveShadowFrames = Boolean(activeShadowFrames?.length);
+const visualSequenceAllowed =
+  enabled ||
+  (visualSequenceInFlightRef.current &&
+    Boolean(activeVisualRoundIdRef.current) &&
+    !completionSentRef.current);
 
   useEffect(() => {
-if (!enabled || !sequenceRunning) return;
+if (!visualSequenceAllowed || !sequenceRunning) return;
 if (!USE_V1_PHYSICAL_DICE_SEQUENCE && !hasActiveShadowFrames) return;
 
     const ownerRoundId = activeVisualRoundIdRef.current;
@@ -636,7 +662,7 @@ if (!USE_V1_PHYSICAL_DICE_SEQUENCE && !hasActiveShadowFrames) return;
     lastDiceDropSoundKeyRef.current = soundKey;
     onDiceDropRef.current?.(dieNumber, ownerRoundId);
   }, [
-    enabled,
+    visualSequenceAllowed,
     sequenceRunning,
     activeDieIndex,
     resetKey,
@@ -644,7 +670,7 @@ if (!USE_V1_PHYSICAL_DICE_SEQUENCE && !hasActiveShadowFrames) return;
   ]);
 
   useEffect(() => {
-    if (!enabled || !sequenceRunning) return;
+    if (!visualSequenceAllowed || !sequenceRunning) return;
     if (!faceCaptureOwner) return;
     if (faceCaptureOwner.dieIndex !== activeDieIndex) return;
 
@@ -748,7 +774,7 @@ delete rerollAttemptsByDieRef.current[dieNumber];
       nextDieTimerRef.current = null;
     }, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
 }, [
-  enabled,
+  visualSequenceAllowed,
   sequenceRunning,
   activeDieIndex,
   faceCaptureOwner,
@@ -784,8 +810,9 @@ delete rerollAttemptsByDieRef.current[dieNumber];
     if (completionSentRef.current) return;
 
     completionSentRef.current = true;
+visualSequenceInFlightRef.current = false;
 
-    onCompleteRef.current(
+onCompleteRef.current(
       createThreeDiceRoundPayload(capturedResults, false),
       ownerRoundId
     );
