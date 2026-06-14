@@ -8,12 +8,12 @@ const activities = [
   },
   {
     label: "Wallet",
-    detail: "Check your balance before entering the table.",
+    detail: "Check your balance before entering the room.",
     value: "Secure",
   },
   {
     label: "Player Center",
-    detail: "Use cashier, history, and profile from the lobby.",
+    detail: "Use cashier and profile from the lobby.",
     value: "Ready",
   },
 ];
@@ -27,7 +27,7 @@ export default function LobbyRecentActivity() {
             Player Center
           </p>
           <h3 className="mt-2 text-lg font-black text-amber-100">
-            Nagani Table Status
+            Nagani Room Status
           </h3>
         </div>
 
@@ -61,8 +61,8 @@ export default function LobbyRecentActivity() {
       </div>
 
       <p className="mt-4 text-xs leading-5 text-white/40">
-        Enter the Six Animal room, place your bet, watch the dice result, and
-        review your wallet activity from the player center.
+        Enter the Six Animal room, place your bet during the betting phase,
+        watch the dice result, and manage your wallet from the player center.
       </p>
     </section>
   );

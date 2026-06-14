@@ -1,4 +1,4 @@
-//src>components>nagani>LobbyHero.tsx
+// src/components/nagani/LobbyHero.tsx
 
 import { naganiAssets } from "@/lib/naganiAssets";
 
@@ -29,7 +29,7 @@ export default function LobbyHero({
           </p>
 
           <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-100">
-            Live Floor
+            MVP Room
           </div>
         </div>
 
@@ -45,14 +45,15 @@ export default function LobbyHero({
           <h2 className="text-4xl font-black leading-tight text-amber-100">
             ၆ ကောင်ဂျင်
             <span className="block text-2xl text-amber-200/80">
-              ၃၆ ကောင်ထီ
+              Six Animal
             </span>
           </h2>
         </div>
 
         <p className="mt-4 text-sm leading-6 text-amber-50/75">
-          Enter the Nagani game room, choose your traditional table, follow live
-          results, and manage your wallet from one mobile-first player center.
+          Enter the Nagani Six Animal room, place your bet during the betting
+          phase, watch the dice result, and manage your wallet from one
+          mobile-first player center.
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
@@ -67,7 +68,7 @@ export default function LobbyHero({
 
           <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-200/55">
-              Floor
+              Six Animal
             </p>
             <p className="mt-1 text-lg font-black text-emerald-100">
               {statusLabel}

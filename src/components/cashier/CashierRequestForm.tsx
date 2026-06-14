@@ -61,13 +61,13 @@ export default function CashierRequestForm({
               : "rounded-full px-4 py-3 text-sm font-bold text-white/55 transition hover:bg-white/5 hover:text-white"
           }
         >
-          Withdraw
+          Withdrawal
         </button>
       </div>
 
       <div className="mt-5">
         <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-200/60">
-          {activeTab === "deposit" ? "Deposit Amount" : "Withdraw Amount"}
+          {activeTab === "deposit" ? "Deposit Amount" : "Withdrawal Amount"}
         </p>
 
         <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
@@ -112,7 +112,7 @@ export default function CashierRequestForm({
           placeholder={
             activeTab === "deposit"
               ? "Add transfer note, account name, or reference..."
-              : "Add wallet/account details for settlement..."
+              : "Add withdrawal account details or note..."
           }
         />
       </div>
@@ -121,7 +121,7 @@ export default function CashierRequestForm({
         <div className="flex items-center justify-between">
           <p className="text-xs text-white/40">Request Type</p>
           <p className="text-sm font-black text-amber-100">
-            {activeTab === "deposit" ? "Deposit" : "Withdraw"}
+            {activeTab === "deposit" ? "Deposit" : "Withdrawal"}
           </p>
         </div>
 
@@ -148,11 +148,11 @@ export default function CashierRequestForm({
         {actionLabel}
       </button>
 
-      {!isValidAmount && (
+      {!isValidAmount ? (
         <p className="mt-3 text-center text-xs font-bold text-red-200/60">
           Minimum request amount is 1,000 MMK.
         </p>
-      )}
+      ) : null}
     </form>
   );
 }

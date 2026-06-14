@@ -1,4 +1,4 @@
-//src>app>page.tsx
+// src/app/page.tsx
 
 import Link from "next/link";
 
@@ -9,6 +9,7 @@ import LobbyRecentActivity from "@/components/nagani/LobbyRecentActivity";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { createClient } from "@/lib/supabase/server";
 
+const SIX_ANIMAL_MIN_BALANCE = 1000;
 
 const games = [
   {
@@ -19,7 +20,7 @@ const games = [
   },
   {
     title: "Thirty Six",
-    subtitle: "Coming soon after Six Animal MVP launch",
+    subtitle: "Coming soon",
     href: "/thirty-six",
     tag: "Coming Soon",
     isLocked: true,
@@ -27,46 +28,60 @@ const games = [
   },
 ];
 
-const SIX_ANIMAL_MIN_BALANCE = 1000;
-
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
-export default async function HomePage() {
-  // 1. Check if user already has an active anonymous session
-const supabase = await createClient();
-const {
-  data: { user },
-} = await supabase.auth.getUser();
+function toSafeBalance(value: number | string | null | undefined) {
+  const amount = Number(value ?? 0);
 
-let walletBalance = 0;
-
-if (user) {
-  const { data: wallet } = await supabase
-    .from("wallets")
-    .select("balance")
-    .eq("profile_id", user.id)
-    .maybeSingle<{ balance: number | string | null }>();
-
-  walletBalance = Number(wallet?.balance ?? 0);
+  return Number.isFinite(amount) ? amount : 0;
 }
 
-const canEnterSixAnimal = walletBalance >= SIX_ANIMAL_MIN_BALANCE;
+export default async function HomePage() {
+  const supabase = await createClient();
 
-const lobbyGames = games.map((game) => {
-  if (game.href !== "/six-animal") return game;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (canEnterSixAnimal) return game;
+  let walletBalance = 0;
 
-  return {
-    ...game,
-    subtitle: "Minimum 1,000 MMK balance required",
-    tag: "Need Balance",
-    isLocked: true,
-    lockedReason: "Deposit at least 1,000 MMK to enter",
-  };
-});
+  if (user) {
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("profile_id", user.id)
+      .maybeSingle<{ balance: number | string | null }>();
+
+    walletBalance = toSafeBalance(wallet?.balance);
+  }
+
+  const canEnterSixAnimal = Boolean(user) && walletBalance >= SIX_ANIMAL_MIN_BALANCE;
+
+  const lobbyGames = games.map((game) => {
+    if (game.href !== "/six-animal") return game;
+
+    if (canEnterSixAnimal) return game;
+
+    if (!user) {
+      return {
+        ...game,
+        subtitle: "Login or register to enter",
+        tag: "Login Required",
+        isLocked: true,
+        lockedReason: "Login or register before entering the live room",
+      };
+    }
+
+    return {
+      ...game,
+      subtitle: "Minimum 1,000 MMK balance required",
+      tag: "Need Balance",
+      isLocked: true,
+      lockedReason: "Deposit at least 1,000 MMK to enter",
+    };
+  });
 
   return (
     <AppShell>
@@ -84,41 +99,36 @@ const lobbyGames = games.map((game) => {
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-300/70">
               Nagani
             </p>
-<h1 className="mt-1 text-2xl font-black tracking-tight text-amber-100">
-  Nagani Traditional
-</h1>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-amber-100">
+              Nagani Traditional
+            </h1>
           </div>
         </div>
 
-        {/* 2. Show connected status, or the login button */}
-{user ? (
-  <div className="rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1 text-xs font-bold text-green-200">
-    Wallet Connected
-  </div>
-) : (
-<div className="flex items-center gap-2">
-  <Link
-    href="/login"
-    className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-bold text-amber-200 transition hover:bg-amber-400/20 hover:text-white"
-  >
-    Login
-  </Link>
+        {user ? (
+          <div className="rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1 text-xs font-bold text-green-200">
+            Signed In
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-bold text-amber-200 transition hover:bg-amber-400/20 hover:text-white"
+            >
+              Login
+            </Link>
 
-  <Link
-    href="/register"
-    className="rounded-full border border-amber-300/40 bg-amber-300 px-4 py-2 text-xs font-black text-[#210807] shadow-lg shadow-black/20 transition hover:bg-amber-200"
-  >
-    Register
-  </Link>
-
-</div>
-)}
+            <Link
+              href="/register"
+              className="rounded-full border border-amber-300/40 bg-amber-300 px-4 py-2 text-xs font-black text-[#210807] shadow-lg shadow-black/20 transition hover:bg-amber-200"
+            >
+              Register
+            </Link>
+          </div>
+        )}
       </header>
 
-<LobbyHero
-  balanceLabel={`${formatMMK(walletBalance)} MMK`}
-  statusLabel="Open"
-/>
+      <LobbyHero balanceLabel={`${formatMMK(walletBalance)} MMK`} statusLabel="Open" />
 
       <LobbyGameCards games={lobbyGames} />
 

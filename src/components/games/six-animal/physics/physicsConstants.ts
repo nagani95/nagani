@@ -98,8 +98,8 @@ export const DICE_HOLDER_X_POSITIONS: [number, number, number] = [-1.0, 0, 1.0];
 export const RUNWAY_ACTIVE_DICE_START_Y = 0.25;
 export const RUNWAY_ACTIVE_DICE_START_Z = -1.45;
 
-export const TRAP_ACTIVE_DICE_START_Y = 2.62;
-export const TRAP_ACTIVE_DICE_START_Z = -2.58;
+export const TRAP_ACTIVE_DICE_START_Y = 2.82;
+export const TRAP_ACTIVE_DICE_START_Z = -2.725;
 
 export const RUNWAY_ACTIVE_DICE_START_ROTATION: [number, number, number] = [
   0.72,

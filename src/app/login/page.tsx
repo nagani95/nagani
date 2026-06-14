@@ -18,8 +18,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AppShell>
-      <main className="flex min-h-[calc(100vh-72px)] items-center justify-center px-2 py-8">
-        <section className="w-full max-w-md overflow-hidden rounded-[2rem] border border-amber-400/20 bg-[#140604]/90 shadow-2xl shadow-black/40">
+      <section className="flex min-h-[calc(100vh-12rem)] items-center justify-center px-2 py-8">
+        <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-amber-400/20 bg-[#140604]/90 shadow-2xl shadow-black/40">
           <div className="border-b border-amber-400/10 bg-gradient-to-b from-amber-300/10 to-transparent px-6 py-6 text-center">
             <div
               className="mx-auto h-20 w-20 bg-contain bg-center bg-no-repeat"
@@ -38,7 +38,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </h1>
 
             <p className="mt-2 text-sm font-semibold leading-6 text-amber-100/60">
-              Login to your player account and return to the lobby.
+              Sign in to your player account and return to the lobby.
             </p>
           </div>
 
@@ -59,7 +59,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 required
                 autoComplete="email"
                 className="mt-2 w-full rounded-2xl border border-amber-400/20 bg-black/30 px-4 py-4 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/25 focus:border-amber-300/60"
-                placeholder="player@example.com"
+                placeholder="Email address"
               />
             </label>
 
@@ -84,7 +84,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Login
             </button>
 
-            <div className="flex items-center justify-between pt-2 text-sm font-bold">
+            <div className="flex items-center justify-between gap-4 pt-2 text-sm font-bold">
               <Link href="/" className="text-amber-200/70 hover:text-amber-100">
                 ← Back to Lobby
               </Link>
@@ -97,8 +97,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </Link>
             </div>
           </form>
-        </section>
-      </main>
+        </div>
+      </section>
     </AppShell>
   );
 }

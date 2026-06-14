@@ -1,4 +1,4 @@
-//src>components>cashier>CashierRecentTickets.tsx
+// src/components/cashier/CashierRecentTickets.tsx
 
 type CashierTicket = {
   id: string;
@@ -17,11 +17,11 @@ function formatMMK(amount: number) {
 }
 
 function getStatusClass(status: string) {
-  if (status === "Confirmed") {
+  if (status === "Approved") {
     return "border-emerald-400/20 bg-emerald-400/10 text-emerald-100";
   }
 
-  if (status === "Rejected") {
+  if (status === "Rejected" || status === "Cancelled") {
     return "border-red-400/20 bg-red-400/10 text-red-100";
   }
 
@@ -39,27 +39,29 @@ export default function CashierRecentTickets({
             Recent Wallet Tickets
           </p>
           <h3 className="mt-2 text-lg font-black text-amber-100">
-            Settlement History
+            Request History
           </h3>
         </div>
 
         <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-100">
-          Ledger
+          Wallet
         </div>
       </div>
-<div className="mt-4 space-y-3">
-  {tickets.length === 0 ? (
-    <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-center">
-      <p className="text-sm font-black text-amber-100">
-        No wallet tickets yet
-      </p>
-      <p className="mt-2 text-xs leading-5 text-white/45">
-        Deposit and withdraw requests will appear here after you submit them.
-      </p>
-    </div>
-  ) : null}
 
-  {tickets.map((ticket) => (
+      <div className="mt-4 space-y-3">
+        {tickets.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-center">
+            <p className="text-sm font-black text-amber-100">
+              No wallet tickets yet
+            </p>
+            <p className="mt-2 text-xs leading-5 text-white/45">
+              Deposit and withdrawal requests will appear here after you submit
+              them.
+            </p>
+          </div>
+        ) : null}
+
+        {tickets.map((ticket) => (
           <div
             key={ticket.id}
             className="rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg shadow-black/20"
@@ -91,7 +93,7 @@ export default function CashierRecentTickets({
             <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
               <p className="text-xs text-white/35">{ticket.time}</p>
               <p className="text-xs font-bold text-white/45">
-                Wallet settlement
+                Wallet request
               </p>
             </div>
           </div>

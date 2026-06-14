@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, RoundedBox, Text, useTexture } from "@react-three/drei";
 import { Euler, MathUtils, Quaternion, Vector3, type Group } from "three";
@@ -379,6 +379,29 @@ const ROOM_CAMERA_BASE_HEIGHT = 5.05;
 const ROOM_CAMERA_BASE_DISTANCE = 10.95;
 const ROOM_CAMERA_LOOK_Y = 0.04;
 const ROOM_CAMERA_LOOK_Z = -0.22;
+
+const DEV_TRAP_RELEASE_DICE_START_Y = 2.82;
+const DEV_TRAP_RELEASE_DICE_START_Z_OFFSET = 0.67;
+
+const DEV_TRAP_RELEASE_HINGE_Y = 2.42;
+const DEV_TRAP_RELEASE_HINGE_Z_OFFSET = 0.41;
+const DEV_TRAP_RELEASE_CLOSED_ANGLE = 0.56;
+const DEV_TRAP_RELEASE_OPEN_ANGLE = 1.12;
+
+const DEV_ROLL_DICE_RESTITUTION = 0.5;
+const DEV_ROLL_DICE_FRICTION = 0.36;
+const DEV_ROLL_DICE_LINEAR_DAMPING = 0.006;
+const DEV_ROLL_DICE_ANGULAR_DAMPING = 0.008;
+
+const DEV_RUNWAY_UPPER_RESTITUTION = 0.28;
+const DEV_RUNWAY_UPPER_FRICTION = 0.3;
+const DEV_RUNWAY_SETTLING_RESTITUTION = 0.14;
+const DEV_RUNWAY_SETTLING_FRICTION = 0.4;
+
+const DEV_DEFLECTOR_RESTITUTION = 0.78;
+const DEV_DEFLECTOR_FRICTION = 0.18;
+const DEV_DEFLECTOR_SHOULDER_RESTITUTION = 0.7;
+const DEV_DEFLECTOR_SHOULDER_FRICTION = 0.22;
 
 export function getDiceFaceCandidateByLabel(
   targetAnimal: DiceAnimalLabel
@@ -1009,6 +1032,7 @@ function RecordedTrajectoryDice({
   onFaceResultChange,
   diceShapePreset,
   hideActiveDiceFaces = false,
+  activeDieIndex,
 }: {
   frames: DiceTrajectoryFrame[];
   replayKey: number;
@@ -1016,35 +1040,162 @@ function RecordedTrajectoryDice({
   onFaceResultChange: (result: DiceFaceResult | null) => void;
   diceShapePreset: DiceShapePreset;
   hideActiveDiceFaces?: boolean;
+  activeDieIndex: number;
 }) {
   const groupRef = useRef<Group | null>(null);
   const replayStartedAtRef = useRef(0);
   const finalCapturedRef = useRef(false);
   const readableCapturedRef = useRef(false);
-const readableCaptureRef = useRef<RecordedReadableCapture | null>(null);
+  const readableCaptureRef = useRef<RecordedReadableCapture | null>(null);
+
+  const table = createTableMeasurements();
+  const firstFrame = frames[0] ?? null;
+
+  const holderStartPosition: [number, number, number] = firstFrame
+    ? [firstFrame.position[0], 2.82, table.backWallZ + 0.42]
+    : [0, 2.82, table.backWallZ + 0.42];
+
+  const holderStartRotation = new Quaternion().setFromEuler(
+    new Euler(
+      ...(DISPLAY_DICE_ROTATIONS[activeDieIndex] ?? [0, 0, 0]),
+      "XYZ"
+    )
+  );
+
+  function getReplayHandoffFrameIndex() {
+    if (frames.length <= 1) return 0;
+
+    const deflectorZ = table.backWallZ + 0.78;
+
+    for (let index = 1; index < frames.length; index += 1) {
+      const frame = frames[index];
+      const [, y, z] = frame.position;
+
+      const isNearDeflector = z >= deflectorZ - 0.16;
+      const hasDroppedFromHolder = y <= 1.05;
+
+      if (isNearDeflector || hasDroppedFromHolder) {
+        return index;
+      }
+    }
+
+    return Math.min(6, frames.length - 1);
+  }
+
+  const handoffFrameIndex = getReplayHandoffFrameIndex();
+  const handoffFrame = frames[handoffFrameIndex] ?? firstFrame;
+  const handoffTime = handoffFrame?.t ?? 0;
+
+  function copyRecordedFrameToGroup(frame: DiceTrajectoryFrame) {
+    const group = groupRef.current;
+    if (!group) return;
+
+    group.position.set(frame.position[0], frame.position[1], frame.position[2]);
+
+    group.quaternion
+      .set(
+        frame.rotation[0],
+        frame.rotation[1],
+        frame.rotation[2],
+        frame.rotation[3]
+      )
+      .normalize();
+  }
+
+  function copyHolderReleaseIntroToGroup(progress: number) {
+    const group = groupRef.current;
+    if (!group || !handoffFrame) return;
+
+    const releaseProgress = MathUtils.clamp(progress, 0, 1);
+
+    // Fast enough to avoid the "held by invisible hand" feeling,
+    // but still reads as gravity sliding down from the holder.
+    const fallEase = 1 - Math.pow(1 - releaseProgress, 1.7);
+    const forwardEase = releaseProgress * releaseProgress * (3 - 2 * releaseProgress);
+    const rotationEase = releaseProgress * releaseProgress * releaseProgress;
+
+    group.position.set(
+      MathUtils.lerp(
+        holderStartPosition[0],
+        handoffFrame.position[0],
+        forwardEase
+      ),
+      MathUtils.lerp(
+        holderStartPosition[1],
+        handoffFrame.position[1],
+        fallEase
+      ),
+      MathUtils.lerp(
+        holderStartPosition[2],
+        handoffFrame.position[2],
+        forwardEase
+      )
+    );
+
+    const handoffQuaternion = new Quaternion(
+      handoffFrame.rotation[0],
+      handoffFrame.rotation[1],
+      handoffFrame.rotation[2],
+      handoffFrame.rotation[3]
+    ).normalize();
+
+    const introQuaternion = holderStartRotation
+      .clone()
+      .normalize()
+      .slerp(handoffQuaternion, rotationEase)
+      .normalize();
+
+    group.quaternion.copy(introQuaternion);
+  }
+
+  useLayoutEffect(() => {
+    if (!firstFrame) return;
+
+    copyHolderReleaseIntroToGroup(0);
+  }, [frames, replayKey, activeDieIndex]);
 
   useEffect(() => {
-replayStartedAtRef.current = performance.now();
-finalCapturedRef.current = false;
-readableCapturedRef.current = false;
-readableCaptureRef.current = getRecordedTrajectoryReadableCapture(frames);
+    replayStartedAtRef.current = performance.now();
+    finalCapturedRef.current = false;
+    readableCapturedRef.current = false;
+    readableCaptureRef.current = getRecordedTrajectoryReadableCapture(frames);
 
-onSettledChange(false);
-onFaceResultChange(null);
-  }, [frames, replayKey, onSettledChange, onFaceResultChange]);
+    if (firstFrame) {
+      copyHolderReleaseIntroToGroup(0);
+    }
+
+    onSettledChange(false);
+    onFaceResultChange(null);
+  }, [frames, replayKey, activeDieIndex, onSettledChange, onFaceResultChange]);
 
   useFrame(() => {
     const group = groupRef.current;
-    if (!group || frames.length === 0) return;
+    if (!group || frames.length === 0 || !firstFrame || !handoffFrame) return;
 
-const replayElapsedSeconds =
-  (performance.now() - replayStartedAtRef.current) / 1000;
+    const lastFrame = frames[frames.length - 1];
 
-const trajectorySeconds =
-  replayElapsedSeconds / RECORDED_TRAJECTORY_REPLAY_TIME_SCALE;
+    if (!lastFrame) return;
 
-const { previousFrame, nextFrame, alpha } =
-  getRecordedTrajectoryFramePair(frames, trajectorySeconds);
+    const replayElapsedSeconds =
+      (performance.now() - replayStartedAtRef.current) / 1000;
+
+    const holderReleaseIntroSeconds = 0.68;
+
+    if (replayElapsedSeconds < holderReleaseIntroSeconds) {
+      copyHolderReleaseIntroToGroup(
+        replayElapsedSeconds / holderReleaseIntroSeconds
+      );
+
+      return;
+    }
+
+    const trajectorySeconds =
+      handoffTime +
+      (replayElapsedSeconds - holderReleaseIntroSeconds) /
+        RECORDED_TRAJECTORY_REPLAY_TIME_SCALE;
+
+    const { previousFrame, nextFrame, alpha } =
+      getRecordedTrajectoryFramePair(frames, trajectorySeconds);
 
     group.position.set(
       MathUtils.lerp(previousFrame.position[0], nextFrame.position[0], alpha),
@@ -1057,31 +1208,30 @@ const { previousFrame, nextFrame, alpha } =
       previousFrame.rotation[1],
       previousFrame.rotation[2],
       previousFrame.rotation[3]
-    );
+    ).normalize();
 
     const nextQuaternion = new Quaternion(
       nextFrame.rotation[0],
       nextFrame.rotation[1],
       nextFrame.rotation[2],
       nextFrame.rotation[3]
-    );
+    ).normalize();
 
-    previousQuaternion.slerp(nextQuaternion, alpha);
+    previousQuaternion.slerp(nextQuaternion, alpha).normalize();
     group.quaternion.copy(previousQuaternion);
 
-const lastFrame = frames[frames.length - 1];
-const readableCapture = readableCaptureRef.current;
+    const readableCapture = readableCaptureRef.current;
 
-if (
-  readableCapture &&
-  trajectorySeconds >= readableCapture.t &&
-  !readableCapturedRef.current
-) {
-  readableCapturedRef.current = true;
-  onFaceResultChange(readableCapture.result);
-}
+    if (
+      readableCapture &&
+      trajectorySeconds >= readableCapture.t &&
+      !readableCapturedRef.current
+    ) {
+      readableCapturedRef.current = true;
+      onFaceResultChange(readableCapture.result);
+    }
 
-if (trajectorySeconds >= lastFrame.t && !finalCapturedRef.current) {
+    if (trajectorySeconds >= lastFrame.t && !finalCapturedRef.current) {
       finalCapturedRef.current = true;
 
       const finalResult = detectTopDiceFace({
@@ -1091,21 +1241,26 @@ if (trajectorySeconds >= lastFrame.t && !finalCapturedRef.current) {
         w: lastFrame.rotation[3],
       });
 
-onSettledChange(true);
+      onSettledChange(true);
 
-if (!readableCapturedRef.current) {
-  onFaceResultChange({
-    ...finalResult,
-    message: `Recorded trajectory replay complete. ${finalResult.message}`,
-  });
-}
+      if (!readableCapturedRef.current) {
+        onFaceResultChange({
+          ...finalResult,
+          message: `Recorded trajectory replay complete. ${finalResult.message}`,
+        });
+      }
     }
   });
 
-  if (frames.length === 0) return null;
+  if (frames.length === 0 || !firstFrame) return null;
 
   return (
-    <group ref={groupRef}>
+    <group
+      key={replayKey}
+      ref={groupRef}
+      position={holderStartPosition}
+      rotation={DISPLAY_DICE_ROTATIONS[activeDieIndex] ?? [0, 0, 0]}
+    >
       <DiceVisual
         shapePreset={diceShapePreset}
         showFaceLayer={!hideActiveDiceFaces}
@@ -1396,6 +1551,20 @@ return {
 };
 }
 
+function getDevTrapReleaseDicePosition({
+  table,
+  activeDieX,
+}: {
+  table: TableMeasurements;
+  activeDieX: number;
+}): [number, number, number] {
+  return [
+    activeDieX,
+    DEV_TRAP_RELEASE_DICE_START_Y,
+    table.backWallZ + DEV_TRAP_RELEASE_DICE_START_Z_OFFSET,
+  ];
+}
+
 function DiceCube({
   resetKey,
   onSettledChange,
@@ -1410,6 +1579,7 @@ targetAnimal = null,
 targetPerformanceEnabled = false,
 strictReadableResultGate = false,
 targetLaunchRecipeEnabled = false,
+devPhysicalReleaseEnabled = false,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -1424,6 +1594,7 @@ hideActiveDiceFaces?: boolean;
   targetPerformanceEnabled?: boolean;
   strictReadableResultGate?: boolean;
   targetLaunchRecipeEnabled?: boolean;
+  devPhysicalReleaseEnabled?: boolean;
 }) {
 const bodyRef = useRef<RapierRigidBody | null>(null);
 const stillTimeRef = useRef(0);
@@ -1436,11 +1607,20 @@ const softHoldStartedAtRef = useRef<number | null>(null);
 
 const collider = getDiceColliderConfig(diceColliderPreset);
 const activeDieX = DICE_HOLDER_X_POSITIONS[activeDieIndex] ?? 0;
+const table = createTableMeasurements();
 
-const activeHolderStartPosition = getActiveDiceStartPosition({
-  testMode,
-  activeDieX,
-});
+const useKinematicTrapRelease =
+  devPhysicalReleaseEnabled && testMode === "trap" && !targetLaunchRecipeEnabled;
+
+const activeHolderStartPosition = useKinematicTrapRelease
+  ? getDevTrapReleaseDicePosition({
+      table,
+      activeDieX,
+    })
+  : getActiveDiceStartPosition({
+      testMode,
+      activeDieX,
+    });
 
 const fallbackActiveHolderStartRotation = getFallbackActiveDiceStartRotation({
   testMode,
@@ -1505,6 +1685,12 @@ onFaceResultChange(null);
     const body = bodyRef.current;
     if (!body) return;
 
+if (useKinematicTrapRelease) {
+  body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  return;
+}
+
 body.setLinvel(targetLaunchRecipe.linvel, true);
 body.setAngvel(targetLaunchRecipe.angvel, true);
   });
@@ -1522,6 +1708,7 @@ body.setAngvel(targetLaunchRecipe.angvel, true);
   targetLaunchRecipe.angvel.x,
   targetLaunchRecipe.angvel.y,
   targetLaunchRecipe.angvel.z,
+  useKinematicTrapRelease,
 ]);
 
 useFrame((_, delta) => {
@@ -1814,10 +2001,34 @@ message: createTargetAwareCaptureMessage({
       ccd
 position={activeHolderStartPosition}
 rotation={activeHolderStartRotation}
-restitution={targetLaunchRecipeEnabled ? 0.46 : 0.62}
-friction={targetLaunchRecipeEnabled ? 0.3 : 0.22}
-linearDamping={targetLaunchRecipeEnabled ? 0.035 : 0.004}
-angularDamping={targetLaunchRecipeEnabled ? 0.055 : 0.008}
+restitution={
+  useKinematicTrapRelease
+    ? DEV_ROLL_DICE_RESTITUTION
+    : targetLaunchRecipeEnabled
+      ? 0.46
+      : 0.62
+}
+friction={
+  useKinematicTrapRelease
+    ? DEV_ROLL_DICE_FRICTION
+    : targetLaunchRecipeEnabled
+      ? 0.3
+      : 0.22
+}
+linearDamping={
+  useKinematicTrapRelease
+    ? DEV_ROLL_DICE_LINEAR_DAMPING
+    : targetLaunchRecipeEnabled
+      ? 0.035
+      : 0.004
+}
+angularDamping={
+  useKinematicTrapRelease
+    ? DEV_ROLL_DICE_ANGULAR_DAMPING
+    : targetLaunchRecipeEnabled
+      ? 0.055
+      : 0.008
+}
     >
 <RoundCuboidCollider args={collider.args} />
 
@@ -1938,7 +2149,29 @@ function TableRunwayDepthLayer({ table }: { table: TableMeasurements }) {
   );
 }
 
-function TableRunway({ table }: { table: TableMeasurements }) {
+function TableRunway({
+  table,
+  devPhysicalReleaseEnabled = false,
+}: {
+  table: TableMeasurements;
+  devPhysicalReleaseEnabled?: boolean;
+}) {
+  const upperRunwayRestitution = devPhysicalReleaseEnabled
+    ? DEV_RUNWAY_UPPER_RESTITUTION
+    : undefined;
+
+  const upperRunwayFriction = devPhysicalReleaseEnabled
+    ? DEV_RUNWAY_UPPER_FRICTION
+    : undefined;
+
+  const settlingRunwayRestitution = devPhysicalReleaseEnabled
+    ? DEV_RUNWAY_SETTLING_RESTITUTION
+    : undefined;
+
+  const settlingRunwayFriction = devPhysicalReleaseEnabled
+    ? DEV_RUNWAY_SETTLING_FRICTION
+    : undefined;
+
   return (
     <>
       {/* upper lively runway: keeps the dice exciting after drop */}
@@ -1953,11 +2186,13 @@ function TableRunway({ table }: { table: TableMeasurements }) {
         <meshStandardMaterial {...TABLE_MATERIALS.runwayFelt} />
       </mesh>
 
-      <CuboidCollider
-        args={[table.halfWidth, 0.09, table.upperFloorDepth / 2 + 0.02]}
-        position={[0, table.upperFloorY, table.upperFloorZ]}
-        rotation={[table.runwaySlopeAngle, 0, 0]}
-      />
+<CuboidCollider
+  args={[table.halfWidth, 0.09, table.upperFloorDepth / 2 + 0.02]}
+  position={[0, table.upperFloorY, table.upperFloorZ]}
+  rotation={[table.runwaySlopeAngle, 0, 0]}
+  restitution={upperRunwayRestitution}
+  friction={upperRunwayFriction}
+/>
 
       {/* lower runout tray: still sloped, but calmer for natural settling */}
       <mesh
@@ -1971,11 +2206,13 @@ function TableRunway({ table }: { table: TableMeasurements }) {
         <meshStandardMaterial {...TABLE_MATERIALS.runwayFelt} />
       </mesh>
 
-      <CuboidCollider
-        args={[table.halfWidth, 0.09, table.settlingFloorDepth / 2 + 0.02]}
-        position={[0, table.settlingFloorY, table.settlingFloorZ]}
-        rotation={[table.settlingSlopeAngle, 0, 0]}
-      />
+<CuboidCollider
+  args={[table.halfWidth, 0.09, table.settlingFloorDepth / 2 + 0.02]}
+  position={[0, table.settlingFloorY, table.settlingFloorZ]}
+  rotation={[table.settlingSlopeAngle, 0, 0]}
+  restitution={settlingRunwayRestitution}
+  friction={settlingRunwayFriction}
+/>
 
             {/* visual-only soft inner felt tone; no collider */}
       <mesh
@@ -2281,16 +2518,29 @@ function DiceHolderShelf({ table }: { table: TableMeasurements }) {
   );
 }
 
+function KinematicTrapdoorReleaseSupport(_: {
+  table: TableMeasurements;
+  activeDieIndex: number;
+  resetKey: number;
+  sequenceRunning: boolean;
+  displayOnly: boolean;
+  testMode: TestMode;
+}) {
+  return null;
+}
+
 function TrapdoorFlaps({
   table,
   activeDieIndex,
   sequenceRunning,
   displayOnly,
+  devPhysicalReleaseEnabled,
 }: {
   table: TableMeasurements;
   activeDieIndex: number;
   sequenceRunning: boolean;
   displayOnly: boolean;
+  devPhysicalReleaseEnabled: boolean;
 }) {
   return (
     <>
@@ -2301,15 +2551,22 @@ function TrapdoorFlaps({
         const isSingleDropOpen =
           !displayOnly && !sequenceRunning && index === activeDieIndex;
 
-        const isDoorOpen = hasDroppedThisRound || isSingleDropOpen;
+const isDoorOpen = hasDroppedThisRound || isSingleDropOpen;
 
-        const closedAngle = 0.56;
-        const openAngle = 1.22;
+const closedAngle = 0.56;
+        const openAngle = devPhysicalReleaseEnabled
+  ? DEV_TRAP_RELEASE_OPEN_ANGLE
+  : 1.22;
 
         return (
           <group
             key={`trapdoor-flap-${index}`}
-            position={[x, 2.42, table.backWallZ + 0.18]}
+position={[
+  x,
+  DEV_TRAP_RELEASE_HINGE_Y,
+  table.backWallZ +
+    (devPhysicalReleaseEnabled ? DEV_TRAP_RELEASE_HINGE_Z_OFFSET : 0.18),
+]}
             rotation={[isDoorOpen ? openAngle : closedAngle, 0, 0]}
           >
             {/* simple hinge bar at wall-door connection */}
@@ -2365,12 +2622,14 @@ function WaitingDiceRack({
   sequenceRunning,
   diceShapePreset,
   mountedDiceRackMode,
+  devPhysicalReleaseEnabled,
 }: {
   table: TableMeasurements;
   activeDieIndex: number;
   sequenceRunning: boolean;
   diceShapePreset: DiceShapePreset;
   mountedDiceRackMode: MountedDiceRackMode;
+  devPhysicalReleaseEnabled: boolean;
 }) {
   return (
     <>
@@ -2387,13 +2646,15 @@ function WaitingDiceRack({
 
         if (!shouldShowWaitingDie) return null;
 
-        const waitingDiePosition: [number, number, number] = [
-          x,
-          2.82,
-          table.backWallZ + 0.42,
-        ];
+const waitingDiePosition: [number, number, number] =
+  devPhysicalReleaseEnabled
+    ? getDevTrapReleaseDicePosition({
+        table,
+        activeDieX: x,
+      })
+    : [x, 2.82, table.backWallZ + 0.42];
 
-        const waitingDieScale = 0.92;
+        const waitingDieScale = 1;
         const baseRotation = DISPLAY_DICE_ROTATIONS[index] ?? [0, 0, 0];
 
         const waitingPreviewOffset =
@@ -2426,18 +2687,40 @@ function StumbleBar({
   table,
   testMode,
   forceVisible = false,
+  devPhysicalReleaseEnabled = false,
 }: {
   table: TableMeasurements;
   testMode: TestMode;
   forceVisible?: boolean;
+  devPhysicalReleaseEnabled?: boolean;
 }) {
-  if (testMode !== "trap" && !forceVisible) return null;
+if (testMode !== "trap" && !forceVisible) return null;
 
-  return (
+const deflectorY = 0.36;
+const deflectorZ = table.backWallZ + 0.78;
+const deflectorRotation = 0.12;
+
+const deflectorRestitution = devPhysicalReleaseEnabled
+  ? DEV_DEFLECTOR_RESTITUTION
+  : TABLE_DEFLECTOR_RESTITUTION;
+
+const deflectorFriction = devPhysicalReleaseEnabled
+  ? DEV_DEFLECTOR_FRICTION
+  : TABLE_DEFLECTOR_FRICTION;
+
+const shoulderRestitution = devPhysicalReleaseEnabled
+  ? DEV_DEFLECTOR_SHOULDER_RESTITUTION
+  : TABLE_DEFLECTOR_SHOULDER_RESTITUTION;
+
+const shoulderFriction = devPhysicalReleaseEnabled
+  ? DEV_DEFLECTOR_SHOULDER_FRICTION
+  : TABLE_DEFLECTOR_SHOULDER_FRICTION;
+
+return (
     <>
       <group
-        position={[0, 0.36, table.backWallZ + 0.78]}
-        rotation={[0.12, 0, 0]}
+        position={[0, deflectorY, deflectorZ]}
+rotation={[deflectorRotation, 0, 0]}
       >
         <mesh receiveShadow castShadow rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.072, 0.072, table.floorWidth - 0.28, 32]} />
@@ -2447,19 +2730,19 @@ function StumbleBar({
 
 <CuboidCollider
   args={[1.675, 0.04, 0.095]}
-  position={[0, 0.39, table.backWallZ + 0.78]}
-  rotation={[0.12, 0, 0]}
-  restitution={TABLE_DEFLECTOR_RESTITUTION}
-  friction={TABLE_DEFLECTOR_FRICTION}
+position={[0, deflectorY + 0.03, deflectorZ]}
+rotation={[deflectorRotation, 0, 0]}
+restitution={deflectorRestitution}
+friction={deflectorFriction}
 />
 
 {/* subtle upper contact shoulder: helps dice visibly catch/graze the bar instead of gliding past it */}
 <CuboidCollider
   args={[1.58, 0.032, 0.075]}
-  position={[0, 0.55, table.backWallZ + 0.735]}
-  rotation={[0.32, 0, 0]}
-  restitution={TABLE_DEFLECTOR_SHOULDER_RESTITUTION}
-  friction={TABLE_DEFLECTOR_SHOULDER_FRICTION}
+position={[0, deflectorY + 0.16, deflectorZ - 0.045]}
+rotation={[deflectorRotation + 0.2, 0, 0]}
+restitution={shoulderRestitution}
+friction={shoulderFriction}
 />
     </>
   );
@@ -2822,6 +3105,8 @@ function TrayBox({
   mountedDiceRackMode,
   showDice = true,
   forceShowStumbleBar = false,
+  resetKey,
+devPhysicalReleaseEnabled = false,
 }: {
   testMode: TestMode;
   activeDieIndex: number;
@@ -2831,18 +3116,26 @@ function TrayBox({
   mountedDiceRackMode: MountedDiceRackMode;
   showDice?: boolean;
   forceShowStumbleBar?: boolean;
+  resetKey: number;
+devPhysicalReleaseEnabled?: boolean;
 }) {
   const table = createTableMeasurements();
 
-  return (
+return (
+  <>
     <RigidBody type="fixed" colliders={false}>
-<TableRunway table={table} />
+<TableRunway
+  table={table}
+  devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
+/>
 <TableBackboard table={table} />
+
 <TrapdoorFlaps
         table={table}
         activeDieIndex={activeDieIndex}
         sequenceRunning={sequenceRunning}
         displayOnly={displayOnly}
+        devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
       />
 {showDice ? (
   <WaitingDiceRack
@@ -2851,18 +3144,32 @@ function TrayBox({
     sequenceRunning={sequenceRunning}
     diceShapePreset={diceShapePreset}
     mountedDiceRackMode={mountedDiceRackMode}
+    devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
   />
 ) : null}
-      <StumbleBar
-        table={table}
-        testMode={testMode}
-        forceVisible={forceShowStumbleBar}
-      />
+<StumbleBar
+  table={table}
+  testMode={testMode}
+  forceVisible={forceShowStumbleBar}
+  devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
+/>
       <FrontLip table={table} />
       <TraySideRails table={table} />
       <TableSafetyGuards table={table} />
     </RigidBody>
-  );
+
+    {devPhysicalReleaseEnabled ? (
+      <KinematicTrapdoorReleaseSupport
+        table={table}
+        activeDieIndex={activeDieIndex}
+        resetKey={resetKey}
+        sequenceRunning={sequenceRunning}
+        displayOnly={displayOnly}
+        testMode={testMode}
+      />
+    ) : null}
+  </>
+);
 }
 
 function HumanPOVCameraRig() {
@@ -3024,6 +3331,7 @@ strictReadableResultGate = false,
 targetLaunchRecipeEnabled = false,
 recordedTrajectoryFrames = null,
 recordedTrajectoryReplayKey = 0,
+devPhysicalReleaseEnabled = false,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -3047,6 +3355,7 @@ strictReadableResultGate?: boolean;
 targetLaunchRecipeEnabled?: boolean;
 recordedTrajectoryFrames?: DiceTrajectoryFrame[] | null;
 recordedTrajectoryReplayKey?: number;
+devPhysicalReleaseEnabled?: boolean;
 }) {
   const hasRecordedTrajectory = Boolean(
     recordedTrajectoryFrames && recordedTrajectoryFrames.length > 0
@@ -3057,6 +3366,9 @@ recordedTrajectoryReplayKey?: number;
 
   const shouldRenderActiveDice =
     !displayOnly && showDice && sequenceRunning && !hasRecordedTrajectory;
+
+    const activeDevPhysicalReleaseEnabled =
+  devPhysicalReleaseEnabled && testMode === "trap" && !hasRecordedTrajectory;
 
   return (
     <>
@@ -3105,17 +3417,20 @@ recordedTrajectoryReplayKey?: number;
   mountedDiceRackMode={mountedDiceRackMode}
   showDice={showDice}
   forceShowStumbleBar={forceShowStumbleBar}
+  resetKey={resetKey}
+devPhysicalReleaseEnabled={activeDevPhysicalReleaseEnabled}
 />
 
 {shouldRenderRecordedDice && recordedTrajectoryFrames ? (
-  <RecordedTrajectoryDice
-    frames={recordedTrajectoryFrames}
-    replayKey={recordedTrajectoryReplayKey}
-    onSettledChange={onSettledChange}
-    onFaceResultChange={onFaceResultChange}
-    diceShapePreset={diceShapePreset}
-    hideActiveDiceFaces={hideActiveDiceFaces}
-  />
+<RecordedTrajectoryDice
+  frames={recordedTrajectoryFrames}
+  replayKey={recordedTrajectoryReplayKey}
+  onSettledChange={onSettledChange}
+  onFaceResultChange={onFaceResultChange}
+  diceShapePreset={diceShapePreset}
+  hideActiveDiceFaces={hideActiveDiceFaces}
+  activeDieIndex={activeDieIndex}
+/>
 ) : null}
 
 {shouldRenderActiveDice ? (
@@ -3133,7 +3448,7 @@ targetAnimal={targetAnimal}
 targetPerformanceEnabled={targetPerformanceEnabled}
 strictReadableResultGate={strictReadableResultGate}
 targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
-
+devPhysicalReleaseEnabled={activeDevPhysicalReleaseEnabled}
 />
 ) : null}
       </Physics>
@@ -3180,6 +3495,7 @@ strictReadableResultGate = false,
 targetLaunchRecipeEnabled = false,
 recordedTrajectoryFrames = null,
 recordedTrajectoryReplayKey = 0,
+enableV1PhysicalRelease = false,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -3203,6 +3519,7 @@ strictReadableResultGate?: boolean;
 targetLaunchRecipeEnabled?: boolean;
 recordedTrajectoryFrames?: DiceTrajectoryFrame[] | null;
 recordedTrajectoryReplayKey?: number;
+enableV1PhysicalRelease?: boolean;
 }) {
 const effectiveDiceShapePreset: DiceShapePreset =
   variant === "lab" ? diceShapePreset : PRODUCTION_DICE_SHAPE_PRESET;
@@ -3220,7 +3537,11 @@ const cameraConfig =
         fov: 45,
       }
     : { position: [3.8, 3.75, 8.1] as [number, number, number], fov: 43 };
-  return (
+
+const devPhysicalReleaseEnabled =
+  testMode === "trap" && (variant === "lab" || enableV1PhysicalRelease);
+
+return (
 <Canvas
   shadows
   camera={cameraConfig}
@@ -3250,6 +3571,7 @@ strictReadableResultGate={strictReadableResultGate}
 targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
 recordedTrajectoryFrames={recordedTrajectoryFrames}
 recordedTrajectoryReplayKey={recordedTrajectoryReplayKey}
+devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
 />
     </Canvas>
   );

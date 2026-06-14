@@ -1,4 +1,4 @@
-//src>components>profile>ProfileMemberCard.tsx
+// src/components/profile/ProfileMemberCard.tsx
 
 type ProfileMemberCardProps = {
   memberName: string;
@@ -23,7 +23,7 @@ export default function ProfileMemberCard({
           </p>
 
           <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">
-            Active
+            Signed In
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-//src>admin>audit-log>page.tsx
+// src/app/admin/audit/page.tsx
 
 import Link from "next/link";
 
@@ -36,7 +36,7 @@ function formatDetails(details: unknown) {
   }
 }
 
-export default async function AdminAuditLogPage() {
+export default async function AdminAuditPage() {
   const supabase = await createClient();
 
   const { data: logs, error } = await supabase
@@ -55,7 +55,7 @@ export default async function AdminAuditLogPage() {
 
         <header className="mt-6 rounded-[2rem] border border-red-500/25 bg-gradient-to-br from-red-950 via-[#160303] to-black p-6">
           <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-200/60">
-            Operator Visibility
+            Operator Records
           </p>
 
           <h1 className="mt-3 text-4xl font-black text-amber-100">
@@ -63,9 +63,8 @@ export default async function AdminAuditLogPage() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-sm leading-6 text-amber-50/65">
-            Read-only audit visibility for future admin/operator actions. This
-            page does not write logs, retry settlement, change wallets, advance
-            rounds, or control the player room.
+            Read-only visibility for recorded admin actions. This page does not
+            change wallets, settlements, rounds, results, or the player room.
           </p>
         </header>
 
@@ -80,7 +79,7 @@ export default async function AdminAuditLogPage() {
 
         <section className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-[1.5rem] border border-amber-400/20 bg-amber-400/10 p-5">
-            <p className="text-xs text-amber-200/60">Latest Rows Loaded</p>
+            <p className="text-xs text-amber-200/60">Rows Loaded</p>
             <p className="mt-2 text-3xl font-black text-amber-100">
               {logs?.length ?? 0}
             </p>
@@ -94,10 +93,8 @@ export default async function AdminAuditLogPage() {
           </div>
 
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-xs text-white/40">Write Tools</p>
-            <p className="mt-2 text-3xl font-black text-white/70">
-              Disabled
-            </p>
+            <p className="text-xs text-white/40">Loaded Range</p>
+            <p className="mt-2 text-3xl font-black text-white/70">Last 50</p>
           </div>
         </section>
 
@@ -129,7 +126,7 @@ export default async function AdminAuditLogPage() {
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">
                       Action
                     </p>
-                    <p className="mt-2 text-sm font-black text-amber-100">
+                    <p className="mt-2 break-words text-sm font-black text-amber-100">
                       {log.action}
                     </p>
                   </div>
@@ -178,12 +175,11 @@ export default async function AdminAuditLogPage() {
             {(logs ?? []).length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
                 <p className="text-sm font-black text-amber-100">
-                  No audit logs yet.
+                  No audit logs found.
                 </p>
                 <p className="mt-2 text-xs leading-5 text-white/45">
-                  This is expected right now. Chapter 62.2 only creates
-                  read-only audit visibility. Future admin write actions must
-                  create audit log rows before they are accepted.
+                  Recorded admin actions will appear here after audit rows are
+                  created.
                 </p>
               </div>
             ) : null}

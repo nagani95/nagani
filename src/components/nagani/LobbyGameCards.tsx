@@ -20,10 +20,10 @@ export default function LobbyGameCards({ games }: LobbyGameCardsProps) {
     <section className="mt-6 space-y-4">
       <div>
         <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-200/50">
-          Choose Table
+          Game Room
         </p>
         <h3 className="mt-1 text-sm font-black uppercase tracking-[0.25em] text-amber-200">
-          Main Games
+          Nagani Games
         </h3>
       </div>
 
@@ -42,7 +42,7 @@ export default function LobbyGameCards({ games }: LobbyGameCardsProps) {
 
             <div className="relative z-20 flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <p
                     className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] ${
                       isLocked
@@ -98,7 +98,7 @@ export default function LobbyGameCards({ games }: LobbyGameCardsProps) {
                     : "border-amber-300/30 bg-amber-300/10 text-amber-100 group-hover:scale-105 group-hover:bg-amber-300 group-hover:text-black"
                 }`}
               >
-                {isLocked ? "×" : "→"}
+                {isLocked ? "—" : "→"}
               </div>
             </div>
           </>

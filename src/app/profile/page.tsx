@@ -8,8 +8,14 @@ import ProfileAccountStatus from "@/components/profile/ProfileAccountStatus";
 import ProfileMemberCard from "@/components/profile/ProfileMemberCard";
 import ProfileQuickActions from "@/components/profile/ProfileQuickActions";
 import ProfileSupportSecurity from "@/components/profile/ProfileSupportSecurity";
-import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/supabase/auth";
+import { createClient } from "@/lib/supabase/server";
+
+function toSafeAmount(value: number | string | null | undefined) {
+  const amount = Number(value ?? 0);
+
+  return Number.isFinite(amount) ? amount : 0;
+}
 
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
@@ -42,8 +48,7 @@ export default async function ProfilePage() {
     .eq("profile_id", user.id)
     .maybeSingle<{ balance: number | string | null }>();
 
-  const balance = Number(wallet?.balance ?? 0);
-
+  const balance = toSafeAmount(wallet?.balance);
   const memberName = profile?.username || user.email || "Nagani Member";
 
   return (

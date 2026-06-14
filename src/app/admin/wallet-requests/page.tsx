@@ -32,11 +32,11 @@ function formatMMK(amount: number) {
 }
 
 function formatRequestType(type: WalletRequestRow["request_type"]) {
-  return type === "deposit" ? "Deposit" : "Withdraw";
+  return type === "deposit" ? "Deposit" : "Withdrawal";
 }
 
 function formatRequestStatus(status: WalletRequestRow["status"]) {
-  if (status === "approved") return "Confirmed";
+  if (status === "approved") return "Approved";
   if (status === "rejected") return "Rejected";
   if (status === "cancelled") return "Cancelled";
 
@@ -106,8 +106,8 @@ export default async function AdminWalletRequestsPage({
                 Wallet Requests
               </h1>
               <p className="mt-3 text-sm leading-6 text-amber-50/65">
-                Review deposit and withdraw settlement tickets submitted by
-                registered players.
+                Review player deposit and withdrawal requests. Approval updates
+                the wallet through the protected server action.
               </p>
             </div>
 
@@ -123,20 +123,18 @@ export default async function AdminWalletRequestsPage({
         </header>
 
         {successMessage ? (
-  <section className="mt-6 rounded-[1.5rem] border border-emerald-400/30 bg-emerald-950/30 p-5">
-    <p className="text-sm font-black text-emerald-100">
-      {successMessage}
-    </p>
-  </section>
-) : null}
+          <section className="mt-6 rounded-[1.5rem] border border-emerald-400/30 bg-emerald-950/30 p-5">
+            <p className="text-sm font-black text-emerald-100">
+              {successMessage}
+            </p>
+          </section>
+        ) : null}
 
-{errorMessage ? (
-  <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
-    <p className="text-sm font-black text-red-100">
-      {errorMessage}
-    </p>
-  </section>
-) : null}
+        {errorMessage ? (
+          <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
+            <p className="text-sm font-black text-red-100">{errorMessage}</p>
+          </section>
+        ) : null}
 
         {error ? (
           <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
@@ -177,7 +175,7 @@ export default async function AdminWalletRequestsPage({
                     {request.profile_id}
                   </p>
                   {request.note ? (
-                    <p className="mt-2 text-xs font-bold text-white/50">
+                    <p className="mt-2 break-words text-xs font-bold text-white/50">
                       Note: {request.note}
                     </p>
                   ) : null}
@@ -198,32 +196,32 @@ export default async function AdminWalletRequestsPage({
                 >
                   {formatRequestStatus(request.status)}
                 </p>
-</div>
+              </div>
 
-{request.status === "pending" ? (
-  <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-2">
-    <form action={approveWalletRequest}>
-      <input type="hidden" name="requestId" value={request.id} />
-      <button
-        type="submit"
-        className="w-full rounded-full border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-300 hover:text-black"
-      >
-        Approve
-      </button>
-    </form>
+              {request.status === "pending" ? (
+                <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-2">
+                  <form action={approveWalletRequest}>
+                    <input type="hidden" name="requestId" value={request.id} />
+                    <button
+                      type="submit"
+                      className="w-full rounded-full border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-300 hover:text-black"
+                    >
+                      Approve Request
+                    </button>
+                  </form>
 
-    <form action={rejectWalletRequest}>
-      <input type="hidden" name="requestId" value={request.id} />
-      <button
-        type="submit"
-        className="w-full rounded-full border border-red-300/30 bg-red-500/15 px-5 py-3 text-sm font-black text-red-100 transition hover:bg-red-300 hover:text-black"
-      >
-        Reject
-      </button>
-    </form>
-  </div>
-) : null}
-</article>
+                  <form action={rejectWalletRequest}>
+                    <input type="hidden" name="requestId" value={request.id} />
+                    <button
+                      type="submit"
+                      className="w-full rounded-full border border-red-300/30 bg-red-500/15 px-5 py-3 text-sm font-black text-red-100 transition hover:bg-red-300 hover:text-black"
+                    >
+                      Reject Request
+                    </button>
+                  </form>
+                </div>
+              ) : null}
+            </article>
           ))}
         </section>
       </section>

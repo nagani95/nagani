@@ -21,7 +21,7 @@ export default function CashierNote() {
       <div className="mt-4 space-y-3 text-sm leading-6 text-white/65">
         <p>
           <span className="font-black text-amber-100">1.</span> Submit a deposit
-          or withdraw request.
+          or withdrawal request.
         </p>
 
         <p>
@@ -30,19 +30,19 @@ export default function CashierNote() {
         </p>
 
         <p>
-          <span className="font-black text-amber-100">3.</span> Confirmed
+          <span className="font-black text-amber-100">3.</span> Approved
           requests update your wallet balance.
         </p>
 
         <p>
           <span className="font-black text-amber-100">4.</span> Rejected
-          requests will remain visible in your wallet ticket history.
+          requests remain visible in your recent wallet tickets.
         </p>
       </div>
 
       <p className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3 text-xs leading-5 text-white/40">
         Please check your request amount and note before submitting. Wallet
-        tickets are reviewed before your balance is updated.
+        requests are reviewed before your balance is updated.
       </p>
     </section>
   );

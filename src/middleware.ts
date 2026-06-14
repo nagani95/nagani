@@ -3,7 +3,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PLAYER_ROUTES = ["/profile", "/cashier", "/history"];
+const PROTECTED_PLAYER_ROUTES = ["/profile", "/cashier", "/six-animal"];
 
 function isProtectedPlayerRoute(pathname: string) {
   return PROTECTED_PLAYER_ROUTES.some(
@@ -69,7 +69,7 @@ export const config = {
   matcher: [
     "/profile/:path*",
     "/cashier/:path*",
-    "/history/:path*",
+    "/six-animal/:path*",
     "/admin/:path*",
   ],
 };

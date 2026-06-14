@@ -1,9 +1,9 @@
-//src>app>admin>page.tsx
+// src/app/admin/page.tsx
 
 import Link from "next/link";
 
-import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/supabase/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -76,10 +76,7 @@ function getPhaseTarget(round: SixAnimalRound | null) {
 export default async function AdminPage() {
   const supabase = await createClient();
 
-  const {
-    data: currentRound,
-    error: currentRoundError,
-  } = await supabase
+  const { data: currentRound, error: currentRoundError } = await supabase
     .from("six_animal_rounds")
     .select(
       "id, room_id, round_number, phase, status, betting_starts_at, betting_ends_at, rolling_starts_at, result_revealed_at, next_round_starts_at, created_at"
@@ -89,26 +86,28 @@ export default async function AdminPage() {
     .limit(1)
     .maybeSingle<SixAnimalRound>();
 
-  const {
-    data: currentBets,
-    error: currentBetsError,
-  } = currentRound?.id
+  const { data: currentBets, error: currentBetsError } = currentRound?.id
     ? await supabase
         .from("six_animal_bets")
         .select("id, amount, settled")
         .eq("round_id", currentRound.id)
         .returns<SixAnimalBet[]>()
     : { data: [], error: null };
-  
+
   const {
-  data: auditLogs,
-  error: auditLogsError,
-} = await supabase
-  .from("admin_audit_logs")
-  .select("id, action, target_id, created_at")
-  .order("created_at", { ascending: false })
-  .limit(3)
-  .returns<AdminAuditLog[]>();
+    count: pendingWalletRequestCount,
+    error: pendingWalletRequestError,
+  } = await supabase
+    .from("wallet_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+
+  const { data: auditLogs, error: auditLogsError } = await supabase
+    .from("admin_audit_logs")
+    .select("id, action, target_id, created_at")
+    .order("created_at", { ascending: false })
+    .limit(3)
+    .returns<AdminAuditLog[]>();
 
   const currentBetCount = currentBets?.length ?? 0;
   const currentBetTotal = (currentBets ?? []).reduce(
@@ -124,56 +123,48 @@ export default async function AdminPage() {
   const adminCards = [
     {
       title: "Users",
-      description: "View members, wallet balance, access status, and activity.",
+      description: "View members, wallet balances, and access status.",
       href: "/admin/users",
-      stat: "MVP",
+      stat: "Open",
       label: "Members",
     },
     {
-  title: "Wallet Requests",
-  description: "Review deposit and withdraw settlement tickets.",
-  href: "/admin/wallet-requests",
-  stat: "MVP",
-  label: "Pending",
-},
-{
-  title: "Audit Log",
-  description:
-    "View read-only operator action logs and future admin safety records.",
-  href: "/admin/audit-log",
-  stat: `${auditLogs?.length ?? 0}`,
-  label: "Latest",
-},
-{
-  title: "Backend Health",
-  description:
-    "Monitor cron runner status, backend round age, failed runs, and old unsettled bet warnings.",
-  href: "/admin/backend-health",
-  stat: "Live",
-  label: "Cron",
-},
-{
-  title: "Financial Integrity",
-  description:
-    "Monitor wallet safety, duplicate bets, unsettled bets, and Six Animal debit/payout flow.",
-  href: "/admin/financial-integrity",
-  stat: "Safe",
-  label: "Wallet",
-},
-{
-  title: "၆ ကောင်ဂျင်",
+      title: "Wallet Requests",
+      description: "Review pending deposit and withdraw requests.",
+      href: "/admin/wallet-requests",
+      stat: `${pendingWalletRequestCount ?? 0}`,
+      label: "Pending",
+    },
+    {
+      title: "Audit Log",
+      description: "View recent operator actions and admin records.",
+      href: "/admin/audit",
+      stat: `${auditLogs?.length ?? 0}`,
+      label: "Latest",
+    },
+    {
+      title: "Backend Health",
       description:
-        "Monitor live Six Animal backend round, bets, settlement, and wallet activity.",
+        "Monitor cron runner status, backend round age, failed runs, and old unsettled bet warnings.",
+      href: "/admin/backend-health",
+      stat: "Live",
+      label: "Cron",
+    },
+    {
+      title: "Financial Integrity",
+      description:
+        "Monitor wallet safety, duplicate bets, unsettled bets, and Six Animal debit/payout flow.",
+      href: "/admin/financial-integrity",
+      stat: "Safe",
+      label: "Wallet",
+    },
+    {
+      title: "၆ ကောင်ဂျင်",
+      description:
+        "Monitor the live Six Animal round, current bets, and settlement status.",
       href: "/admin/six-animal",
       stat: currentRound ? `#${currentRound.round_number}` : "—",
       label: currentRound?.phase ?? "No round",
-    },
-    {
-      title: "၃၆ ကောင်ထီ",
-      description: "Manage draw records, tickets, and published results.",
-      href: "/admin/thirty-six",
-      stat: "MVP",
-      label: "Draws",
     },
   ];
 
@@ -184,10 +175,10 @@ export default async function AdminPage() {
         ? `၆ ကောင်ဂျင် live round is ${currentRound.phase}`
         : "၆ ကောင်ဂျင် live round not found",
       detail: currentRound
-        ? `${currentBetCount} bet${currentBetCount === 1 ? "" : "s"} • ${formatAmount(
-            currentBetTotal
-          )}`
-        : "Check Supabase room runner and round table",
+        ? `${currentBetCount} bet${
+            currentBetCount === 1 ? "" : "s"
+          } • ${formatAmount(currentBetTotal)}`
+        : "Check Supabase room runner and round table.",
       status: currentRound?.status ?? "Needs check",
     },
     {
@@ -201,26 +192,27 @@ export default async function AdminPage() {
     },
     {
       id: "BACKEND",
-      title: "Backend dealer authority",
+      title: "Backend room authority",
       detail:
-        "Admin home reads backend state only. It does not advance rounds or settle bets.",
+        "Admin home reads backend state only. It does not advance rounds, change results, or settle bets.",
       status: "Read-only",
     },
     ...(auditLogs ?? []).map((log) => ({
-  id: "AUDIT",
-  title: log.action,
-  detail: log.target_id
-    ? `Target: ${log.target_id}`
-    : "No target recorded",
-  status: "Audit",
-})),
+      id: `AUDIT-${log.id}`,
+      title: log.action,
+      detail: log.target_id ? `Target: ${log.target_id}` : "No target recorded",
+      status: "Audit",
+    })),
   ];
 
-const errors = [
-  currentRoundError ? `Current round: ${currentRoundError.message}` : null,
-  currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
-  auditLogsError ? `Audit logs: ${auditLogsError.message}` : null,
-].filter(Boolean);
+  const errors = [
+    currentRoundError ? `Current round: ${currentRoundError.message}` : null,
+    currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
+    pendingWalletRequestError
+      ? `Wallet requests: ${pendingWalletRequestError.message}`
+      : null,
+    auditLogsError ? `Audit logs: ${auditLogsError.message}` : null,
+  ].filter(Boolean);
 
   return (
     <main className="min-h-screen bg-[#090202] px-5 py-6 text-white">
@@ -236,28 +228,28 @@ const errors = [
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-amber-50/65">
-              Monitor live room health, wallet activity, game records, and
-              platform operation status for the Nagani MVP.
+              Monitor live room health, wallet activity, admin records, and MVP
+              operation status.
             </p>
           </div>
 
-<div className="flex flex-col gap-3 sm:flex-row">
-  <Link
-    href="/"
-    className="w-fit rounded-full border border-amber-400/20 bg-amber-400/10 px-5 py-3 text-center text-sm font-black text-amber-100"
-  >
-    Open Lobby
-  </Link>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/"
+              className="w-fit rounded-full border border-amber-400/20 bg-amber-400/10 px-5 py-3 text-center text-sm font-black text-amber-100"
+            >
+              Open Lobby
+            </Link>
 
-  <form action={logout}>
-    <button
-      type="submit"
-      className="w-fit rounded-full border border-red-400/25 bg-red-500/10 px-5 py-3 text-sm font-black text-red-100 transition hover:bg-red-400 hover:text-black"
-    >
-      Logout
-    </button>
-  </form>
-</div>
+            <form action={logout}>
+              <button
+                type="submit"
+                className="w-fit rounded-full border border-red-400/25 bg-red-500/10 px-5 py-3 text-sm font-black text-red-100 transition hover:bg-red-400 hover:text-black"
+              >
+                Logout
+              </button>
+            </form>
+          </div>
         </header>
 
         {errors.length > 0 ? (
@@ -317,12 +309,11 @@ const errors = [
                 Main Live Room
               </p>
               <h2 className="mt-2 text-2xl font-black text-amber-100">
-                Backend Dealer Snapshot
+                Backend Snapshot
               </h2>
               <p className="mt-2 text-sm leading-6 text-white/50">
-                This panel reads the global backend room only. The player browser
-                does not control timing, results, wallet debit, payout, or
-                settlement.
+                This panel reads the global backend room only. It does not
+                control timing, results, wallet debit, payout, or settlement.
               </p>
             </div>
 
@@ -400,7 +391,7 @@ const errors = [
         </section>
 
         <section className="mt-6 rounded-[1.75rem] border border-red-400/15 bg-red-950/10 p-5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-200/60">
                 Operation Log
@@ -412,7 +403,7 @@ const errors = [
 
             <Link
               href="/admin/settings"
-              className="rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-xs font-black text-amber-100"
+              className="shrink-0 rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-xs font-black text-amber-100"
             >
               Settings
             </Link>
@@ -430,7 +421,9 @@ const errors = [
                   <p className="text-sm font-black text-amber-100">
                     {item.title}
                   </p>
-                  <p className="mt-1 text-xs text-white/45">{item.detail}</p>
+                  <p className="mt-1 break-words text-xs text-white/45">
+                    {item.detail}
+                  </p>
                 </div>
 
                 <p className="text-left text-xs font-black text-emerald-100 md:text-right">

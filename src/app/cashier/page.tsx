@@ -31,6 +31,12 @@ type CashierTicket = {
   time: string;
 };
 
+function toSafeAmount(value: number | string | null | undefined) {
+  const amount = Number(value ?? 0);
+
+  return Number.isFinite(amount) ? amount : 0;
+}
+
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
@@ -46,11 +52,11 @@ function formatTicketTime(value: string) {
 }
 
 function formatRequestType(type: WalletRequestRow["request_type"]) {
-  return type === "deposit" ? "Deposit" : "Withdraw";
+  return type === "deposit" ? "Deposit" : "Withdrawal";
 }
 
 function formatRequestStatus(status: WalletRequestRow["status"]) {
-  if (status === "approved") return "Confirmed";
+  if (status === "approved") return "Approved";
   if (status === "rejected") return "Rejected";
   if (status === "cancelled") return "Cancelled";
 
@@ -70,13 +76,13 @@ function CashierPageContent() {
   const [amount, setAmount] = useState("10000");
   const [note, setNote] = useState("");
 
-  const numericAmount = Number(amount || 0);
+  const numericAmount = toSafeAmount(amount);
   const isValidAmount = numericAmount >= 1000;
 
   const actionLabel = useMemo(() => {
     return activeTab === "deposit"
       ? "Submit Deposit Request"
-      : "Submit Withdraw Request";
+      : "Submit Withdrawal Request";
   }, [activeTab]);
 
   useEffect(() => {
@@ -105,13 +111,13 @@ function CashierPageContent() {
 
       if (!isMounted) return;
 
-      setWalletBalance(Number(wallet?.balance ?? 0));
+      setWalletBalance(toSafeAmount(wallet?.balance));
 
       setRecentTickets(
         (requests ?? []).map((request) => ({
           id: `NG-WALLET-${request.id.slice(0, 8).toUpperCase()}`,
           type: formatRequestType(request.request_type),
-          amount: Number(request.amount),
+          amount: toSafeAmount(request.amount),
           status: formatRequestStatus(request.status),
           time: formatTicketTime(request.created_at),
         }))
@@ -138,7 +144,7 @@ function CashierPageContent() {
   }
 
   function handleSubmitRequest() {
-    // Server action handles submit now.
+    return;
   }
 
   return (
@@ -171,7 +177,7 @@ function CashierPageContent() {
         activeTab={activeTab}
         amount={amount}
         note={note}
-        amountLabel={formatMMK(numericAmount || 0)}
+        amountLabel={formatMMK(numericAmount)}
         actionLabel={actionLabel}
         isValidAmount={isValidAmount}
         onTabChange={handleTabChange}

@@ -26,6 +26,7 @@ const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 1800;
 const SHADOW_ATTEMPT_LIMIT = 980;
 const SHADOW_MAX_SIMULATION_SECONDS = 7.2;
 const SHADOW_FRAME_RATE: 30 | 60 = 30;
+const USE_V1_PHYSICAL_DICE_SEQUENCE = true;
 
 type ThreeDiceSequenceControllerProps = {
   enabled: boolean;
@@ -333,14 +334,28 @@ export default function ThreeDiceSequenceController({
     setSettled(false);
     setFaceCaptureOwner(null);
     setHoldFinalDiceOnTable(false);
-    setSequenceRunning(false);
-    setResetKey((value) => value + 1);
+setSequenceRunning(false);
 
-    prepareShadowTrajectories({
-      roundId,
-      sequenceKey,
-      targetAnimals,
-    });
+if (USE_V1_PHYSICAL_DICE_SEQUENCE) {
+  clearShadowWorkers();
+
+  setShadowPreparing(false);
+  setShadowError(null);
+  setShadowTrajectories([null, null, null]);
+  shadowTrajectoriesRef.current = [null, null, null];
+
+  setSequenceRunning(true);
+  setResetKey((value) => value + 1);
+  return;
+}
+
+setResetKey((value) => value + 1);
+
+prepareShadowTrajectories({
+  roundId,
+  sequenceKey,
+  targetAnimals,
+});
   }
 
 const handleFaceResultChange = useCallback(
@@ -434,15 +449,17 @@ const handleFaceResultChange = useCallback(
   const hasActiveShadowFrames = Boolean(activeShadowFrames?.length);
 
   useEffect(() => {
-    if (!enabled || !sequenceRunning) return;
-    if (!hasActiveShadowFrames) return;
+if (!enabled || !sequenceRunning) return;
+if (!USE_V1_PHYSICAL_DICE_SEQUENCE && !hasActiveShadowFrames) return;
 
     const ownerRoundId = activeVisualRoundIdRef.current;
 
     if (!ownerRoundId) return;
 
     const dieNumber = activeDieIndex + 1;
-    const soundKey = `${ownerRoundId}:${dieNumber}:${resetKey}:shadow`;
+    const soundKey = `${ownerRoundId}:${dieNumber}:${resetKey}:${
+  USE_V1_PHYSICAL_DICE_SEQUENCE ? "physical" : "shadow"
+}`;
 
     if (lastDiceDropSoundKeyRef.current === soundKey) return;
     if (capturedDieNumbersRef.current.has(dieNumber)) return;
@@ -560,8 +577,10 @@ const handleFaceResultChange = useCallback(
     );
   }, [sequenceRunning, capturedResults]);
 
-  const shouldShowActiveTableDice =
-    (sequenceRunning && hasActiveShadowFrames) || holdFinalDiceOnTable;
+const shouldShowActiveTableDice =
+  (sequenceRunning &&
+    (USE_V1_PHYSICAL_DICE_SEQUENCE || hasActiveShadowFrames)) ||
+  holdFinalDiceOnTable;
 
   const stageActiveDieIndex = shouldShowActiveTableDice ? activeDieIndex : -1;
 
@@ -569,7 +588,8 @@ const handleFaceResultChange = useCallback(
     ? "sequence"
     : mountedDiceRackMode;
 
-  const stageRecordedFrames = shouldShowActiveTableDice
+const stageRecordedFrames =
+  shouldShowActiveTableDice && !USE_V1_PHYSICAL_DICE_SEQUENCE
     ? activeShadowFrames
     : null;
 
@@ -595,7 +615,8 @@ const handleFaceResultChange = useCallback(
         strictReadableResultGate={false}
         targetLaunchRecipeEnabled={false}
         recordedTrajectoryFrames={stageRecordedFrames}
-        recordedTrajectoryReplayKey={resetKey}
+recordedTrajectoryReplayKey={resetKey}
+enableV1PhysicalRelease={USE_V1_PHYSICAL_DICE_SEQUENCE}
       />
 
       {showInternalResultStrip ? (

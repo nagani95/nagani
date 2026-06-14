@@ -1,4 +1,4 @@
-//src>components>cashier>CashierHero.tsx
+// src/components/cashier/CashierHero.tsx
 
 type CashierHeroProps = {
   balanceLabel: string;
@@ -24,8 +24,8 @@ export default function CashierHero({ balanceLabel }: CashierHeroProps) {
         <h1 className="mt-3 text-4xl font-black text-amber-100">Cashier</h1>
 
         <p className="mt-3 text-sm leading-6 text-amber-50/65">
-          Submit deposit or withdraw requests and track every wallet ticket from
-          pending review to confirmed settlement.
+          Submit deposit or withdrawal requests and track each wallet ticket
+          from pending review to approved or rejected.
         </p>
 
         <div className="mt-5 rounded-[1.5rem] border border-amber-400/20 bg-amber-400/10 p-4">

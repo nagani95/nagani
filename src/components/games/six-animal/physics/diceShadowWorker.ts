@@ -558,14 +558,13 @@ function createNaturalAttemptLaunch({
   const waveC = getNaturalAttemptWave(seed, 3);
   const waveD = getNaturalAttemptWave(seed, 4);
   const energy = (attemptNumber % 5) / 4;
-  const rollLife = 1.04 + ((attemptNumber % 6) / 5) * 0.3;
 
-  const launchQuaternion = new Quaternion()
+  const releaseQuaternion = new Quaternion()
     .setFromEuler(
       new Euler(
-        MathUtils.degToRad(42 + waveA * 145 + energy * 38),
-        MathUtils.degToRad(waveB * 180 + activeDieIndex * 31),
-        MathUtils.degToRad(waveC * 180 + attemptNumber * 17),
+        MathUtils.degToRad(4 + waveA * 5),
+        MathUtils.degToRad(activeDieIndex * 6 + waveB * 5),
+        MathUtils.degToRad(waveC * 4),
         "XYZ"
       )
     )
@@ -573,39 +572,32 @@ function createNaturalAttemptLaunch({
 
   return {
     rotation: {
-      x: launchQuaternion.x,
-      y: launchQuaternion.y,
-      z: launchQuaternion.z,
-      w: launchQuaternion.w,
+      x: releaseQuaternion.x,
+      y: releaseQuaternion.y,
+      z: releaseQuaternion.z,
+      w: releaseQuaternion.w,
     },
-linvel: {
-  // Wall-hug release: small lateral variation, not a side throw.
-  x:
-    fallbackLinvel.x +
-    waveA * 0.34 +
-    waveD * 0.12 +
-    (activeDieIndex - 1) * 0.06,
+    linvel: {
+      // Very small side drift only. No side throw.
+      x:
+        fallbackLinvel.x * 0.38 +
+        waveA * 0.045 +
+        (activeDieIndex - 1) * 0.025,
 
-  // Downward fall from the mounted holder.
-  y:
-    fallbackLinvel.y -
-    0.08 -
-    energy * 0.08 +
-    waveB * 0.06,
+      // Gravity-led release. Strong enough to break holder contact,
+      // but not an invisible hand punch.
+      y: Math.min(-0.42, fallbackLinvel.y * 0.42 - 0.05 - energy * 0.035),
 
-  // Enough forward reach to meet the deflector after falling,
-  // but not enough to jump out from the wall.
-  z: Math.max(
-    0.34,
-    fallbackLinvel.z - 0.12 + energy * 0.06 + waveC * 0.05
-  ),
-},
-angvel: {
-  // Micro angular life only. Do not add forward speed.
-  x: fallbackAngvel.x * (1.66 + energy * 0.46) * rollLife + waveC * 2.45,
-  y: fallbackAngvel.y + waveA * 2.35 + (activeDieIndex - 1) * 0.65,
-  z: fallbackAngvel.z * (1.66 + energy * 0.46) * rollLife + waveD * 2.45,
-},
+      // Small forward slide toward the deflector.
+      // The deflector should create the real tumble, not frame-0 spin.
+      z: Math.max(0.18, fallbackLinvel.z * 0.36 + 0.04 + waveC * 0.025),
+    },
+    angvel: {
+      // Almost no initial spin. Real tumble should come after collision.
+      x: fallbackAngvel.x * 0.16 + waveC * 0.18,
+      y: fallbackAngvel.y * 0.12 + waveA * 0.14,
+      z: fallbackAngvel.z * 0.16 + waveD * 0.18,
+    },
   };
 }
 
@@ -707,11 +699,11 @@ addFixedCuboid({
 // Gives the die a real wall-following contact path from holder area toward the deflector.
 // This is not target correction and does not touch production /six-animal yet.
 addFixedCuboid({
-  args: [1.72, 0.035, 1.05],
+  args: [1.72, 0.028, 1.05],
   position: [0, 1.48, table.backWallZ + 0.54],
   rotation: [-1.18, 0, 0],
-  restitution: 0.22,
-  friction: 0.42,
+  restitution: 0.12,
+  friction: 0.28,
 });
 
     addFixedCuboid({
@@ -794,7 +786,7 @@ const defaultStartPosition = getActiveDiceStartPosition({
 // Start from the mounted holder/wall line instead of already popping forward.
 const startPosition: [number, number, number] = [
   defaultStartPosition[0],
-  defaultStartPosition[1] + 0.2,
+  defaultStartPosition[1],
   table.backWallZ + 0.42,
 ];
 

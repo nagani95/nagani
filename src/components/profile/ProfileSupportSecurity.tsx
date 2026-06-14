@@ -31,12 +31,12 @@ export default function ProfileSupportSecurity() {
 
         <p>
           <span className="font-black text-amber-100">3.</span> Use the Cashier
-          page to review deposit and withdraw request status.
+          page to review deposit and withdrawal request status.
         </p>
       </div>
 
       <p className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3 text-xs leading-5 text-white/40">
-        For wallet or account help, contact the cashier/admin team and include
+        For wallet or account help, contact the cashier support team and include
         your member ID when reporting an issue.
       </p>
     </section>

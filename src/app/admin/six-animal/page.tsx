@@ -1,13 +1,9 @@
-//src>app>admin>six-animal>page.tsx
+// src/app/admin/six-animal/page.tsx
 
 import Link from "next/link";
-import {
-  clearSixAnimalNextResult,
-  setSixAnimalNextResult,
-} from "@/lib/supabase/sixAnimalControls";
 
-import { createClient } from "@/lib/supabase/server";
 import SixAnimalAdminRefresh from "@/components/admin/SixAnimalAdminRefresh";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +44,6 @@ type SixAnimalRoomControl = {
   room_id: string;
   control_mode: string;
   pending_result_animals: unknown;
-  pending_result_set_by: string | null;
   pending_result_set_at: string | null;
   updated_at: string | null;
 };
@@ -90,6 +85,7 @@ function getPhaseTone(phase: string) {
   if (phase === "closed") return "text-amber-100";
   if (phase === "rolling") return "text-sky-100";
   if (phase === "result") return "text-purple-100";
+
   return "text-white/70";
 }
 
@@ -113,10 +109,7 @@ export default async function AdminSixAnimalPage({
 
   const supabase = await createClient();
 
-  const {
-    data: currentRound,
-    error: currentRoundError,
-  } = await supabase
+  const { data: currentRound, error: currentRoundError } = await supabase
     .from("six_animal_rounds")
     .select(
       "id, room_id, round_number, phase, status, betting_starts_at, betting_ends_at, rolling_starts_at, result_revealed_at, next_round_starts_at, created_at"
@@ -126,40 +119,25 @@ export default async function AdminSixAnimalPage({
     .limit(1)
     .maybeSingle<SixAnimalRound>();
 
-const currentRoundId = currentRound?.id ?? null;
+  const currentRoundId = currentRound?.id ?? null;
 
-const {
-  data: currentRoundResult,
-  error: roundResultsError,
-} = currentRoundId
-  ? await supabase
-      .from("six_animal_results")
-      .select("round_id, result_animals, created_at")
-      .eq("round_id", currentRoundId)
-      .maybeSingle<SixAnimalResult>()
-  : { data: null, error: null };
+  const { data: currentRoundResult, error: roundResultsError } = currentRoundId
+    ? await supabase
+        .from("six_animal_results")
+        .select("round_id, result_animals, created_at")
+        .eq("round_id", currentRoundId)
+        .maybeSingle<SixAnimalResult>()
+    : { data: null, error: null };
 
-const {
-  data: roomControl,
-  error: roomControlError,
-} = await supabase
-  .from("six_animal_room_controls")
-  .select(
-    "room_id, control_mode, pending_result_animals, pending_result_set_by, pending_result_set_at, updated_at"
-  )
-  .eq("room_id", MAIN_ROOM_ID)
-  .maybeSingle<SixAnimalRoomControl>();
+  const { data: roomControl, error: roomControlError } = await supabase
+    .from("six_animal_room_controls")
+    .select(
+      "room_id, control_mode, pending_result_animals, pending_result_set_at, updated_at"
+    )
+    .eq("room_id", MAIN_ROOM_ID)
+    .maybeSingle<SixAnimalRoomControl>();
 
-const pendingResultAnimals = normalizeResultAnimals(
-  roomControl?.pending_result_animals
-);
-
-const hasPendingNextResult = pendingResultAnimals.length === 3;
-
-  const {
-    data: currentBets,
-    error: currentBetsError,
-  } = currentRoundId
+  const { data: currentBets, error: currentBetsError } = currentRoundId
     ? await supabase
         .from("six_animal_bets")
         .select(
@@ -170,28 +148,33 @@ const hasPendingNextResult = pendingResultAnimals.length === 3;
         .returns<SixAnimalBet[]>()
     : { data: [], error: null };
 
-const currentResultAnimals = normalizeResultAnimals(
-  currentRoundResult?.result_animals
-);
+  const pendingResultAnimals = normalizeResultAnimals(
+    roomControl?.pending_result_animals
+  );
+  const hasPendingNextResult = pendingResultAnimals.length === 3;
 
-const totalBetAmount = (currentBets ?? []).reduce(
-  (sum, bet) => sum + bet.amount,
-  0
-);
+  const currentResultAnimals = normalizeResultAnimals(
+    currentRoundResult?.result_animals
+  );
+
+  const totalBetAmount = (currentBets ?? []).reduce(
+    (sum, bet) => sum + bet.amount,
+    0
+  );
 
   const settledCount = (currentBets ?? []).filter((bet) => bet.settled).length;
   const unsettledCount = (currentBets ?? []).length - settledCount;
   const phaseTarget = getPhaseTarget(currentRound);
   const snapshotGeneratedAt = new Date().toISOString();
   const hasSettlementWatch =
-  currentRound?.phase === "result" && unsettledCount > 0;
+    currentRound?.phase === "result" && unsettledCount > 0;
 
-const errors = [
-  currentRoundError ? `Current round: ${currentRoundError.message}` : null,
-  roundResultsError ? `Round results: ${roundResultsError.message}` : null,
-  currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
-  roomControlError ? `Room control: ${roomControlError.message}` : null,
-].filter(Boolean);
+  const errors = [
+    currentRoundError ? `Current round: ${currentRoundError.message}` : null,
+    roundResultsError ? `Round results: ${roundResultsError.message}` : null,
+    currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
+    roomControlError ? `Room control: ${roomControlError.message}` : null,
+  ].filter(Boolean);
 
   return (
     <main className="min-h-screen bg-[#090202] px-5 py-6 text-white">
@@ -211,9 +194,9 @@ const errors = [
                 ၆ ကောင်ဂျင် Monitor
               </h1>
               <p className="mt-3 text-sm leading-6 text-amber-50/65">
-Read-only backend monitoring for the main Six Animal live room.
-Manual control is not enabled yet. Backend remains the dealer.
-Player room logic is untouched.
+                Read-only monitoring for the main Six Animal live room. This
+                page does not change dice, results, wallets, settlements, or
+                room timing.
               </p>
             </div>
 
@@ -221,7 +204,7 @@ Player room logic is untouched.
               <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/35">
                 Main Room
               </p>
-              <p className="mt-2 text-sm font-black text-amber-100">
+              <p className="mt-2 break-all text-sm font-black text-amber-100">
                 {MAIN_ROOM_ID}
               </p>
             </div>
@@ -229,20 +212,18 @@ Player room logic is untouched.
         </header>
 
         {successMessage ? (
-  <section className="mt-6 rounded-[1.5rem] border border-emerald-400/30 bg-emerald-950/30 p-5">
-    <p className="text-sm font-black text-emerald-100">
-      {successMessage}
-    </p>
-  </section>
-) : null}
+          <section className="mt-6 rounded-[1.5rem] border border-emerald-400/30 bg-emerald-950/30 p-5">
+            <p className="text-sm font-black text-emerald-100">
+              {successMessage}
+            </p>
+          </section>
+        ) : null}
 
-{errorMessage ? (
-  <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
-    <p className="text-sm font-black text-red-100">
-      {errorMessage}
-    </p>
-  </section>
-) : null}
+        {errorMessage ? (
+          <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
+            <p className="text-sm font-black text-red-100">{errorMessage}</p>
+          </section>
+        ) : null}
 
         {errors.length > 0 ? (
           <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
@@ -260,23 +241,24 @@ Player room logic is untouched.
         ) : null}
 
         {hasSettlementWatch ? (
-  <section className="mt-6 rounded-[1.5rem] border border-amber-400/30 bg-amber-950/25 p-5">
-    <p className="text-sm font-black text-amber-100">
-      Settlement watch
-    </p>
-    <p className="mt-2 text-xs leading-5 text-amber-50/60">
-      Current round is in result phase and still has {unsettledCount} unsettled
-      bet{unsettledCount === 1 ? "" : "s"}. This panel is only a monitor. It
-      does not settle, retry, credit, debit, or change backend state.
-    </p>
-  </section>
-) : null}
+          <section className="mt-6 rounded-[1.5rem] border border-amber-400/30 bg-amber-950/25 p-5">
+            <p className="text-sm font-black text-amber-100">
+              Settlement watch
+            </p>
+            <p className="mt-2 text-xs leading-5 text-amber-50/60">
+              Current round is in result phase and still has {unsettledCount}{" "}
+              unsettled bet{unsettledCount === 1 ? "" : "s"}. This panel is
+              only a monitor. It does not settle, retry, credit, debit, or
+              change backend state.
+            </p>
+          </section>
+        ) : null}
 
-<SixAnimalAdminRefresh
-  phase={currentRound?.phase ?? null}
-  targetTime={phaseTarget}
-  generatedAt={snapshotGeneratedAt}
-/>
+        <SixAnimalAdminRefresh
+          phase={currentRound?.phase ?? null}
+          targetTime={phaseTarget}
+          generatedAt={snapshotGeneratedAt}
+        />
 
         <section className="mt-6 grid gap-4 md:grid-cols-4">
           <div className="rounded-[1.5rem] border border-amber-400/20 bg-amber-400/10 p-5">
@@ -313,102 +295,100 @@ Player room logic is untouched.
         </section>
 
         <section className="mt-6 rounded-[1.75rem] border border-amber-400/20 bg-gradient-to-br from-amber-950/20 via-black/45 to-red-950/20 p-5">
-  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-    <div>
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-200/50">
-        Dealer Control
-      </p>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-200/50">
+                Room Control Status
+              </p>
 
-      <h2 className="mt-2 text-2xl font-black text-amber-100">
-        Manual Control Not Enabled
-      </h2>
+              <h2 className="mt-2 text-2xl font-black text-amber-100">
+                Read-Only MVP Mode
+              </h2>
 
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-        This panel is prepared for future Six Animal room control. For now,
-        backend auto mode remains the only active dealer. No admin action here
-        changes result, wallet, settlement, dice, or player room state.
-      </p>
-    </div>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+                Admin room controls are disabled for the locked MVP baseline.
+                Backend auto mode remains the only active dealer.
+              </p>
+            </div>
 
-    <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 px-4 py-3 text-center">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-100/55">
-        Mode
-      </p>
-      <p className="mt-1 text-lg font-black text-emerald-100">
-        Auto
-      </p>
-    </div>
-  </div>
+            <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 px-4 py-3 text-center">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-100/55">
+                Mode
+              </p>
+              <p className="mt-1 text-lg font-black capitalize text-emerald-100">
+                {roomControl?.control_mode ?? "Auto"}
+              </p>
+            </div>
+          </div>
 
-  <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
-  <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/35">
-    Pending Next Result
-  </p>
+          <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/35">
+              Pending Next Result
+            </p>
 
-  {hasPendingNextResult ? (
-    <div className="mt-3 grid gap-2 md:grid-cols-3">
-      {pendingResultAnimals.map((animal, index) => (
-        <div
-          key={`${animal}-${index}`}
-          className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-center"
-        >
-          <p className="text-xs font-bold text-white/35">
-            Dice {index + 1}
-          </p>
-          <p className="mt-1 text-lg font-black capitalize text-amber-100">
-            {animal}
-          </p>
-        </div>
-      ))}
-    </div>
-  ) : (
-    <p className="mt-3 text-sm font-bold text-white/45">
-      No manual result is pending. Backend auto result will be used.
-    </p>
-  )}
+            {hasPendingNextResult ? (
+              <div className="mt-3 grid gap-2 md:grid-cols-3">
+                {pendingResultAnimals.map((animal, index) => (
+                  <div
+                    key={`${animal}-${index}`}
+                    className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-center"
+                  >
+                    <p className="text-xs font-bold text-white/35">
+                      Dice {index + 1}
+                    </p>
+                    <p className="mt-1 text-lg font-black capitalize text-amber-100">
+                      {animal}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm font-bold text-white/45">
+                No manual result is pending. Backend auto result will be used.
+              </p>
+            )}
 
-  {roomControl?.pending_result_set_at ? (
-    <p className="mt-3 text-xs font-bold text-white/35">
-      Set at {formatTime(roomControl.pending_result_set_at)}
-    </p>
-  ) : null}
-</div>
+            {roomControl?.pending_result_set_at ? (
+              <p className="mt-3 text-xs font-bold text-white/35">
+                Set at {formatTime(roomControl.pending_result_set_at)}
+              </p>
+            ) : null}
+          </div>
 
-<div className="mt-5 grid gap-3 md:grid-cols-4">
-  <button
-    type="button"
-    disabled
-    className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
-  >
-    Set Next Result
-  </button>
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
+            <button
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
+            >
+              Set Next Result
+            </button>
 
-  <form action={clearSixAnimalNextResult}>
-    <button
-      type="submit"
-      className="w-full rounded-2xl border border-red-300/25 bg-red-500/12 px-4 py-4 text-sm font-black text-red-100 transition hover:bg-red-300 hover:text-black"
-    >
-      Clear Next Result
-    </button>
-  </form>
+            <button
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
+            >
+              Clear Next Result
+            </button>
 
-  <button
-    type="button"
-    disabled
-    className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
-  >
-    Pause Room
-  </button>
+            <button
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
+            >
+              Pause Room
+            </button>
 
-  <button
-    type="button"
-    disabled
-    className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
-  >
-    Resume Room
-  </button>
-</div>
-</section>
+            <button
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm font-black text-white/30"
+            >
+              Resume Room
+            </button>
+          </div>
+        </section>
 
         <section className="mt-6 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
           <article className="rounded-[1.75rem] border border-amber-400/15 bg-black/40 p-5">
@@ -464,7 +444,9 @@ Player room logic is untouched.
               </div>
 
               <div className="rounded-2xl border border-amber-400/15 bg-amber-400/10 p-4">
-                <p className="text-xs text-amber-200/60">Current Phase Target</p>
+                <p className="text-xs text-amber-200/60">
+                  Current Phase Target
+                </p>
                 <p className="mt-2 text-sm font-bold text-amber-100">
                   {formatTime(phaseTarget)}
                 </p>
@@ -491,7 +473,7 @@ Player room logic is untouched.
                       <p className="text-xs font-bold text-white/35">
                         Dice {index + 1}
                       </p>
-                      <p className="text-xl font-black text-amber-100">
+                      <p className="text-xl font-black capitalize text-amber-100">
                         {animal}
                       </p>
                     </div>
@@ -539,7 +521,7 @@ Player room logic is untouched.
                 <p className="truncate text-xs font-bold text-white/35">
                   {bet.profile_id}
                 </p>
-                <p className="text-sm font-black text-amber-100">
+                <p className="text-sm font-black capitalize text-amber-100">
                   {bet.animal}
                 </p>
                 <p className="text-sm font-black text-white/75">
