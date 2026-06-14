@@ -23,7 +23,16 @@ import ThreeDicePhysicsStage, {
   type DiceShapePreset,
   type TestMode,
 } from "./ThreeDicePhysicsStage";
-import type { DiceShadowWorkerResponse } from "./physics/diceShadowTypes";
+import type {
+  ApprovedDiceTrajectory,
+  DiceShadowMotionMetrics,
+  DiceShadowWorkerResponse,
+  DiceTrajectoryRecorderComplete,
+} from "./physics/diceShadowTypes";
+
+const BACKEND_AUTHORITY_SHADOW_ATTEMPT_LIMIT = 980;
+const BACKEND_AUTHORITY_MAX_SIMULATION_SECONDS = 7.2;
+const BACKEND_AUTHORITY_FRAME_RATE: 30 | 60 = 30;
 
 const TARGET_ANIMAL_OPTIONS: DiceAnimalLabel[] = [
   "Tiger",
@@ -33,6 +42,65 @@ const TARGET_ANIMAL_OPTIONS: DiceAnimalLabel[] = [
   "Crab",
   "Elephant",
 ];
+
+function createRecorderId({
+  finalAnimal,
+  dieIndex,
+}: {
+  finalAnimal: DiceAnimalLabel;
+  dieIndex: number;
+}) {
+  const suffix =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  return `v1-${finalAnimal.toLowerCase()}-d${dieIndex + 1}-${suffix}`;
+}
+
+function getRecordedMotionGrade(
+  metrics: DiceShadowMotionMetrics
+): "premium" | "accepted" | "weak" {
+  const isPremium =
+    metrics.visualActiveSeconds >= 4.6 &&
+    metrics.visualActiveSeconds <= 8.4 &&
+    metrics.deadSlideSeconds <= 0.9 &&
+    metrics.deflectorBounceScore >= 0.18 &&
+    metrics.tumbleTurns >= 1.35 &&
+    metrics.frontStopRisk <= 0.86;
+
+  if (isPremium) return "premium";
+
+  const isAccepted =
+    metrics.visualActiveSeconds >= 3.8 &&
+    metrics.visualActiveSeconds <= 9.5 &&
+    metrics.deadSlideSeconds <= 1.25 &&
+    metrics.tumbleTurns >= 0.85;
+
+  return isAccepted ? "accepted" : "weak";
+}
+
+function getRecordedMotionScore(metrics: DiceShadowMotionMetrics) {
+  let score = 0;
+
+  if (metrics.visualActiveSeconds >= 4.6 && metrics.visualActiveSeconds <= 8.4) {
+    score += 26;
+  } else if (
+    metrics.visualActiveSeconds >= 3.8 &&
+    metrics.visualActiveSeconds <= 9.5
+  ) {
+    score += 18;
+  }
+
+  score += Math.min(1, Math.max(0, metrics.tumbleTurns / 2.2)) * 22;
+  score += Math.min(1, Math.max(0, metrics.lateTumbleTurns / 0.75)) * 16;
+  score += Math.min(1, Math.max(0, metrics.deflectorBounceScore)) * 14;
+  score += Math.min(1, Math.max(0, metrics.directionChangeCount / 3)) * 10;
+  score += Math.min(1, Math.max(0, 1 - metrics.deadSlideSeconds / 1.2)) * 8;
+  score += Math.min(1, Math.max(0, 1 - metrics.frontStopRisk)) * 4;
+
+  return Math.round(Math.min(100, Math.max(0, score)));
+}
 
 const DICE_SHAPE_PRESET_OPTIONS: {
   value: DiceShapePreset;
@@ -98,9 +166,9 @@ const [showDice, setShowDice] = useState(true);
 const [cleanTableShotMode, setCleanTableShotMode] = useState(false);
 const [testMode, setTestMode] = useState<TestMode>("runway");
 const [diceShapePreset, setDiceShapePreset] =
-  useState<DiceShapePreset>("current");
-  const [diceColliderPreset, setDiceColliderPreset] =
-  useState<DiceColliderPreset>("current");
+  useState<DiceShapePreset>("more-round");
+const [diceColliderPreset, setDiceColliderPreset] =
+  useState<DiceColliderPreset>("softer");
 const [activeDieIndex, setActiveDieIndex] = useState(0);
 const [shadowSmokeDieIndex, setShadowSmokeDieIndex] = useState(0);
 type TargetAnimalRecipe = [DiceAnimalLabel, DiceAnimalLabel, DiceAnimalLabel];
@@ -170,9 +238,9 @@ function requestShadowSearch({
       requestId,
       targetAnimal,
       dieIndex,
-      attemptLimit: 120,
-      maxSimulationSeconds: 8.5,
-      frameRate: 30,
+      attemptLimit: BACKEND_AUTHORITY_SHADOW_ATTEMPT_LIMIT,
+maxSimulationSeconds: BACKEND_AUTHORITY_MAX_SIMULATION_SECONDS,
+frameRate: BACKEND_AUTHORITY_FRAME_RATE,
     });
   });
 }
@@ -212,13 +280,9 @@ setShadowSmokeResult(response);
 const isTargetFound =
   response.kind === "search-success" && response.targetMatched;
 
-const hasBestFailedReplay =
-  response.kind === "search-fail" &&
-  Boolean(response.bestMatchedFrames?.length);
-
 setShadowSmokeStatus(isTargetFound ? "success" : "fail");
 
-if (isTargetFound || hasBestFailedReplay) {
+if (isTargetFound) {
   capturedDieNumbersRef.current.clear();
   setCapturedResults([]);
   setTestMode("trap");
@@ -247,9 +311,9 @@ if (isTargetFound || hasBestFailedReplay) {
     requestId,
     targetAnimal: smokeTargetAnimal,
     dieIndex: smokeDieIndex,
-    attemptLimit: 120,
-maxSimulationSeconds: 8.5,
-    frameRate: 30,
+    attemptLimit: BACKEND_AUTHORITY_SHADOW_ATTEMPT_LIMIT,
+maxSimulationSeconds: BACKEND_AUTHORITY_MAX_SIMULATION_SECONDS,
+frameRate: BACKEND_AUTHORITY_FRAME_RATE,
   });
 }
 
@@ -280,18 +344,17 @@ async function runShadowThreeDiceTest() {
       const isTargetFound =
         response.kind === "search-success" && response.targetMatched;
 
-      const hasBestFailedReplay =
-        response.kind === "search-fail" &&
-        Boolean(response.bestMatchedFrames?.length);
+if (!isTargetFound) {
+  setShadowSmokeResult(response);
+  setShadowSmokeStatus("fail");
+  setShadowSequenceStatus("fail");
+  setSequenceRunning(false);
+  setSettled(false);
+  setFaceResult(null);
+  return;
+}
 
-      if (!isTargetFound && !hasBestFailedReplay) {
-        setShadowSmokeResult(response);
-        setShadowSmokeStatus("fail");
-        setShadowSequenceStatus("fail");
-        return;
-      }
-
-      results.push(response);
+results.push(response);
     }
 
     setShadowSequenceResults(results);
@@ -324,6 +387,133 @@ async function runShadowThreeDiceTest() {
   }
 }
 
+function handleTrajectoryRecorderComplete(
+  recording: DiceTrajectoryRecorderComplete
+) {
+  setTrajectoryRecordings((current) => [...current, recording]);
+}
+
+function runV1TrajectoryRecorder() {
+  setShadowSmokeStatus("idle");
+  setShadowSmokeResult(null);
+  setShadowSequenceResults([]);
+  setShadowSequenceReplayIndex(0);
+  setShadowSequenceStatus("idle");
+
+  setTrajectoryRecorderEnabled(true);
+  setTrajectoryRecordings([]);
+  setApprovedTrajectories([]);
+  setTrajectoryPreviewIndex(null);
+  setTrajectoryExportText("");
+
+  setTargetCorrectionTestEnabled(false);
+  setTargetLaunchRecipeEnabled(false);
+  setCleanTableShotMode(false);
+  setShowDice(true);
+  setShowResultBoard(true);
+  setTestMode("trap");
+
+  setSequenceRunning(true);
+  capturedDieNumbersRef.current.clear();
+  setCapturedResults([]);
+  setActiveDieIndex(0);
+  setSettled(false);
+  setFaceResult(null);
+  setResetKey((value) => value + 1);
+}
+
+function stopV1TrajectoryRecorder() {
+  setTrajectoryRecorderEnabled(false);
+}
+
+function previewTrajectoryRecording(index: number) {
+  const recording = trajectoryRecordings[index];
+  if (!recording) return;
+
+  setTrajectoryRecorderEnabled(false);
+  setTrajectoryPreviewIndex(index);
+  setShadowSmokeStatus("idle");
+  setShadowSmokeResult(null);
+  setShadowSequenceResults([]);
+  setShadowSequenceReplayIndex(0);
+  setShadowSequenceStatus("idle");
+
+  setTestMode("trap");
+  setSequenceRunning(true);
+  setActiveDieIndex(recording.dieIndex);
+  setSettled(false);
+  setFaceResult(null);
+  setTrajectoryReplayKey((value) => value + 1);
+  setResetKey((value) => value + 1);
+}
+
+function approveTrajectoryRecording(index: number) {
+  const recording = trajectoryRecordings[index];
+  if (!recording) return;
+
+  const motionScore = getRecordedMotionScore(recording.metrics);
+  const motionGrade = getRecordedMotionGrade(recording.metrics);
+
+  const approvedTrajectory: ApprovedDiceTrajectory = {
+    version: "v1-approved-trajectory-60hz",
+    id: createRecorderId({
+      finalAnimal: recording.finalAnimal,
+      dieIndex: recording.dieIndex,
+    }),
+    source: "v1-live-physics-recorder",
+
+    finalAnimal: recording.finalAnimal,
+    finalStatus: recording.finalStatus,
+    finalConfidence: recording.finalConfidence,
+    finalTiltDegrees: recording.finalTiltDegrees,
+
+    dieIndex: recording.dieIndex,
+    testMode,
+
+    frameRate: 60,
+    frames: recording.frames,
+
+    readableAtSeconds: recording.readableAtSeconds,
+    motionEndSeconds: recording.motionEndSeconds,
+    replayEndSeconds: recording.replayEndSeconds,
+
+    metrics: recording.metrics,
+    motionScore,
+    motionGrade,
+    notes: [
+      "Approved from live V1 physics recorder.",
+      `Shape preset: ${diceShapePreset}`,
+      `Collider preset: ${diceColliderPreset}`,
+    ],
+
+    approved: true,
+    createdAt: new Date().toISOString(),
+
+    diceShapePreset,
+    diceColliderPreset,
+  };
+
+  setApprovedTrajectories((current) => [...current, approvedTrajectory]);
+  setTrajectoryExportText("");
+}
+
+function exportApprovedTrajectories() {
+  setTrajectoryExportText(JSON.stringify(approvedTrajectories, null, 2));
+}
+
+function downloadApprovedTrajectories() {
+  const json = JSON.stringify(approvedTrajectories, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = url;
+  anchor.download = `nagani-v1-approved-trajectories-${Date.now()}.json`;
+  anchor.click();
+
+  URL.revokeObjectURL(url);
+}
+
 useEffect(() => {
   return () => {
     shadowWorkerRef.current?.terminate();
@@ -351,6 +541,18 @@ const shadowWorkerRef = useRef<Worker | null>(null);
 const shadowRequestCounterRef = useRef(0);
 const [sequenceRunning, setSequenceRunning] = useState(false);
 const [capturedResults, setCapturedResults] = useState<CapturedDiceResult[]>([]);
+const [trajectoryRecorderEnabled, setTrajectoryRecorderEnabled] =
+  useState(false);
+const [trajectoryRecordings, setTrajectoryRecordings] = useState<
+  DiceTrajectoryRecorderComplete[]
+>([]);
+const [approvedTrajectories, setApprovedTrajectories] = useState<
+  ApprovedDiceTrajectory[]
+>([]);
+const [trajectoryPreviewIndex, setTrajectoryPreviewIndex] =
+  useState<number | null>(null);
+const [trajectoryReplayKey, setTrajectoryReplayKey] = useState(0);
+const [trajectoryExportText, setTrajectoryExportText] = useState("");
 const capturedDieNumbersRef = useRef<Set<number>>(new Set());
 const sequenceComplete = capturedResults.length === 3 && !sequenceRunning;
 const finalResultSummary =
@@ -359,6 +561,18 @@ const finalResultSummary =
     : "Waiting";
 const targetTestEnabled =
   targetCorrectionTestEnabled || targetLaunchRecipeEnabled;
+const selectedTrajectoryPreview =
+  trajectoryPreviewIndex === null
+    ? null
+    : trajectoryRecordings[trajectoryPreviewIndex] ?? null;
+
+const isTrajectoryPreviewing = Boolean(selectedTrajectoryPreview);
+
+const trajectoryRecorderStatus = trajectoryRecorderEnabled
+  ? "Recording"
+  : trajectoryRecordings.length > 0
+    ? "Captured"
+    : "Idle";
 
 const effectiveShowDice = cleanTableShotMode ? false : showDice;
 const effectiveShowResultBoard = cleanTableShotMode ? false : showResultBoard;
@@ -590,7 +804,7 @@ const royalBoardSub = sequenceComplete
 useEffect(() => {
   if (!sequenceRunning || !settled || !faceResult) return;
 
-if (shadowSmokeResult) {
+if (shadowSmokeResult || isTrajectoryPreviewing) {
   return;
 }
 
@@ -643,12 +857,31 @@ if (activeDieIndex >= 2) {
   activeDieIndex,
   targetTestEnabled,
   shadowSmokeResult,
+  isTrajectoryPreviewing,
 ]);
+
+useEffect(() => {
+  if (!trajectoryRecorderEnabled) return;
+  if (sequenceRunning) return;
+  if (capturedResults.length < 3) return;
+
+  setTrajectoryRecorderEnabled(false);
+}, [trajectoryRecorderEnabled, sequenceRunning, capturedResults.length]);
+
+useEffect(() => {
+  if (!isTrajectoryPreviewing || !settled || !faceResult) return;
+
+  const timer = window.setTimeout(() => {
+    setSequenceRunning(false);
+  }, 1000);
+
+  return () => window.clearTimeout(timer);
+}, [isTrajectoryPreviewing, settled, faceResult]);
 
   return (
     <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-5">
-        <header className="flex items-center justify-between gap-3">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col px-3 py-5 2xl:px-6">
+        <header className="grid gap-4 xl:grid-cols-[360px_1fr] xl:items-start">
           <div>
 <p className="text-xs font-black uppercase tracking-[0.35em] text-amber-300/70">
   Chapter 78.3
@@ -661,7 +894,7 @@ if (activeDieIndex >= 2) {
 </p>
           </div>
 
-<div className="flex flex-wrap items-center justify-end gap-3">
+<div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
 <div className="grid grid-cols-3 gap-2 rounded-2xl border border-sky-300/20 bg-sky-300/10 px-3 py-3 shadow-xl shadow-black/30">
   {targetAnimals.map((animal, index) => (
     <label key={`target-animal-${index}`} className="flex items-center gap-2">
@@ -920,6 +1153,32 @@ if (activeDieIndex >= 2) {
           : "Ready"}
 </button>
 
+<button
+  type="button"
+  disabled={sequenceRunning || shadowSmokeStatus === "running"}
+  onClick={runV1TrajectoryRecorder}
+  className={
+    trajectoryRecorderEnabled
+      ? "cursor-wait rounded-2xl border border-sky-300/25 bg-sky-300/15 px-4 py-3 text-sm font-black text-sky-100 shadow-xl shadow-black/30"
+      : "rounded-2xl border border-fuchsia-300/25 bg-fuchsia-300/15 px-4 py-3 text-sm font-black text-fuchsia-100 shadow-xl shadow-black/30"
+  }
+>
+  Record V1 3 Dice
+</button>
+
+<button
+  type="button"
+  disabled={!trajectoryRecorderEnabled}
+  onClick={stopV1TrajectoryRecorder}
+  className={
+    trajectoryRecorderEnabled
+      ? "rounded-2xl border border-red-300/25 bg-red-300/15 px-4 py-3 text-sm font-black text-red-100 shadow-xl shadow-black/30"
+      : "cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-white/25 shadow-xl shadow-black/30"
+  }
+>
+  Stop Recorder
+</button>
+
   <button
   type="button"
 onClick={() => {
@@ -1050,7 +1309,9 @@ setShadowSequenceStatus("idle");
   showDice={effectiveShowDice}
   forceShowStumbleBar={cleanTableShotMode}
 targetAnimal={
-  targetCorrectionTestEnabled || targetLaunchRecipeEnabled
+  shadowSmokeResult ||
+  targetCorrectionTestEnabled ||
+  targetLaunchRecipeEnabled
     ? activeTargetAnimal
     : null
 }
@@ -1059,29 +1320,25 @@ targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
 strictReadableResultGate={
   targetCorrectionTestEnabled || targetLaunchRecipeEnabled
 }
-recordedTrajectoryFrames={
+shadowLaunchRecipe={
   shadowSmokeResult?.kind === "search-success"
-    ? shadowSmokeResult.frames
-    : shadowSmokeResult?.kind === "search-fail"
-      ? shadowSmokeResult.bestMatchedFrames ?? null
-      : null
+    ? shadowSmokeResult.launchRecipe
+    : null
 }
-recordedTrajectoryReplayKey={
-  shadowSmokeResult?.kind === "search-success"
-    ? shadowSmokeResult.attemptCount + shadowSmokeResult.frames.length
-    : shadowSmokeResult?.kind === "search-fail" &&
-        shadowSmokeResult.bestMatchedFrames
-      ? shadowSmokeResult.attemptCount +
-        shadowSmokeResult.bestMatchedFrames.length
-      : 0
+recordedTrajectoryFrames={selectedTrajectoryPreview?.frames ?? null}
+recordedTrajectoryReplayKey={trajectoryReplayKey}
+trajectoryRecorderEnabled={
+  trajectoryRecorderEnabled && !selectedTrajectoryPreview
 }
+onTrajectoryRecorderComplete={handleTrajectoryRecorderComplete}
+enableV1PhysicalRelease
 />
   </div>
 </section>
 
         {cleanTableShotMode ? null : (
-<section className="mt-4 grid gap-3 md:grid-cols-4 xl:grid-cols-8">
-          <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">
+<section className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-12">
+          <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 md:col-span-1 xl:col-span-3">
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-200/60">
               Physics Status
             </p>
@@ -1090,7 +1347,7 @@ recordedTrajectoryReplayKey={
             </p>
           </div>
 
-          <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">
+          <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 md:col-span-1 xl:col-span-3">
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-200/60">
     Shape Preset
   </p>
@@ -1106,7 +1363,7 @@ recordedTrajectoryReplayKey={
   </div>
 </div>
 
-<div className="rounded-2xl border border-orange-300/20 bg-orange-300/10 p-4">
+<div className="rounded-2xl border border-orange-300/20 bg-orange-300/10 p-4 md:col-span-1 xl:col-span-3">
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-orange-200/60">
     Collider Preset
   </p>
@@ -1122,7 +1379,7 @@ recordedTrajectoryReplayKey={
   </div>
 </div>
 
-<div className="rounded-2xl border border-sky-300/20 bg-sky-300/10 p-4">
+<div className="rounded-2xl border border-sky-300/20 bg-sky-300/10 p-4 md:col-span-1 xl:col-span-3">
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-200/60">
     Target Face
   </p>
@@ -1161,7 +1418,7 @@ recordedTrajectoryReplayKey={
   </div>
 </div>
 
-<div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4">
+<div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 md:col-span-1 xl:col-span-3">
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-200/60">
     Target Validation
   </p>
@@ -1187,7 +1444,7 @@ recordedTrajectoryReplayKey={
   </div>
 </div>
 
-<div className="rounded-2xl border border-lime-300/20 bg-lime-300/10 p-4">
+<div className="rounded-2xl border border-lime-300/20 bg-lime-300/10 p-4 md:col-span-1 xl:col-span-3">
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-lime-200/60">
     Capture Summary
   </p>
@@ -1229,7 +1486,7 @@ recordedTrajectoryReplayKey={
   </div>
 </div>
 
-<div className="rounded-2xl border border-purple-300/20 bg-purple-300/10 p-4">
+<div className="rounded-2xl border border-purple-300/20 bg-purple-300/10 p-4 md:col-span-1 xl:col-span-3">
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-purple-200/60">
     Production Completion
   </p>
@@ -1264,7 +1521,7 @@ recordedTrajectoryReplayKey={
   </div>
 </div>
 
-<div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4">
+<div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4 md:col-span-1 xl:col-span-3">
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-200/60">
     Readiness Gate
   </p>
@@ -1286,7 +1543,7 @@ recordedTrajectoryReplayKey={
   </div>
 </div>
 
-<div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+<div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:col-span-2 xl:col-span-4">
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/35">
     Bridge Payload
   </p>
@@ -1321,7 +1578,7 @@ recordedTrajectoryReplayKey={
 </div>
 </div>
 
-<div className={`rounded-2xl border p-4 ${shadowSmokeTone}`}>
+<div className={`rounded-2xl border p-4 md:col-span-2 xl:col-span-4 ${shadowSmokeTone}`}>
   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">
     Shadow Worker Smoke
   </p>
@@ -1559,7 +1816,112 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
   </div>
 </div>
 
-<div className={`rounded-2xl border p-4 ${resultPanelTone}`}>
+<div className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 p-4 md:col-span-2 xl:col-span-12">
+  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-fuchsia-200/60">
+    V1 Trajectory Recorder
+  </p>
+
+  <p className="mt-2 text-xl font-black text-white">
+    {trajectoryRecorderStatus}
+  </p>
+
+  <div className="mt-3 space-y-2 text-[11px] font-bold leading-relaxed text-white/55">
+    <p>Captured: {trajectoryRecordings.length}</p>
+    <p>Approved: {approvedTrajectories.length}</p>
+    <p>
+      Preview:{" "}
+      {selectedTrajectoryPreview
+        ? `${selectedTrajectoryPreview.finalAnimal} · D${
+            selectedTrajectoryPreview.dieIndex + 1
+          }`
+        : "None"}
+    </p>
+  </div>
+
+  {trajectoryRecordings.length > 0 ? (
+    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {trajectoryRecordings.map((recording, index) => (
+        <div
+          key={`trajectory-recording-${index}`}
+          className="rounded-2xl border border-white/10 bg-black/25 p-4"
+        >
+          <p className="font-black text-fuchsia-100">
+            #{index + 1} · D{recording.dieIndex + 1} ·{" "}
+            {recording.finalAnimal}
+          </p>
+
+          <p className="mt-1 text-white/45">
+            {recording.frames.length} frames · Readable{" "}
+            {recording.readableAtSeconds}s · End{" "}
+            {recording.motionEndSeconds}s
+          </p>
+
+          <p className="mt-1 text-white/45">
+            Travel {recording.metrics.horizontalTravel} · Tumble{" "}
+            {recording.metrics.tumbleTurns} · Deflector{" "}
+            {recording.metrics.deflectorBounceScore}
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => previewTrajectoryRecording(index)}
+              className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
+            >
+              Preview
+            </button>
+
+            <button
+              type="button"
+              onClick={() => approveTrajectoryRecording(index)}
+              className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
+            >
+              Approve
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : null}
+
+  <div className="mt-3 flex flex-wrap gap-2">
+    <button
+      type="button"
+      disabled={approvedTrajectories.length === 0}
+      onClick={exportApprovedTrajectories}
+      className={
+        approvedTrajectories.length > 0
+          ? "rounded-xl border border-amber-300/25 bg-amber-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100"
+          : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
+      }
+    >
+      Export JSON
+    </button>
+
+    <button
+      type="button"
+      disabled={approvedTrajectories.length === 0}
+      onClick={downloadApprovedTrajectories}
+      className={
+        approvedTrajectories.length > 0
+          ? "rounded-xl border border-cyan-300/25 bg-cyan-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100"
+          : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
+      }
+    >
+      Download
+    </button>
+  </div>
+
+  {trajectoryExportText ? (
+    <textarea
+      readOnly
+      value={trajectoryExportText}
+      className="mt-3 h-48 w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-[10px] leading-relaxed text-fuchsia-50 outline-none"
+    />
+  ) : null}
+</div>
+
+<div className={`rounded-2xl border p-4 md:col-span-2 xl:col-span-4 ${resultPanelTone}`}>
 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">
   Physical Capture
 </p>

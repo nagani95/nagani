@@ -8,6 +8,8 @@ import { Euler, MathUtils, Quaternion, Vector3 } from "three";
 import {
   DICE_HOLDER_X_POSITIONS,
   PHYSICS_GRAVITY,
+  PRODUCTION_DICE_COLLIDER_PRESET,
+  getDiceColliderConfig,
   TABLE_DEFLECTOR_FRICTION,
   TABLE_DEFLECTOR_RESTITUTION,
   TABLE_DEFLECTOR_SHOULDER_FRICTION,
@@ -51,7 +53,7 @@ const PREMIUM_MOTION_SCORE = 74;
 const RECORDED_TRAJECTORY_REPLAY_TIME_SCALE = 1.35;
 
 const SHADOW_ATTEMPT_MIN = 180;
-const SHADOW_ATTEMPT_MAX = 420;
+const SHADOW_ATTEMPT_MAX = 980;
 const SHADOW_EARLY_ACCEPT_MIN_ATTEMPTS = 120;
 const SHADOW_EARLY_ACCEPT_SOUL_SCORE = 72;
 
@@ -69,6 +71,21 @@ const MAX_SOUL_DEAD_SLIDE_SECONDS = 0.75;
 const MIN_SOUL_LATE_TUMBLE_TURNS = 0.35;
 const MIN_SOUL_DEFLECTOR_BOUNCE_SCORE = 0.35;
 const MAX_SOUL_FRONT_STOP_RISK = 0.72;
+
+const V1_HOLDER_WALL_RELEASE_Z_OFFSET = 0.67;
+
+const V1_WORKER_DICE_RESTITUTION = 0.5;
+const V1_WORKER_DICE_FRICTION = 0.36;
+
+const V1_WORKER_UPPER_RUNWAY_RESTITUTION = 0.28;
+const V1_WORKER_UPPER_RUNWAY_FRICTION = 0.3;
+const V1_WORKER_SETTLING_RUNWAY_RESTITUTION = 0.14;
+const V1_WORKER_SETTLING_RUNWAY_FRICTION = 0.4;
+
+const V1_WORKER_DEFLECTOR_RESTITUTION = 0.78;
+const V1_WORKER_DEFLECTOR_FRICTION = 0.18;
+const V1_WORKER_DEFLECTOR_SHOULDER_RESTITUTION = 0.7;
+const V1_WORKER_DEFLECTOR_SHOULDER_FRICTION = 0.22;
 
 type ShadowCuboid = {
   args: [number, number, number];
@@ -578,25 +595,16 @@ function createNaturalAttemptLaunch({
       w: releaseQuaternion.w,
     },
     linvel: {
-      // Very small side drift only. No side throw.
-      x:
-        fallbackLinvel.x * 0.38 +
-        waveA * 0.045 +
-        (activeDieIndex - 1) * 0.025,
-
-      // Gravity-led release. Strong enough to break holder contact,
-      // but not an invisible hand punch.
-      y: Math.min(-0.42, fallbackLinvel.y * 0.42 - 0.05 - energy * 0.035),
-
-      // Small forward slide toward the deflector.
-      // The deflector should create the real tumble, not frame-0 spin.
-      z: Math.max(0.18, fallbackLinvel.z * 0.36 + 0.04 + waveC * 0.025),
+      // Match V1 feeling: mostly gravity, only tiny looseness.
+      x: waveA * 0.032 + (activeDieIndex - 1) * 0.018,
+      y: -0.035 - energy * 0.012,
+      z: 0.018 + waveC * 0.018,
     },
     angvel: {
-      // Almost no initial spin. Real tumble should come after collision.
-      x: fallbackAngvel.x * 0.16 + waveC * 0.18,
-      y: fallbackAngvel.y * 0.12 + waveA * 0.14,
-      z: fallbackAngvel.z * 0.16 + waveD * 0.18,
+      // No throw spin. The deflector/table must create the tumble.
+      x: waveC * 0.08,
+      y: waveA * 0.065,
+      z: waveD * 0.08,
     },
   };
 }
@@ -678,16 +686,16 @@ addFixedCuboid({
   args: [table.halfWidth, 0.09, table.upperFloorDepth / 2 + 0.02],
   position: [0, table.upperFloorY, table.upperFloorZ],
   rotation: [table.runwaySlopeAngle, 0, 0],
-  restitution: 0.12,
-  friction: 0.38,
+  restitution: V1_WORKER_UPPER_RUNWAY_RESTITUTION,
+  friction: V1_WORKER_UPPER_RUNWAY_FRICTION,
 });
 
 addFixedCuboid({
   args: [table.halfWidth, 0.09, table.settlingFloorDepth / 2 + 0.02],
   position: [0, table.settlingFloorY, table.settlingFloorZ],
   rotation: [table.settlingSlopeAngle, 0, 0],
-  restitution: 0.08,
-  friction: 0.34,
+  restitution: V1_WORKER_SETTLING_RUNWAY_RESTITUTION,
+  friction: V1_WORKER_SETTLING_RUNWAY_FRICTION,
 });
 
     addFixedCuboid({
@@ -695,31 +703,20 @@ addFixedCuboid({
       position: [0, 1.05, table.backWallZ],
     });
 
-    // Shadow-only rear slide guide.
-// Gives the die a real wall-following contact path from holder area toward the deflector.
-// This is not target correction and does not touch production /six-animal yet.
-addFixedCuboid({
-  args: [1.72, 0.028, 1.05],
-  position: [0, 1.48, table.backWallZ + 0.54],
-  rotation: [-1.18, 0, 0],
-  restitution: 0.12,
-  friction: 0.28,
-});
-
     addFixedCuboid({
       args: [1.675, 0.04, 0.095],
       position: [0, 0.39, table.backWallZ + 0.78],
       rotation: [0.12, 0, 0],
-      restitution: TABLE_DEFLECTOR_RESTITUTION,
-      friction: TABLE_DEFLECTOR_FRICTION,
+      restitution: V1_WORKER_DEFLECTOR_RESTITUTION,
+      friction: V1_WORKER_DEFLECTOR_FRICTION,
     });
 
     addFixedCuboid({
       args: [1.58, 0.032, 0.075],
       position: [0, 0.55, table.backWallZ + 0.735],
       rotation: [0.32, 0, 0],
-      restitution: TABLE_DEFLECTOR_SHOULDER_RESTITUTION,
-      friction: TABLE_DEFLECTOR_SHOULDER_FRICTION,
+      restitution: V1_WORKER_DEFLECTOR_SHOULDER_RESTITUTION,
+      friction: V1_WORKER_DEFLECTOR_SHOULDER_FRICTION,
     });
 
     addFixedCuboid({
@@ -786,8 +783,8 @@ const defaultStartPosition = getActiveDiceStartPosition({
 // Start from the mounted holder/wall line instead of already popping forward.
 const startPosition: [number, number, number] = [
   defaultStartPosition[0],
-  defaultStartPosition[1],
-  table.backWallZ + 0.42,
+  2.82,
+  table.backWallZ + V1_HOLDER_WALL_RELEASE_Z_OFFSET,
 ];
 
     const resetKey = getAttemptResetKey({
@@ -822,6 +819,29 @@ const launch = createNaturalAttemptLaunch({
   fallbackAngvel,
 });
 
+const launchRecipe = {
+  version: "v1-holder-wall-release" as const,
+  dieIndex: activeDieIndex,
+  attemptNumber,
+  startPosition,
+  rotation: [
+    launch.rotation.x,
+    launch.rotation.y,
+    launch.rotation.z,
+    launch.rotation.w,
+  ] as [number, number, number, number],
+  linvel: [launch.linvel.x, launch.linvel.y, launch.linvel.z] as [
+    number,
+    number,
+    number,
+  ],
+  angvel: [launch.angvel.x, launch.angvel.y, launch.angvel.z] as [
+    number,
+    number,
+    number,
+  ],
+};
+
     const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
       .setTranslation(startPosition[0], startPosition[1], startPosition[2])
       .setRotation(launch.rotation)
@@ -834,14 +854,18 @@ const launch = createNaturalAttemptLaunch({
 
     const diceBody = world.createRigidBody(bodyDesc);
 
+const productionDiceCollider = getDiceColliderConfig(
+  PRODUCTION_DICE_COLLIDER_PRESET
+);
+
 const diceColliderDesc = RAPIER.ColliderDesc.roundCuboid(
-  0.473,
-  0.473,
-  0.473,
-  0.02
+  productionDiceCollider.args[0],
+  productionDiceCollider.args[1],
+  productionDiceCollider.args[2],
+  productionDiceCollider.args[3]
 )
-  .setRestitution(0.71)
-  .setFriction(0.41);
+  .setRestitution(V1_WORKER_DICE_RESTITUTION)
+  .setFriction(V1_WORKER_DICE_FRICTION);
 
     world.createCollider(diceColliderDesc, diceBody);
 
@@ -878,6 +902,7 @@ const motionQuality = getTrajectoryMotionQuality(frames, table);
       motionGrade: motionQuality.grade,
       motionNotes: motionQuality.notes,
       motionMetrics: motionQuality.metrics,
+      launchRecipe,
       frames,
       attemptCount: attemptNumber,
       simulationSeconds: maxSimulationSeconds,
@@ -1065,6 +1090,7 @@ return {
   bestMatchedMotionNotes: bestMatchedAttempt?.motionNotes,
   bestMatchedMotionMetrics: bestMatchedAttempt?.motionMetrics,
   bestMatchedAttemptCount: bestMatchedAttempt?.attemptCount,
+    bestMatchedLaunchRecipe: bestMatchedAttempt?.launchRecipe,
   bestMatchedFrames: bestMatchedAttempt?.frames,
 };
 }

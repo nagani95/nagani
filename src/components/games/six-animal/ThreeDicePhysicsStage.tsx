@@ -59,7 +59,12 @@ getDefaultTrapLaunchAngvel,
   getTargetLaunchRecipeProfile,
   getTargetLaunchSeed,  
 } from "./physics/physicsConstants";
-import type { DiceTrajectoryFrame } from "./physics/diceShadowTypes";
+import type {
+  DiceShadowLaunchRecipe,
+  DiceShadowMotionMetrics,
+  DiceTrajectoryFrame,
+  DiceTrajectoryRecorderComplete,
+} from "./physics/diceShadowTypes";
 
 export type {
   DiceAnimalLabel,
@@ -946,6 +951,193 @@ function getRecordedFrameMotionScore({
   return positionSpeed + rotationSpeed * 0.18;
 }
 
+function roundRecorderNumber(value: number, decimals: number) {
+  const scale = 10 ** decimals;
+  return Math.round(value * scale) / scale;
+}
+
+function createV1RecordedMotionMetrics(
+  frames: DiceTrajectoryFrame[]
+): DiceShadowMotionMetrics {
+  if (frames.length < 2) {
+    return {
+      activeSeconds: 0,
+      visualActiveSeconds: 0,
+      deadSlideSeconds: 0,
+      deflectorBounceScore: 0,
+      directionChangeCount: 0,
+      directionChangeRadians: 0,
+      finalSettleScore: 0,
+      firstImpactScore: 0,
+      frontStopRisk: 1,
+      horizontalTravel: 0,
+      lateTumbleScore: 0,
+      lateTumbleTurns: 0,
+      lateralTravel: 0,
+      straightness: 1,
+      totalTravel: 0,
+      tumbleTurns: 0,
+    };
+  }
+
+  const table = createTableMeasurements();
+  const firstFrame = frames[0];
+  const lastFrame = frames[frames.length - 1];
+
+  let totalTravel = 0;
+  let horizontalTravel = 0;
+  let lateralTravel = 0;
+  let tumbleRadians = 0;
+  let lateTumbleRadians = 0;
+  let deadSlideSeconds = 0;
+  let directionChangeCount = 0;
+  let directionChangeRadians = 0;
+  let firstImpactScore = 0;
+  let deflectorBounceScore = 0;
+
+  let previousHorizontalDirection: Vector3 | null = null;
+
+  const deflectorZ = table.backWallZ + 0.78;
+  const lateStartT = lastFrame.t * 0.58;
+
+  for (let index = 1; index < frames.length; index += 1) {
+    const previousFrame = frames[index - 1];
+    const currentFrame = frames[index];
+    const dt = Math.max(0.001, currentFrame.t - previousFrame.t);
+
+    const previousPosition = new Vector3(...previousFrame.position);
+    const currentPosition = new Vector3(...currentFrame.position);
+    const deltaPosition = currentPosition.clone().sub(previousPosition);
+
+    const horizontalDelta = new Vector3(deltaPosition.x, 0, deltaPosition.z);
+    const horizontalDistance = horizontalDelta.length();
+
+    totalTravel += deltaPosition.length();
+    horizontalTravel += horizontalDistance;
+    lateralTravel += Math.abs(deltaPosition.x);
+
+    const previousQuaternion = new Quaternion(
+      previousFrame.rotation[0],
+      previousFrame.rotation[1],
+      previousFrame.rotation[2],
+      previousFrame.rotation[3]
+    ).normalize();
+
+    const currentQuaternion = new Quaternion(
+      currentFrame.rotation[0],
+      currentFrame.rotation[1],
+      currentFrame.rotation[2],
+      currentFrame.rotation[3]
+    ).normalize();
+
+    const rotationDelta = previousQuaternion.angleTo(currentQuaternion);
+    tumbleRadians += rotationDelta;
+
+    if (currentFrame.t >= lateStartT) {
+      lateTumbleRadians += rotationDelta;
+    }
+
+    const horizontalSpeed = horizontalDistance / dt;
+    const rotationSpeed = rotationDelta / dt;
+
+    if (horizontalSpeed > 0.18 && rotationSpeed < 0.42) {
+      deadSlideSeconds += dt;
+    }
+
+    if (horizontalDistance > 0.012) {
+      const currentHorizontalDirection = horizontalDelta.normalize();
+
+      if (previousHorizontalDirection) {
+        const directionAngle =
+          previousHorizontalDirection.angleTo(currentHorizontalDirection);
+
+        if (directionAngle > 0.42) {
+          directionChangeCount += 1;
+          directionChangeRadians += directionAngle;
+        }
+      }
+
+      previousHorizontalDirection = currentHorizontalDirection.clone();
+    }
+
+    const isNearDeflector =
+      Math.abs(currentFrame.position[2] - deflectorZ) <= 0.28 &&
+      currentFrame.position[1] <= 1.15;
+
+    if (isNearDeflector && rotationSpeed > 1.1) {
+      deflectorBounceScore = Math.max(
+        deflectorBounceScore,
+        Math.min(1, rotationSpeed / 8)
+      );
+    }
+
+    if (currentFrame.t <= 1.35) {
+      firstImpactScore = Math.max(
+        firstImpactScore,
+        Math.min(1, Math.abs(deltaPosition.y) / Math.max(0.001, dt) / 5)
+      );
+    }
+  }
+
+  const directHorizontalTravel = new Vector3(
+    lastFrame.position[0] - firstFrame.position[0],
+    0,
+    lastFrame.position[2] - firstFrame.position[2]
+  ).length();
+
+  const straightness =
+    horizontalTravel > 0.001
+      ? Math.min(1, directHorizontalTravel / horizontalTravel)
+      : 1;
+
+  const finalWindow = frames.slice(Math.max(0, frames.length - 8));
+  let finalMotionScore = 0;
+
+  for (let index = 1; index < finalWindow.length; index += 1) {
+    finalMotionScore += getRecordedFrameMotionScore({
+      previousFrame: finalWindow[index - 1],
+      currentFrame: finalWindow[index],
+    });
+  }
+
+  const averageFinalMotion =
+    finalWindow.length > 1 ? finalMotionScore / (finalWindow.length - 1) : 999;
+
+  const finalSettleScore = MathUtils.clamp(
+    1 - averageFinalMotion / 1.25,
+    0,
+    1
+  );
+
+  const frontDistance = Math.abs(lastFrame.position[2] - table.frontEdgeZ);
+  const frontStopRisk = MathUtils.clamp(1 - frontDistance / 1.4, 0, 1);
+
+  const tumbleTurns = tumbleRadians / (Math.PI * 2);
+  const lateTumbleTurns = lateTumbleRadians / (Math.PI * 2);
+
+  return {
+    activeSeconds: roundRecorderNumber(lastFrame.t, 2),
+    visualActiveSeconds: roundRecorderNumber(lastFrame.t, 2),
+    deadSlideSeconds: roundRecorderNumber(deadSlideSeconds, 2),
+    deflectorBounceScore: roundRecorderNumber(deflectorBounceScore, 2),
+    directionChangeCount,
+    directionChangeRadians: roundRecorderNumber(directionChangeRadians, 2),
+    finalSettleScore: roundRecorderNumber(finalSettleScore, 2),
+    firstImpactScore: roundRecorderNumber(firstImpactScore, 2),
+    frontStopRisk: roundRecorderNumber(frontStopRisk, 2),
+    horizontalTravel: roundRecorderNumber(horizontalTravel, 2),
+    lateTumbleScore: roundRecorderNumber(
+      MathUtils.clamp(lateTumbleTurns / 0.65, 0, 1),
+      2
+    ),
+    lateTumbleTurns: roundRecorderNumber(lateTumbleTurns, 2),
+    lateralTravel: roundRecorderNumber(lateralTravel, 2),
+    straightness: roundRecorderNumber(straightness, 2),
+    totalTravel: roundRecorderNumber(totalTravel, 2),
+    tumbleTurns: roundRecorderNumber(tumbleTurns, 2),
+  };
+}
+
 function getRecordedTrajectoryReadableCapture(
   frames: DiceTrajectoryFrame[]
 ): RecordedReadableCapture | null {
@@ -1580,6 +1772,9 @@ targetPerformanceEnabled = false,
 strictReadableResultGate = false,
 targetLaunchRecipeEnabled = false,
 devPhysicalReleaseEnabled = false,
+shadowLaunchRecipe = null,
+trajectoryRecorderEnabled = false,
+onTrajectoryRecorderComplete = null,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -1595,6 +1790,11 @@ hideActiveDiceFaces?: boolean;
   strictReadableResultGate?: boolean;
   targetLaunchRecipeEnabled?: boolean;
   devPhysicalReleaseEnabled?: boolean;
+  shadowLaunchRecipe?: DiceShadowLaunchRecipe | null;
+    trajectoryRecorderEnabled?: boolean;
+  onTrajectoryRecorderComplete?:
+  | ((recording: DiceTrajectoryRecorderComplete) => void)
+  | null;
 }) {
 const bodyRef = useRef<RapierRigidBody | null>(null);
 const stillTimeRef = useRef(0);
@@ -1604,23 +1804,33 @@ const stableVisibleFaceKeyRef = useRef<string | null>(null);
 const stableVisibleFaceTimeRef = useRef(0);
 const lastCaptureRequestKeyRef = useRef(0);
 const softHoldStartedAtRef = useRef<number | null>(null);
+const trajectoryFramesRef = useRef<DiceTrajectoryFrame[]>([]);
+const trajectoryLastSampleSecondRef = useRef(-1);
+const trajectoryCompletedRef = useRef(false);
 
 const collider = getDiceColliderConfig(diceColliderPreset);
 const activeDieX = DICE_HOLDER_X_POSITIONS[activeDieIndex] ?? 0;
 const table = createTableMeasurements();
 
-const useKinematicTrapRelease =
-  devPhysicalReleaseEnabled && testMode === "trap" && !targetLaunchRecipeEnabled;
+const hasShadowLaunchRecipe = Boolean(shadowLaunchRecipe);
 
-const activeHolderStartPosition = useKinematicTrapRelease
-  ? getDevTrapReleaseDicePosition({
-      table,
-      activeDieX,
-    })
-  : getActiveDiceStartPosition({
-      testMode,
-      activeDieX,
-    });
+const useKinematicTrapRelease =
+  devPhysicalReleaseEnabled &&
+  testMode === "trap" &&
+  !targetLaunchRecipeEnabled &&
+  !hasShadowLaunchRecipe;
+
+const activeHolderStartPosition = shadowLaunchRecipe
+  ? shadowLaunchRecipe.startPosition
+  : useKinematicTrapRelease
+    ? getDevTrapReleaseDicePosition({
+        table,
+        activeDieX,
+      })
+    : getActiveDiceStartPosition({
+        testMode,
+        activeDieX,
+      });
 
 const fallbackActiveHolderStartRotation = getFallbackActiveDiceStartRotation({
   testMode,
@@ -1667,7 +1877,19 @@ const targetLaunchRecipe = createTargetAwareLaunchRecipe({
     testMode === "runway" ? defaultRunwayLaunchAngvel : defaultTrapLaunchAngvel,
 });
 
-const activeHolderStartRotation = targetLaunchRecipe.rotation;
+const shadowLaunchStartRotation = shadowLaunchRecipe
+  ? quaternionToEulerTuple(
+      new Quaternion(
+        shadowLaunchRecipe.rotation[0],
+        shadowLaunchRecipe.rotation[1],
+        shadowLaunchRecipe.rotation[2],
+        shadowLaunchRecipe.rotation[3]
+      )
+    )
+  : null;
+
+const activeHolderStartRotation =
+  shadowLaunchStartRotation ?? targetLaunchRecipe.rotation;
 
 useEffect(() => {
 stillTimeRef.current = 0;
@@ -1677,6 +1899,9 @@ stableVisibleFaceKeyRef.current = null;
 stableVisibleFaceTimeRef.current = 0;
 lastCaptureRequestKeyRef.current = captureRequestKey;
 softHoldStartedAtRef.current = null;
+trajectoryFramesRef.current = [];
+trajectoryLastSampleSecondRef.current = -1;
+trajectoryCompletedRef.current = false;
 
 onSettledChange(false);
 onFaceResultChange(null);
@@ -1684,6 +1909,28 @@ onFaceResultChange(null);
   const releaseFrame = window.requestAnimationFrame(() => {
     const body = bodyRef.current;
     if (!body) return;
+
+if (shadowLaunchRecipe) {
+  body.setLinvel(
+    {
+      x: shadowLaunchRecipe.linvel[0],
+      y: shadowLaunchRecipe.linvel[1],
+      z: shadowLaunchRecipe.linvel[2],
+    },
+    true
+  );
+
+  body.setAngvel(
+    {
+      x: shadowLaunchRecipe.angvel[0],
+      y: shadowLaunchRecipe.angvel[1],
+      z: shadowLaunchRecipe.angvel[2],
+    },
+    true
+  );
+
+  return;
+}
 
 if (useKinematicTrapRelease) {
   body.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -1709,16 +1956,123 @@ body.setAngvel(targetLaunchRecipe.angvel, true);
   targetLaunchRecipe.angvel.y,
   targetLaunchRecipe.angvel.z,
   useKinematicTrapRelease,
+    shadowLaunchRecipe,
 ]);
+
+function recordTrajectoryFrame({
+  body,
+  elapsedSeconds,
+  force = false,
+}: {
+  body: RapierRigidBody;
+  elapsedSeconds: number;
+  force?: boolean;
+}) {
+  if (!trajectoryRecorderEnabled || trajectoryCompletedRef.current) return;
+
+  const safeElapsedSeconds = Math.max(0, elapsedSeconds);
+
+  if (
+    !force &&
+    trajectoryLastSampleSecondRef.current >= 0 &&
+    safeElapsedSeconds - trajectoryLastSampleSecondRef.current < 1 / 60
+  ) {
+    return;
+  }
+
+  const position = body.translation();
+  const rotation = body.rotation();
+
+  trajectoryLastSampleSecondRef.current = safeElapsedSeconds;
+
+  trajectoryFramesRef.current.push({
+    t: roundRecorderNumber(safeElapsedSeconds, 4),
+    position: [
+      roundRecorderNumber(position.x, 5),
+      roundRecorderNumber(position.y, 5),
+      roundRecorderNumber(position.z, 5),
+    ],
+    rotation: [
+      roundRecorderNumber(rotation.x, 6),
+      roundRecorderNumber(rotation.y, 6),
+      roundRecorderNumber(rotation.z, 6),
+      roundRecorderNumber(rotation.w, 6),
+    ],
+  });
+}
+
+function completeTrajectoryRecording({
+  body,
+  capturedResult,
+}: {
+  body: RapierRigidBody;
+  capturedResult: DiceFaceResult;
+}) {
+  if (
+    !trajectoryRecorderEnabled ||
+    trajectoryCompletedRef.current ||
+    !onTrajectoryRecorderComplete
+  ) {
+    return;
+  }
+
+const elapsedSeconds = (performance.now() - rollStartedAtRef.current) / 1000;
+
+recordTrajectoryFrame({
+  body,
+  elapsedSeconds,
+  force: true,
+});
+
+trajectoryCompletedRef.current = true;
+
+  const frames = [...trajectoryFramesRef.current];
+
+  if (frames.length < 2) return;
+
+  const lastFrame = frames[frames.length - 1];
+  const readableCapture = getRecordedTrajectoryReadableCapture(frames);
+  const metrics = createV1RecordedMotionMetrics(frames);
+
+  const finalAnimal = (
+    capturedResult.status === "accepted"
+      ? capturedResult.label
+      : capturedResult.nearestLabel
+  ) as DiceAnimalLabel;
+
+  onTrajectoryRecorderComplete({
+    dieIndex: activeDieIndex,
+    frameRate: 60,
+    frames,
+    finalAnimal,
+    finalStatus: capturedResult.status,
+    finalConfidence: capturedResult.confidence,
+    finalTiltDegrees: capturedResult.tiltDegrees,
+    readableAtSeconds: roundRecorderNumber(
+      readableCapture?.t ?? lastFrame.t,
+      2
+    ),
+    motionEndSeconds: roundRecorderNumber(lastFrame.t, 2),
+    replayEndSeconds: roundRecorderNumber(lastFrame.t + 0.75, 2),
+    metrics,
+  });
+}
 
 useFrame((_, delta) => {
   const body = bodyRef.current;
   if (!body) return;
 
-  const linvel = body.linvel();
-    const angvel = body.angvel();
+const linvel = body.linvel();
+const angvel = body.angvel();
 
-    const movementSpeed =
+const rollAgeMs = performance.now() - rollStartedAtRef.current;
+
+recordTrajectoryFrame({
+  body,
+  elapsedSeconds: rollAgeMs / 1000,
+});
+
+const movementSpeed =
       Math.abs(linvel.x) +
       Math.abs(linvel.y) +
       Math.abs(linvel.z) +
@@ -1748,7 +2102,6 @@ const visibleFaceKey =
     ? `${visibleResult.label}:${visibleResult.axis}`
     : null;
 
-const rollAgeMs = performance.now() - rollStartedAtRef.current;
 const hasControllerCaptureRequest =
   captureRequestKey > 0 &&
   captureRequestKey !== lastCaptureRequestKeyRef.current;
@@ -1777,6 +2130,11 @@ softHoldStartedAtRef.current = performance.now();
 
 softenVisibleDiceBody(body);
 
+completeTrajectoryRecording({
+  body,
+  capturedResult,
+});
+
 onSettledChange(true);
 onFaceResultChange({
   ...capturedResult,
@@ -1803,7 +2161,7 @@ if (shouldUseSoftTargetPerformance) {
 
 const shouldRequireTargetMatch =
   Boolean(targetAnimal) &&
-  (targetPerformanceEnabled || targetLaunchRecipeEnabled);
+  (targetPerformanceEnabled || targetLaunchRecipeEnabled || hasShadowLaunchRecipe);
 
 const visibleFaceMatchesTarget =
   !shouldRequireTargetMatch || visibleResult.label === targetAnimal;
@@ -1847,7 +2205,7 @@ if (
   shouldGiveCockedDiceMoreSettleTime &&
   !settledRef.current
 ) {
-  if (shouldRequireTargetMatch) {
+   if (shouldRequireTargetMatch && shouldUseSoftTargetPerformance) {
     const currentLinvel = body.linvel();
 
     body.setLinvel(
@@ -1885,6 +2243,7 @@ z: currentLinvel.z * 0.96,
 }
 
 const shouldContinueTargetLanding =
+  shouldUseSoftTargetPerformance &&
   shouldRequireTargetMatch &&
   hasReachedHardRead &&
   rollAgeMs < TARGET_PERFORMANCE_END_MS &&
@@ -1932,6 +2291,11 @@ softenVisibleDiceBody(body);
 const defaultMessage = hasStableVisibleFace
   ? "Stable visible dice face captured and held."
   : "Nearest visible dice face captured and held at performance limit.";
+
+completeTrajectoryRecording({
+  body,
+  capturedResult,
+});
 
 onSettledChange(true);
 onFaceResultChange({
@@ -1981,6 +2345,11 @@ message: `Target miss. Expected ${targetAnimal}, visible ${rawCapturedResult.lab
       }
     : rawCapturedResult;
 
+completeTrajectoryRecording({
+  body,
+  capturedResult,
+});
+
 onSettledChange(true);
 onFaceResultChange({
   ...capturedResult,
@@ -1993,6 +2362,9 @@ message: createTargetAwareCaptureMessage({
 }
   });
 
+const useV1LiveReleaseMaterial =
+  useKinematicTrapRelease || hasShadowLaunchRecipe;
+
   return (
     <RigidBody
       ref={bodyRef}
@@ -2002,28 +2374,28 @@ message: createTargetAwareCaptureMessage({
 position={activeHolderStartPosition}
 rotation={activeHolderStartRotation}
 restitution={
-  useKinematicTrapRelease
+  useV1LiveReleaseMaterial
     ? DEV_ROLL_DICE_RESTITUTION
     : targetLaunchRecipeEnabled
       ? 0.46
       : 0.62
 }
 friction={
-  useKinematicTrapRelease
+  useV1LiveReleaseMaterial
     ? DEV_ROLL_DICE_FRICTION
     : targetLaunchRecipeEnabled
       ? 0.3
       : 0.22
 }
 linearDamping={
-  useKinematicTrapRelease
+  useV1LiveReleaseMaterial
     ? DEV_ROLL_DICE_LINEAR_DAMPING
     : targetLaunchRecipeEnabled
       ? 0.035
       : 0.004
 }
 angularDamping={
-  useKinematicTrapRelease
+  useV1LiveReleaseMaterial
     ? DEV_ROLL_DICE_ANGULAR_DAMPING
     : targetLaunchRecipeEnabled
       ? 0.055
@@ -3332,6 +3704,9 @@ targetLaunchRecipeEnabled = false,
 recordedTrajectoryFrames = null,
 recordedTrajectoryReplayKey = 0,
 devPhysicalReleaseEnabled = false,
+shadowLaunchRecipe = null,
+trajectoryRecorderEnabled = false,
+onTrajectoryRecorderComplete = null,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -3356,9 +3731,18 @@ targetLaunchRecipeEnabled?: boolean;
 recordedTrajectoryFrames?: DiceTrajectoryFrame[] | null;
 recordedTrajectoryReplayKey?: number;
 devPhysicalReleaseEnabled?: boolean;
+shadowLaunchRecipe?: DiceShadowLaunchRecipe | null;
+trajectoryRecorderEnabled?: boolean;
+onTrajectoryRecorderComplete?:
+  | ((recording: DiceTrajectoryRecorderComplete) => void)
+  | null;
 }) {
+  const hasShadowLaunchRecipe = Boolean(shadowLaunchRecipe);
+
   const hasRecordedTrajectory = Boolean(
-    recordedTrajectoryFrames && recordedTrajectoryFrames.length > 0
+    !hasShadowLaunchRecipe &&
+      recordedTrajectoryFrames &&
+      recordedTrajectoryFrames.length > 0
   );
 
   const shouldRenderRecordedDice =
@@ -3449,6 +3833,9 @@ targetPerformanceEnabled={targetPerformanceEnabled}
 strictReadableResultGate={strictReadableResultGate}
 targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
 devPhysicalReleaseEnabled={activeDevPhysicalReleaseEnabled}
+shadowLaunchRecipe={shadowLaunchRecipe}
+trajectoryRecorderEnabled={trajectoryRecorderEnabled}
+onTrajectoryRecorderComplete={onTrajectoryRecorderComplete}
 />
 ) : null}
       </Physics>
@@ -3496,6 +3883,9 @@ targetLaunchRecipeEnabled = false,
 recordedTrajectoryFrames = null,
 recordedTrajectoryReplayKey = 0,
 enableV1PhysicalRelease = false,
+shadowLaunchRecipe = null,
+trajectoryRecorderEnabled = false,
+onTrajectoryRecorderComplete = null,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -3520,6 +3910,11 @@ targetLaunchRecipeEnabled?: boolean;
 recordedTrajectoryFrames?: DiceTrajectoryFrame[] | null;
 recordedTrajectoryReplayKey?: number;
 enableV1PhysicalRelease?: boolean;
+shadowLaunchRecipe?: DiceShadowLaunchRecipe | null;
+trajectoryRecorderEnabled?: boolean;
+onTrajectoryRecorderComplete?:
+  | ((recording: DiceTrajectoryRecorderComplete) => void)
+  | null;
 }) {
 const effectiveDiceShapePreset: DiceShapePreset =
   variant === "lab" ? diceShapePreset : PRODUCTION_DICE_SHAPE_PRESET;
@@ -3572,6 +3967,9 @@ targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
 recordedTrajectoryFrames={recordedTrajectoryFrames}
 recordedTrajectoryReplayKey={recordedTrajectoryReplayKey}
 devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
+shadowLaunchRecipe={shadowLaunchRecipe}
+trajectoryRecorderEnabled={trajectoryRecorderEnabled}
+onTrajectoryRecorderComplete={onTrajectoryRecorderComplete}
 />
     </Canvas>
   );

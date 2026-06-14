@@ -27,6 +27,7 @@ const SHADOW_ATTEMPT_LIMIT = 980;
 const SHADOW_MAX_SIMULATION_SECONDS = 7.2;
 const SHADOW_FRAME_RATE: 30 | 60 = 30;
 const USE_V1_PHYSICAL_DICE_SEQUENCE = true;
+const USE_V1_BACKEND_TARGET_AUTHORITY = false;
 
 type ThreeDiceSequenceControllerProps = {
   enabled: boolean;
@@ -444,6 +445,10 @@ const handleFaceResultChange = useCallback(
     serverRngResults[activeDieIndex]
   );
 
+  const stageTargetAnimal = USE_V1_BACKEND_TARGET_AUTHORITY
+  ? activeTargetAnimal
+  : null;
+
   const activeShadowTrajectory = shadowTrajectories[activeDieIndex] ?? null;
   const activeShadowFrames = activeShadowTrajectory?.frames ?? null;
   const hasActiveShadowFrames = Boolean(activeShadowFrames?.length);
@@ -497,11 +502,15 @@ if (!USE_V1_PHYSICAL_DICE_SEQUENCE && !hasActiveShadowFrames) return;
       return;
     }
 
-    if (activeTargetAnimal && capturedResult.label !== activeTargetAnimal) {
-      console.warn(
-        `[Nagani Dice] Recorded trajectory visible mismatch on Die ${dieNumber}. Expected ${activeTargetAnimal}, got ${capturedResult.label}.`
-      );
-    }
+    if (
+  USE_V1_BACKEND_TARGET_AUTHORITY &&
+  activeTargetAnimal &&
+  capturedResult.label !== activeTargetAnimal
+) {
+  console.warn(
+    `[Nagani Dice] Backend-target trajectory mismatch on Die ${dieNumber}. Expected ${activeTargetAnimal}, got ${capturedResult.label}.`
+  );
+}
 
     capturedDieNumbersRef.current.add(dieNumber);
     capturedResultsOwnerRef.current = activeVisualRoundIdRef.current;
@@ -610,11 +619,11 @@ const stageRecordedFrames =
         mountedDiceRackMode={stageMountedDiceRackMode}
         hideActiveDiceFaces={false}
         captureRequestKey={0}
-        targetAnimal={activeTargetAnimal}
-        targetPerformanceEnabled={false}
-        strictReadableResultGate={false}
-        targetLaunchRecipeEnabled={false}
-        recordedTrajectoryFrames={stageRecordedFrames}
+targetAnimal={stageTargetAnimal}
+targetPerformanceEnabled={USE_V1_BACKEND_TARGET_AUTHORITY}
+strictReadableResultGate={false}
+targetLaunchRecipeEnabled={USE_V1_BACKEND_TARGET_AUTHORITY}
+recordedTrajectoryFrames={stageRecordedFrames}
 recordedTrajectoryReplayKey={resetKey}
 enableV1PhysicalRelease={USE_V1_PHYSICAL_DICE_SEQUENCE}
       />

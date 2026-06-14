@@ -43,6 +43,7 @@ const ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY =
 
 const SIX_ANIMAL_ROOM_UUID = "11111111-1111-1111-1111-111111111111";
 const BET_AMOUNT_STEP = 1000;
+const USE_V1_AUTO_VISIBLE_ROOM_RESULT = true;
 
 type LiveSixAnimalRound = {
   id: string;
@@ -166,6 +167,27 @@ function getPairKey(animalA: SixAnimalKey, animalB: SixAnimalKey) {
 
 function getAnimalByNameMm(nameMm: string) {
   return SIX_ANIMAL_OPTIONS.find((animal) => animal.nameMm === nameMm);
+}
+
+function getVisibleDicePayloadResultNames(
+  payload: ThreeDiceRoundPayload,
+  revealCount = SIX_ANIMAL_RULES.diceCount
+) {
+  return payload.results
+    .slice(0, revealCount)
+    .map((label) => {
+      const normalizedLabel = String(label).toLowerCase();
+
+      return (
+        SIX_ANIMAL_OPTIONS.find(
+          (animal) =>
+            animal.name.toLowerCase() === normalizedLabel ||
+            animal.nameMm === label ||
+            animal.key === normalizedLabel
+        )?.nameMm ?? null
+      );
+    })
+    .filter((nameMm): nameMm is string => Boolean(nameMm));
 }
 
 function convertBackendBetToActiveBet(
@@ -504,6 +526,27 @@ if (nextPhase === "closed") {
     return;
   }
 
+if (USE_V1_AUTO_VISIBLE_ROOM_RESULT) {
+  setServerRngResults(backendResultKeys);
+  serverRngResultsRef.current = backendResultKeys;
+
+  setRollingStartedAt(round.rolling_starts_at);
+
+  // If local V1 dice already started for this round, do not let
+  // repeated CLOSED polling stop the dice animation.
+  if (visualStartedRoundIdRef.current === round.id) {
+    return;
+  }
+
+  setVisualDiceStatus("idle");
+  visualDiceStatusRef.current = "idle";
+
+  setShouldPlayLiveDiceSequence(false);
+  shouldPlayLiveDiceSequenceRef.current = false;
+
+  return;
+}
+
   if (visualStartedRoundIdRef.current !== round.id) {
     clearVisibleDiceRoundState();
 
@@ -835,8 +878,11 @@ const canPlayShadowDice =
   visualDiceStatus === "playing" &&
   (phase === "rolling" || isResultPhaseVisualGuard);
 
+const canPreloadShadowDice =
+  !USE_V1_AUTO_VISIBLE_ROOM_RESULT && canPrepareShadowDice;
+
 const shouldEnableDiceController =
-  !showFinalResultPanel && (canPrepareShadowDice || canPlayShadowDice);
+  !showFinalResultPanel && (canPreloadShadowDice || canPlayShadowDice);
 
 const shouldConfirmBrowserRefresh =
   !showRoomIntro &&
@@ -1429,7 +1475,6 @@ function handleThreeDiceComplete(
   payload: ThreeDiceRoundPayload,
   payloadRoundId?: string | null
 ) {
-  void payload;
 
   if (
     !payloadRoundId ||
@@ -1446,7 +1491,9 @@ function handleThreeDiceComplete(
     return;
   }
 
-  const resultNames = getBackendResultNames(SIX_ANIMAL_RULES.diceCount);
+ const resultNames = USE_V1_AUTO_VISIBLE_ROOM_RESULT
+  ? getVisibleDicePayloadResultNames(payload, SIX_ANIMAL_RULES.diceCount)
+  : getBackendResultNames(SIX_ANIMAL_RULES.diceCount);
 
   if (resultNames.length !== SIX_ANIMAL_RULES.diceCount) return;
 
@@ -1547,7 +1594,9 @@ function handleThreeDiceProgress(
     SIX_ANIMAL_RULES.diceCount
   );
 
-  const resultNames = getBackendResultNames(revealCount);
+  const resultNames = USE_V1_AUTO_VISIBLE_ROOM_RESULT
+  ? getVisibleDicePayloadResultNames(payload, revealCount)
+  : getBackendResultNames(revealCount);
 
   if (resultNames.length > lastDiceSoundCountRef.current) {
     playRoomSound("result-reveal");

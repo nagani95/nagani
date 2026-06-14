@@ -8,6 +8,16 @@ export type DiceTrajectoryFrame = {
   rotation: [number, number, number, number];
 };
 
+export type DiceShadowLaunchRecipe = {
+  version: "v1-holder-wall-release";
+  dieIndex: number;
+  attemptNumber: number;
+  startPosition: [number, number, number];
+  rotation: [number, number, number, number];
+  linvel: [number, number, number];
+  angvel: [number, number, number];
+};
+
 export type DiceShadowFinalFaceStatus = "accepted" | "cocked";
 
 export type DiceShadowMotionGrade = "premium" | "accepted" | "weak";
@@ -29,6 +39,64 @@ export type DiceShadowMotionMetrics = {
   straightness: number;
   totalTravel: number;
   tumbleTurns: number;
+};
+
+export type ApprovedDiceTrajectorySource =
+  | "v1-live-physics-recorder"
+  | "shadow-worker-diagnostic";
+
+export type ApprovedDiceTrajectoryTestMode = "trap" | "runway";
+
+export type ApprovedDiceTrajectory = {
+  version: "v1-approved-trajectory-60hz";
+  id: string;
+  source: ApprovedDiceTrajectorySource;
+
+  finalAnimal: DiceAnimalLabel;
+  finalStatus: DiceShadowFinalFaceStatus;
+  finalConfidence: number;
+  finalTiltDegrees: number;
+
+  dieIndex: number;
+  testMode: ApprovedDiceTrajectoryTestMode;
+
+  frameRate: 60;
+  frames: DiceTrajectoryFrame[];
+
+  readableAtSeconds: number;
+  motionEndSeconds: number;
+  replayEndSeconds: number;
+
+  metrics: DiceShadowMotionMetrics;
+  motionScore: number;
+  motionGrade: DiceShadowMotionGrade;
+  notes: string[];
+
+  approved: boolean;
+  createdAt: string;
+
+  diceShapePreset?: string;
+  diceColliderPreset?: string;
+};
+
+export type DiceTrajectoryRecorderSample = {
+  dieIndex: number;
+  frameRate: 60;
+  frames: DiceTrajectoryFrame[];
+};
+
+export type DiceTrajectoryRecorderComplete = {
+  dieIndex: number;
+  frameRate: 60;
+  frames: DiceTrajectoryFrame[];
+  finalAnimal: DiceAnimalLabel;
+  finalStatus: DiceShadowFinalFaceStatus;
+  finalConfidence: number;
+  finalTiltDegrees: number;
+  readableAtSeconds: number;
+  motionEndSeconds: number;
+  replayEndSeconds: number;
+  metrics: DiceShadowMotionMetrics;
 };
 
 export type DiceShadowSearchRequest = {
@@ -55,12 +123,19 @@ export type DiceShadowSearchSuccess = {
   motionGrade: DiceShadowMotionGrade;
   motionNotes: string[];
   motionMetrics: DiceShadowMotionMetrics;
+
+  // Old rejected production idea:
+  // worker recipe -> browser live physics.
+  // Keep this only for diagnostics/dev history.
+  launchRecipe: DiceShadowLaunchRecipe;
+
+  // Dev-only diagnostic/replay support.
+  // Do not use raw worker replay as final production visual path.
   frames: DiceTrajectoryFrame[];
+
   attemptCount: number;
   simulationSeconds: number;
 
-  // Optional timing markers.
-  // These let the replay director reveal result before the full recorded replay ends.
   readableAtSeconds?: number;
   motionEndSeconds?: number;
   replayEndSeconds?: number;
@@ -83,6 +158,11 @@ export type DiceShadowSearchFail = {
   bestMatchedMotionNotes?: string[];
   bestMatchedMotionMetrics?: DiceShadowMotionMetrics;
   bestMatchedAttemptCount?: number;
+
+  // Useful only for diagnostics.
+  bestMatchedLaunchRecipe?: DiceShadowLaunchRecipe;
+
+  // Dev-only diagnostic/replay support.
   bestMatchedFrames?: DiceTrajectoryFrame[];
 };
 
