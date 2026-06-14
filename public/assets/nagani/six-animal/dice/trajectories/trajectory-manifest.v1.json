@@ -1,0 +1,101 @@
+{
+  "schema": "nagani.sixAnimal.diceTrajectoryManifest.v1",
+  "version": 1,
+  "generatedAt": "2026-06-14T09:37:35.551Z",
+  "totalFiles": 6,
+  "counts": {
+    "Tiger": 1,
+    "Dragon": 1,
+    "Rooster": 1,
+    "Fish": 1,
+    "Crab": 1,
+    "Elephant": 1
+  },
+  "targetPerAnimal": 10,
+  "entries": [
+    {
+      "animal": "Rooster",
+      "dieIndex": 0,
+      "dieNumber": 1,
+      "fileName": "rooster-v1-d1-001.json",
+      "publicTargetPath": "public/assets/nagani/six-animal/dice/trajectories/rooster/rooster-v1-d1-001.json",
+      "loadPath": "/assets/nagani/six-animal/dice/trajectories/rooster/rooster-v1-d1-001.json",
+      "readableAtSeconds": 6.33,
+      "motionEndSeconds": 9.8,
+      "replayEndSeconds": 10.55,
+      "motionGrade": "accepted",
+      "motionScore": 54,
+      "confidence": 98
+    },
+    {
+      "animal": "Fish",
+      "dieIndex": 1,
+      "dieNumber": 2,
+      "fileName": "fish-v1-d2-001.json",
+      "publicTargetPath": "public/assets/nagani/six-animal/dice/trajectories/fish/fish-v1-d2-001.json",
+      "loadPath": "/assets/nagani/six-animal/dice/trajectories/fish/fish-v1-d2-001.json",
+      "readableAtSeconds": 5.07,
+      "motionEndSeconds": 6.66,
+      "replayEndSeconds": 7.41,
+      "motionGrade": "accepted",
+      "motionScore": 76,
+      "confidence": 99
+    },
+    {
+      "animal": "Crab",
+      "dieIndex": 2,
+      "dieNumber": 3,
+      "fileName": "crab-v1-d3-001.json",
+      "publicTargetPath": "public/assets/nagani/six-animal/dice/trajectories/crab/crab-v1-d3-001.json",
+      "loadPath": "/assets/nagani/six-animal/dice/trajectories/crab/crab-v1-d3-001.json",
+      "readableAtSeconds": 3.84,
+      "motionEndSeconds": 6.79,
+      "replayEndSeconds": 7.54,
+      "motionGrade": "accepted",
+      "motionScore": 73,
+      "confidence": 99
+    },
+    {
+      "animal": "Tiger",
+      "dieIndex": 0,
+      "dieNumber": 1,
+      "fileName": "tiger-v1-d1-001.json",
+      "publicTargetPath": "public/assets/nagani/six-animal/dice/trajectories/tiger/tiger-v1-d1-001.json",
+      "loadPath": "/assets/nagani/six-animal/dice/trajectories/tiger/tiger-v1-d1-001.json",
+      "readableAtSeconds": 6.78,
+      "motionEndSeconds": 8,
+      "replayEndSeconds": 8.75,
+      "motionGrade": "accepted",
+      "motionScore": 76,
+      "confidence": 94
+    },
+    {
+      "animal": "Elephant",
+      "dieIndex": 2,
+      "dieNumber": 3,
+      "fileName": "elephant-v1-d3-001.json",
+      "publicTargetPath": "public/assets/nagani/six-animal/dice/trajectories/elephant/elephant-v1-d3-001.json",
+      "loadPath": "/assets/nagani/six-animal/dice/trajectories/elephant/elephant-v1-d3-001.json",
+      "readableAtSeconds": 6.12,
+      "motionEndSeconds": 9.8,
+      "replayEndSeconds": 10.55,
+      "motionGrade": "accepted",
+      "motionScore": 56,
+      "confidence": 93
+    },
+    {
+      "animal": "Dragon",
+      "dieIndex": 2,
+      "dieNumber": 3,
+      "fileName": "dragon-v1-d3-001.json",
+      "publicTargetPath": "public/assets/nagani/six-animal/dice/trajectories/dragon/dragon-v1-d3-001.json",
+      "loadPath": "/assets/nagani/six-animal/dice/trajectories/dragon/dragon-v1-d3-001.json",
+      "readableAtSeconds": 5.7,
+      "motionEndSeconds": 9.8,
+      "replayEndSeconds": 10.55,
+      "motionGrade": "accepted",
+      "motionScore": 56,
+      "confidence": 97
+    }
+  ]
+}

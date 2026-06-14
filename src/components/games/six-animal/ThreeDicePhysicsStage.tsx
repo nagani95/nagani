@@ -956,6 +956,15 @@ function roundRecorderNumber(value: number, decimals: number) {
   return Math.round(value * scale) / scale;
 }
 
+function seededUnit(seed: number) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function seededRange(seed: number, min: number, max: number) {
+  return min + (max - min) * seededUnit(seed);
+}
+
 function createV1RecordedMotionMetrics(
   frames: DiceTrajectoryFrame[]
 ): DiceShadowMotionMetrics {
@@ -1774,6 +1783,7 @@ targetLaunchRecipeEnabled = false,
 devPhysicalReleaseEnabled = false,
 shadowLaunchRecipe = null,
 trajectoryRecorderEnabled = false,
+trajectoryRecorderRunNonce = 0,
 onTrajectoryRecorderComplete = null,
 }: {
   resetKey: number;
@@ -1795,6 +1805,7 @@ hideActiveDiceFaces?: boolean;
   onTrajectoryRecorderComplete?:
   | ((recording: DiceTrajectoryRecorderComplete) => void)
   | null;
+trajectoryRecorderRunNonce?: number;
 }) {
 const bodyRef = useRef<RapierRigidBody | null>(null);
 const stillTimeRef = useRef(0);
@@ -1814,28 +1825,83 @@ const table = createTableMeasurements();
 
 const hasShadowLaunchRecipe = Boolean(shadowLaunchRecipe);
 
+const recorderReleaseSeed =
+  trajectoryRecorderRunNonce + resetKey * 101 + activeDieIndex * 1009;
+
+const recorderReleaseJitterEnabled =
+  trajectoryRecorderEnabled &&
+  devPhysicalReleaseEnabled &&
+  testMode === "trap" &&
+  !targetLaunchRecipeEnabled &&
+  !hasShadowLaunchRecipe;
+
+const recorderPositionJitter = recorderReleaseJitterEnabled
+  ? {
+      x: seededRange(recorderReleaseSeed + 1, -0.085, 0.085),
+      y: seededRange(recorderReleaseSeed + 2, -0.025, 0.035),
+      z: seededRange(recorderReleaseSeed + 3, -0.055, 0.055),
+    }
+  : { x: 0, y: 0, z: 0 };
+
+const recorderRotationJitter = recorderReleaseJitterEnabled
+  ? {
+      x: seededRange(recorderReleaseSeed + 4, -0.18, 0.18),
+      y: seededRange(recorderReleaseSeed + 5, -0.24, 0.24),
+      z: seededRange(recorderReleaseSeed + 6, -0.18, 0.18),
+    }
+  : { x: 0, y: 0, z: 0 };
+
+const recorderInitialLinvel = recorderReleaseJitterEnabled
+  ? {
+      x: seededRange(recorderReleaseSeed + 7, -0.12, 0.12),
+      y: seededRange(recorderReleaseSeed + 8, -0.04, 0.04),
+      z: seededRange(recorderReleaseSeed + 9, -0.16, 0.18),
+    }
+  : { x: 0, y: 0, z: 0 };
+
+const recorderInitialAngvel = recorderReleaseJitterEnabled
+  ? {
+      x: seededRange(recorderReleaseSeed + 10, -0.85, 0.85),
+      y: seededRange(recorderReleaseSeed + 11, -0.55, 0.55),
+      z: seededRange(recorderReleaseSeed + 12, -0.85, 0.85),
+    }
+  : { x: 0, y: 0, z: 0 };
+
 const useKinematicTrapRelease =
   devPhysicalReleaseEnabled &&
   testMode === "trap" &&
   !targetLaunchRecipeEnabled &&
   !hasShadowLaunchRecipe;
 
+const v1TrapReleaseBasePosition = getDevTrapReleaseDicePosition({
+  table,
+  activeDieX,
+});
+
 const activeHolderStartPosition = shadowLaunchRecipe
   ? shadowLaunchRecipe.startPosition
   : useKinematicTrapRelease
-    ? getDevTrapReleaseDicePosition({
-        table,
-        activeDieX,
-      })
+    ? ([
+        v1TrapReleaseBasePosition[0] + recorderPositionJitter.x,
+        v1TrapReleaseBasePosition[1] + recorderPositionJitter.y,
+        v1TrapReleaseBasePosition[2] + recorderPositionJitter.z,
+      ] as [number, number, number])
     : getActiveDiceStartPosition({
         testMode,
         activeDieX,
       });
 
-const fallbackActiveHolderStartRotation = getFallbackActiveDiceStartRotation({
-  testMode,
-  activeDieIndex,
-});
+const baseFallbackActiveHolderStartRotation =
+  getFallbackActiveDiceStartRotation({
+    testMode,
+    activeDieIndex,
+  });
+
+const fallbackActiveHolderStartRotation: [number, number, number] = [
+  baseFallbackActiveHolderStartRotation[0] + recorderRotationJitter.x,
+  baseFallbackActiveHolderStartRotation[1] + recorderRotationJitter.y,
+  baseFallbackActiveHolderStartRotation[2] + recorderRotationJitter.z,
+];
 
 const lateralDrift = getDiceLateralDrift({
   activeDieIndex,
@@ -1933,8 +1999,8 @@ if (shadowLaunchRecipe) {
 }
 
 if (useKinematicTrapRelease) {
-  body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-  body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  body.setLinvel(recorderInitialLinvel, true);
+  body.setAngvel(recorderInitialAngvel, true);
   return;
 }
 
@@ -1956,6 +2022,13 @@ body.setAngvel(targetLaunchRecipe.angvel, true);
   targetLaunchRecipe.angvel.y,
   targetLaunchRecipe.angvel.z,
   useKinematicTrapRelease,
+  trajectoryRecorderRunNonce,
+recorderInitialLinvel.x,
+recorderInitialLinvel.y,
+recorderInitialLinvel.z,
+recorderInitialAngvel.x,
+recorderInitialAngvel.y,
+recorderInitialAngvel.z,
     shadowLaunchRecipe,
 ]);
 
@@ -3706,6 +3779,7 @@ recordedTrajectoryReplayKey = 0,
 devPhysicalReleaseEnabled = false,
 shadowLaunchRecipe = null,
 trajectoryRecorderEnabled = false,
+trajectoryRecorderRunNonce = 0,
 onTrajectoryRecorderComplete = null,
 }: {
   resetKey: number;
@@ -3733,6 +3807,7 @@ recordedTrajectoryReplayKey?: number;
 devPhysicalReleaseEnabled?: boolean;
 shadowLaunchRecipe?: DiceShadowLaunchRecipe | null;
 trajectoryRecorderEnabled?: boolean;
+trajectoryRecorderRunNonce?: number;
 onTrajectoryRecorderComplete?:
   | ((recording: DiceTrajectoryRecorderComplete) => void)
   | null;
@@ -3753,6 +3828,7 @@ onTrajectoryRecorderComplete?:
 
     const activeDevPhysicalReleaseEnabled =
   devPhysicalReleaseEnabled && testMode === "trap" && !hasRecordedTrajectory;
+  
 
   return (
     <>
@@ -3828,14 +3904,15 @@ devPhysicalReleaseEnabled={activeDevPhysicalReleaseEnabled}
   diceColliderPreset={diceColliderPreset}
   hideActiveDiceFaces={hideActiveDiceFaces}
   captureRequestKey={captureRequestKey}
-targetAnimal={targetAnimal}
-targetPerformanceEnabled={targetPerformanceEnabled}
-strictReadableResultGate={strictReadableResultGate}
-targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
-devPhysicalReleaseEnabled={activeDevPhysicalReleaseEnabled}
-shadowLaunchRecipe={shadowLaunchRecipe}
-trajectoryRecorderEnabled={trajectoryRecorderEnabled}
-onTrajectoryRecorderComplete={onTrajectoryRecorderComplete}
+  targetAnimal={targetAnimal}
+  targetPerformanceEnabled={targetPerformanceEnabled}
+  strictReadableResultGate={strictReadableResultGate}
+  targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
+  devPhysicalReleaseEnabled={activeDevPhysicalReleaseEnabled}
+  shadowLaunchRecipe={shadowLaunchRecipe}
+  trajectoryRecorderEnabled={trajectoryRecorderEnabled}
+  trajectoryRecorderRunNonce={trajectoryRecorderRunNonce}
+  onTrajectoryRecorderComplete={onTrajectoryRecorderComplete}
 />
 ) : null}
       </Physics>
@@ -3885,6 +3962,7 @@ recordedTrajectoryReplayKey = 0,
 enableV1PhysicalRelease = false,
 shadowLaunchRecipe = null,
 trajectoryRecorderEnabled = false,
+trajectoryRecorderRunNonce = 0,
 onTrajectoryRecorderComplete = null,
 }: {
   resetKey: number;
@@ -3912,6 +3990,7 @@ recordedTrajectoryReplayKey?: number;
 enableV1PhysicalRelease?: boolean;
 shadowLaunchRecipe?: DiceShadowLaunchRecipe | null;
 trajectoryRecorderEnabled?: boolean;
+trajectoryRecorderRunNonce?: number;
 onTrajectoryRecorderComplete?:
   | ((recording: DiceTrajectoryRecorderComplete) => void)
   | null;
@@ -3960,16 +4039,17 @@ return (
   showDice={showDice}
   forceShowStumbleBar={forceShowStumbleBar}
   captureRequestKey={captureRequestKey}
-targetAnimal={targetAnimal}
-targetPerformanceEnabled={targetPerformanceEnabled}
-strictReadableResultGate={strictReadableResultGate}
-targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
-recordedTrajectoryFrames={recordedTrajectoryFrames}
-recordedTrajectoryReplayKey={recordedTrajectoryReplayKey}
-devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
-shadowLaunchRecipe={shadowLaunchRecipe}
-trajectoryRecorderEnabled={trajectoryRecorderEnabled}
-onTrajectoryRecorderComplete={onTrajectoryRecorderComplete}
+  targetAnimal={targetAnimal}
+  targetPerformanceEnabled={targetPerformanceEnabled}
+  strictReadableResultGate={strictReadableResultGate}
+  targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
+  recordedTrajectoryFrames={recordedTrajectoryFrames}
+  recordedTrajectoryReplayKey={recordedTrajectoryReplayKey}
+  devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
+  shadowLaunchRecipe={shadowLaunchRecipe}
+  trajectoryRecorderEnabled={trajectoryRecorderEnabled}
+  trajectoryRecorderRunNonce={trajectoryRecorderRunNonce}
+  onTrajectoryRecorderComplete={onTrajectoryRecorderComplete}
 />
     </Canvas>
   );

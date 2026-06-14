@@ -18,15 +18,23 @@ import type {
   DiceTrajectoryFrame,
 } from "./physics/diceShadowTypes";
 
+import {
+  loadDiceTrajectoryForAnimal,
+  type DiceTrajectorySlotMatch,
+} from "./physics/diceTrajectoryLibrary";
+
 const EXPECTED_DICE_RESULT_COUNT = 3;
 
 const LIVE_DICE_CONFIRM_HOLD_MS = 1550;
 const LIVE_DICE_FINAL_CONFIRM_HOLD_MS = 1800;
+const LIVE_DICE_REROLL_HOLD_MS = 1200;
+const LIVE_DICE_MAX_REROLL_ATTEMPTS_PER_DIE = 2;
 
 const SHADOW_ATTEMPT_LIMIT = 980;
 const SHADOW_MAX_SIMULATION_SECONDS = 7.2;
 const SHADOW_FRAME_RATE: 30 | 60 = 30;
 const USE_V1_PHYSICAL_DICE_SEQUENCE = true;
+const USE_V1_APPROVED_TRAJECTORY_LIBRARY = false;
 const USE_V1_BACKEND_TARGET_AUTHORITY = false;
 
 type ThreeDiceSequenceControllerProps = {
@@ -56,7 +64,14 @@ type ShadowTrajectory = {
   frames: DiceTrajectoryFrame[];
   motionGrade?: string;
   motionScore?: number;
-  source: "shadow-pass" | "shadow-best-match";
+  source:
+  | "shadow-pass"
+  | "shadow-best-match"
+  | "approved-library-exact-slot"
+  | "approved-library-fallback-slot"
+  | "approved-library-any-slot";
+slotMatch?: DiceTrajectorySlotMatch;
+fileName?: string;
 };
 
 type ShadowRequestOwner = {
@@ -86,6 +101,56 @@ function createVisibleCapturedResult(
   };
 }
 
+function isApprovedLibraryTrajectory(
+  trajectory: ShadowTrajectory | null
+): trajectory is ShadowTrajectory {
+  return (
+    trajectory?.source === "approved-library-exact-slot" ||
+    trajectory?.source === "approved-library-fallback-slot" ||
+    trajectory?.source === "approved-library-any-slot"
+  );
+}
+
+function createTrustedReplayCapturedResult({
+  result,
+  trajectory,
+  dieNumber,
+}: {
+  result: DiceFaceResult;
+  trajectory: ShadowTrajectory;
+  dieNumber: number;
+}): CapturedDiceResult {
+  const visibleLabel = trajectory.finalAnimal;
+
+  return {
+    ...result,
+    status: "accepted",
+    label: visibleLabel,
+    nearestLabel: visibleLabel,
+    message: `Approved trajectory replay captured${
+      trajectory.fileName ? ` from ${trajectory.fileName}` : ""
+    }.`,
+    dieNumber,
+  };
+}
+
+function createNearestFailSafeCapturedResult(
+  result: DiceFaceResult,
+  dieNumber: number
+): CapturedDiceResult {
+  const visibleLabel = result.nearestLabel as DiceAnimalLabel;
+
+  return {
+    ...result,
+    status: "accepted",
+    label: visibleLabel,
+    nearestLabel: visibleLabel,
+    message:
+      "Visible dice face captured by nearest-face fail-safe after reroll attempts.",
+    dieNumber,
+  };
+}
+
 function mapBackendAnimalToDiceLabel(
   animalKey?: string | null
 ): DiceAnimalLabel | null {
@@ -103,6 +168,20 @@ function createDiceShadowWorker() {
   return new Worker(new URL("./physics/diceShadowWorker.ts", import.meta.url), {
     type: "module",
   });
+}
+
+function getApprovedLibraryTrajectorySource(
+  slotMatch: DiceTrajectorySlotMatch
+): ShadowTrajectory["source"] {
+  if (slotMatch === "exact-slot") {
+    return "approved-library-exact-slot";
+  }
+
+  if (slotMatch === "fallback-any-slot") {
+    return "approved-library-fallback-slot";
+  }
+
+  return "approved-library-any-slot";
 }
 
 export default function ThreeDiceSequenceController({
@@ -139,7 +218,8 @@ export default function ThreeDiceSequenceController({
   const activeVisualRoundIdRef = useRef<string | null>(null);
   const capturedResultsOwnerRef = useRef<string | null>(null);
   const capturedDieNumbersRef = useRef<Set<number>>(new Set());
-  const completionSentRef = useRef(false);
+const rerollAttemptsByDieRef = useRef<Record<number, number>>({});
+const completionSentRef = useRef(false);
 
   const nextDieTimerRef = useRef<number | null>(null);
 
@@ -313,6 +393,77 @@ export default function ThreeDiceSequenceController({
     });
   }
 
+  async function prepareApprovedLibraryTrajectories({
+  roundId,
+  sequenceKey,
+  targetAnimals,
+}: {
+  roundId: string;
+  sequenceKey: string;
+  targetAnimals: DiceAnimalLabel[];
+}) {
+  clearShadowWorkers();
+
+  setShadowPreparing(true);
+  setShadowError(null);
+  setShadowTrajectories([null, null, null]);
+  shadowTrajectoriesRef.current = [null, null, null];
+
+  try {
+    const loadedTrajectories = await Promise.all(
+      targetAnimals.map(async (targetAnimal, dieIndex) => {
+        const { entry, trajectory, slotMatch } =
+          await loadDiceTrajectoryForAnimal({
+            animal: targetAnimal,
+            preferredDieIndex: dieIndex,
+            random: Math.random,
+          });
+
+        return {
+          dieIndex,
+          targetAnimal,
+          finalAnimal: trajectory.animal,
+          frames: trajectory.frames,
+          motionGrade: trajectory.quality.motionGrade,
+          motionScore: trajectory.quality.motionScore,
+          source: getApprovedLibraryTrajectorySource(slotMatch),
+          slotMatch,
+          fileName: entry.fileName,
+        } satisfies ShadowTrajectory;
+      })
+    );
+
+    if (sequenceKey !== lastStartedSequenceKeyRef.current) return;
+    if (roundId !== activeVisualRoundIdRef.current) return;
+
+    shadowTrajectoriesRef.current = loadedTrajectories;
+    setShadowTrajectories(loadedTrajectories);
+    setShadowPreparing(false);
+    setSequenceRunning(true);
+    setResetKey((value) => value + 1);
+
+    loadedTrajectories.forEach((trajectory) => {
+      if (trajectory.slotMatch === "fallback-any-slot") {
+        console.warn(
+          `[Nagani Dice] Approved library fallback slot used for Die ${
+            trajectory.dieIndex + 1
+          }: ${trajectory.fileName}`
+        );
+      }
+    });
+  } catch (error) {
+    if (sequenceKey !== lastStartedSequenceKeyRef.current) return;
+    if (roundId !== activeVisualRoundIdRef.current) return;
+
+    setShadowPreparing(false);
+    setShadowError(
+      error instanceof Error
+        ? error.message
+        : "Approved trajectory library failed to load."
+    );
+  }
+}
+
   function resetSequenceForNewRun({
     roundId,
     sequenceKey,
@@ -327,8 +478,9 @@ export default function ThreeDiceSequenceController({
     activeVisualRoundIdRef.current = roundId;
     capturedResultsOwnerRef.current = roundId;
     capturedDieNumbersRef.current.clear();
-    completionSentRef.current = false;
-    lastDiceDropSoundKeyRef.current = null;
+rerollAttemptsByDieRef.current = {};
+completionSentRef.current = false;
+lastDiceDropSoundKeyRef.current = null;
 
     setCapturedResults([]);
     setActiveDieIndex(0);
@@ -347,6 +499,18 @@ if (USE_V1_PHYSICAL_DICE_SEQUENCE) {
 
   setSequenceRunning(true);
   setResetKey((value) => value + 1);
+  return;
+}
+
+if (USE_V1_APPROVED_TRAJECTORY_LIBRARY) {
+  setResetKey((value) => value + 1);
+
+  void prepareApprovedLibraryTrajectories({
+    roundId,
+    sequenceKey,
+    targetAnimals,
+  });
+
   return;
 }
 
@@ -490,17 +654,57 @@ if (!USE_V1_PHYSICAL_DICE_SEQUENCE && !hasActiveShadowFrames) return;
 
     clearTimers();
 
-    const capturedResult = createVisibleCapturedResult(
-      faceCaptureOwner.result,
-      dieNumber
+let capturedResult = createVisibleCapturedResult(
+  faceCaptureOwner.result,
+  dieNumber
+);
+
+if (!capturedResult && isApprovedLibraryTrajectory(activeShadowTrajectory)) {
+  console.warn(
+    `[Nagani Dice] Approved library replay produced unreadable runtime face for Die ${dieNumber}. Trusting approved trajectory metadata: ${activeShadowTrajectory.finalAnimal}.`
+  );
+
+  capturedResult = createTrustedReplayCapturedResult({
+    result: faceCaptureOwner.result,
+    trajectory: activeShadowTrajectory,
+    dieNumber,
+  });
+}
+
+if (!capturedResult) {
+  const currentAttempt = rerollAttemptsByDieRef.current[dieNumber] ?? 0;
+
+  if (currentAttempt < LIVE_DICE_MAX_REROLL_ATTEMPTS_PER_DIE) {
+    rerollAttemptsByDieRef.current[dieNumber] = currentAttempt + 1;
+
+    console.warn(
+      `[Nagani Dice] Die ${dieNumber} ended unreadable. Re-dropping same die. Attempt ${
+        currentAttempt + 1
+      }/${LIVE_DICE_MAX_REROLL_ATTEMPTS_PER_DIE}.`
     );
 
-    if (!capturedResult) {
-      console.warn(
-        `[Nagani Dice] Recorded trajectory produced unreadable face for Die ${dieNumber}.`
-      );
-      return;
-    }
+    setSettled(false);
+    setFaceCaptureOwner(null);
+
+    nextDieTimerRef.current = window.setTimeout(() => {
+      setResetKey((value) => value + 1);
+      nextDieTimerRef.current = null;
+    }, LIVE_DICE_REROLL_HOLD_MS);
+
+    return;
+  }
+
+  console.warn(
+    `[Nagani Dice] Die ${dieNumber} stayed unreadable after rerolls. Using nearest visible face fail-safe.`
+  );
+
+  capturedResult = createNearestFailSafeCapturedResult(
+    faceCaptureOwner.result,
+    dieNumber
+  );
+}
+
+delete rerollAttemptsByDieRef.current[dieNumber];
 
     if (
   USE_V1_BACKEND_TARGET_AUTHORITY &&
@@ -543,13 +747,14 @@ if (!USE_V1_PHYSICAL_DICE_SEQUENCE && !hasActiveShadowFrames) return;
       setSequenceRunning(false);
       nextDieTimerRef.current = null;
     }, LIVE_DICE_FINAL_CONFIRM_HOLD_MS);
-  }, [
-    enabled,
-    sequenceRunning,
-    activeDieIndex,
-    faceCaptureOwner,
-    activeTargetAnimal,
-  ]);
+}, [
+  enabled,
+  sequenceRunning,
+  activeDieIndex,
+  faceCaptureOwner,
+  activeTargetAnimal,
+  activeShadowTrajectory,
+]);
 
   useEffect(() => {
     if (capturedResults.length === 0) return;
@@ -653,8 +858,8 @@ enableV1PhysicalRelease={USE_V1_PHYSICAL_DICE_SEQUENCE}
 
                   <p className="mt-1 text-xs font-black text-amber-100">
                     {captured?.label ??
-                      trajectory?.targetAnimal ??
-                      (shadowPreparing ? "..." : "—")}
+  trajectory?.targetAnimal ??
+  (shadowPreparing ? "..." : "—")}
                   </p>
                 </div>
               );

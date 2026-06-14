@@ -24,15 +24,57 @@ import ThreeDicePhysicsStage, {
   type TestMode,
 } from "./ThreeDicePhysicsStage";
 import type {
-  ApprovedDiceTrajectory,
   DiceShadowMotionMetrics,
   DiceShadowWorkerResponse,
+  DiceTrajectoryFrame,
   DiceTrajectoryRecorderComplete,
 } from "./physics/diceShadowTypes";
+import {
+  buildApprovedDiceTrajectoryFile,
+  downloadApprovedTrajectoryFile,
+  downloadApprovedTrajectoryManifest,
+  downloadDiagnosticTrajectoryFile,
+  evaluateDiceTrajectoryGate,
+  getApprovedTrajectoryCounts,
+  type ApprovedDiceTrajectoryFile,
+  type DiceTrajectoryRecorderCandidate,
+} from "./physics/diceTrajectoryRecorder";
+import {
+  DICE_TRAJECTORY_LIBRARY_ANIMALS,
+  loadDiceTrajectoryForAnimal,
+} from "./physics/diceTrajectoryLibrary";
 
 const BACKEND_AUTHORITY_SHADOW_ATTEMPT_LIMIT = 980;
 const BACKEND_AUTHORITY_MAX_SIMULATION_SECONDS = 7.2;
 const BACKEND_AUTHORITY_FRAME_RATE: 30 | 60 = 30;
+const FIRST_TRAJECTORY_LIBRARY_TARGET_PER_ANIMAL = 10;
+type TrajectoryLibrarySmokeStatus = "idle" | "loading" | "pass" | "fail";
+
+type TrajectoryLibrarySmokeRow = {
+  animal: DiceAnimalLabel;
+  fileName: string;
+  frames: number;
+  motionGrade: string;
+  confidence: number;
+};
+
+type TrajectoryLibraryReplayStatus = "idle" | "loading" | "ready" | "fail";
+type TrajectoryLibraryReplayRoundStatus =
+  | "idle"
+  | "loading"
+  | "replaying"
+  | "complete"
+  | "fail";
+
+type TrajectoryLibraryReplay = {
+  animal: DiceAnimalLabel;
+  dieIndex: number;
+  dieNumber: number;
+  fileName: string;
+  frames: DiceTrajectoryFrame[];
+  motionGrade: string;
+  confidence: number;
+};
 
 const TARGET_ANIMAL_OPTIONS: DiceAnimalLabel[] = [
   "Tiger",
@@ -42,21 +84,6 @@ const TARGET_ANIMAL_OPTIONS: DiceAnimalLabel[] = [
   "Crab",
   "Elephant",
 ];
-
-function createRecorderId({
-  finalAnimal,
-  dieIndex,
-}: {
-  finalAnimal: DiceAnimalLabel;
-  dieIndex: number;
-}) {
-  const suffix =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-  return `v1-${finalAnimal.toLowerCase()}-d${dieIndex + 1}-${suffix}`;
-}
 
 function getRecordedMotionGrade(
   metrics: DiceShadowMotionMetrics
@@ -71,11 +98,12 @@ function getRecordedMotionGrade(
 
   if (isPremium) return "premium";
 
-  const isAccepted =
-    metrics.visualActiveSeconds >= 3.8 &&
-    metrics.visualActiveSeconds <= 9.5 &&
-    metrics.deadSlideSeconds <= 1.25 &&
-    metrics.tumbleTurns >= 0.85;
+const isAccepted =
+  metrics.visualActiveSeconds >= 3.6 &&
+  metrics.visualActiveSeconds <= 10.2 &&
+  metrics.deadSlideSeconds <= 1.45 &&
+  metrics.tumbleTurns >= 0.85 &&
+  metrics.frontStopRisk <= 0.95;
 
   return isAccepted ? "accepted" : "weak";
 }
@@ -285,6 +313,14 @@ setShadowSmokeStatus(isTargetFound ? "success" : "fail");
 if (isTargetFound) {
   capturedDieNumbersRef.current.clear();
   setCapturedResults([]);
+  setTrajectoryLibraryReplay(null);
+setTrajectoryLibraryReplayError("");
+setTrajectoryLibraryReplayStatus("idle");
+setTrajectoryPreviewIndex(null);
+setTrajectoryLibraryReplayRoundStatus("idle");
+setTrajectoryLibraryReplayRound([]);
+setTrajectoryLibraryReplayRoundIndex(0);
+setTrajectoryLibraryReplayRoundError("");
   setTestMode("trap");
   setSequenceRunning(true);
   setActiveDieIndex(response.dieIndex);
@@ -325,6 +361,10 @@ async function runShadowThreeDiceTest() {
   setShadowSequenceStatus("searching");
 
   setTestMode("trap");
+  setTrajectoryLibraryReplay(null);
+setTrajectoryLibraryReplayError("");
+setTrajectoryLibraryReplayStatus("idle");
+setTrajectoryPreviewIndex(null);
   setSequenceRunning(false);
   setSettled(false);
   setFaceResult(null);
@@ -400,17 +440,22 @@ function runV1TrajectoryRecorder() {
   setShadowSequenceReplayIndex(0);
   setShadowSequenceStatus("idle");
 
-  setTrajectoryRecorderEnabled(true);
-  setTrajectoryRecordings([]);
-  setApprovedTrajectories([]);
-  setTrajectoryPreviewIndex(null);
-  setTrajectoryExportText("");
+setTrajectoryRecorderEnabled(true);
+setTrajectoryRecorderRunNonce(
+  Date.now() + Math.floor(Math.random() * 1_000_000)
+);
+setTrajectoryRecordings([]);
+setTrajectoryPreviewIndex(null);
+setTrajectoryExportText("");
+setTrajectoryLibraryReplay(null);
+setTrajectoryLibraryReplayError("");
+setTrajectoryLibraryReplayStatus("idle");
 
   setTargetCorrectionTestEnabled(false);
   setTargetLaunchRecipeEnabled(false);
   setCleanTableShotMode(false);
   setShowDice(true);
-  setShowResultBoard(true);
+  setShowResultBoard(false);
   setTestMode("trap");
 
   setSequenceRunning(true);
@@ -432,13 +477,20 @@ function previewTrajectoryRecording(index: number) {
 
   setTrajectoryRecorderEnabled(false);
   setTrajectoryPreviewIndex(index);
+  setTrajectoryLibraryReplay(null);
+setTrajectoryLibraryReplayError("");
+setTrajectoryLibraryReplayStatus("idle");
   setShadowSmokeStatus("idle");
   setShadowSmokeResult(null);
   setShadowSequenceResults([]);
   setShadowSequenceReplayIndex(0);
   setShadowSequenceStatus("idle");
 
-  setTestMode("trap");
+setShowResultBoard(false);
+setCapturedResults([]);
+capturedDieNumbersRef.current.clear();
+
+setTestMode("trap");
   setSequenceRunning(true);
   setActiveDieIndex(recording.dieIndex);
   setSettled(false);
@@ -451,67 +503,286 @@ function approveTrajectoryRecording(index: number) {
   const recording = trajectoryRecordings[index];
   if (!recording) return;
 
-  const motionScore = getRecordedMotionScore(recording.metrics);
-  const motionGrade = getRecordedMotionGrade(recording.metrics);
-
-  const approvedTrajectory: ApprovedDiceTrajectory = {
-    version: "v1-approved-trajectory-60hz",
-    id: createRecorderId({
-      finalAnimal: recording.finalAnimal,
-      dieIndex: recording.dieIndex,
-    }),
-    source: "v1-live-physics-recorder",
-
+  const candidate: DiceTrajectoryRecorderCandidate = {
     finalAnimal: recording.finalAnimal,
-    finalStatus: recording.finalStatus,
-    finalConfidence: recording.finalConfidence,
-    finalTiltDegrees: recording.finalTiltDegrees,
-
     dieIndex: recording.dieIndex,
-    testMode,
-
-    frameRate: 60,
     frames: recording.frames,
+
+    finalStatus: recording.finalStatus,
+    confidence: recording.finalConfidence,
+    tiltDegrees: recording.finalTiltDegrees,
 
     readableAtSeconds: recording.readableAtSeconds,
     motionEndSeconds: recording.motionEndSeconds,
     replayEndSeconds: recording.replayEndSeconds,
 
     metrics: recording.metrics,
-    motionScore,
-    motionGrade,
+    motionScore: getRecordedMotionScore(recording.metrics),
+    motionGrade: getRecordedMotionGrade(recording.metrics),
+
     notes: [
       "Approved from live V1 physics recorder.",
       `Shape preset: ${diceShapePreset}`,
       `Collider preset: ${diceColliderPreset}`,
     ],
-
-    approved: true,
-    createdAt: new Date().toISOString(),
-
-    diceShapePreset,
-    diceColliderPreset,
   };
 
-  setApprovedTrajectories((current) => [...current, approvedTrajectory]);
+  const gate = evaluateDiceTrajectoryGate(candidate);
+
+  if (!gate.canProductionApprove) {
+    alert(
+      [
+        "This throw is blocked for production approval.",
+        "",
+        ...gate.issues.map((issue) => `• ${issue.message}`),
+        "",
+        "Use Diagnostic Export if you want to keep it for debugging.",
+      ].join("\n")
+    );
+    return;
+  }
+
+  const approvedFile = buildApprovedDiceTrajectoryFile({
+    candidate,
+    approvedFiles: approvedTrajectoryFiles,
+  });
+
+  setApprovedTrajectoryFiles((current) => [...current, approvedFile]);
   setTrajectoryExportText("");
+  downloadApprovedTrajectoryFile(approvedFile);
+}
+
+function diagnosticExportTrajectoryRecording(index: number) {
+  const recording = trajectoryRecordings[index];
+  if (!recording) return;
+
+  const candidate: DiceTrajectoryRecorderCandidate = {
+    finalAnimal: recording.finalAnimal,
+    dieIndex: recording.dieIndex,
+    frames: recording.frames,
+
+    finalStatus: recording.finalStatus,
+    confidence: recording.finalConfidence,
+    tiltDegrees: recording.finalTiltDegrees,
+
+    readableAtSeconds: recording.readableAtSeconds,
+    motionEndSeconds: recording.motionEndSeconds,
+    replayEndSeconds: recording.replayEndSeconds,
+
+    metrics: recording.metrics,
+    motionScore: getRecordedMotionScore(recording.metrics),
+    motionGrade: getRecordedMotionGrade(recording.metrics),
+
+    notes: [
+      "Diagnostic export from V1 live physics recorder.",
+      `Shape preset: ${diceShapePreset}`,
+      `Collider preset: ${diceColliderPreset}`,
+    ],
+  };
+
+  downloadDiagnosticTrajectoryFile({
+    candidate,
+    reason: "Manual diagnostic export from recorder card.",
+  });
 }
 
 function exportApprovedTrajectories() {
-  setTrajectoryExportText(JSON.stringify(approvedTrajectories, null, 2));
+  setTrajectoryExportText(JSON.stringify(approvedTrajectoryFiles, null, 2));
 }
 
 function downloadApprovedTrajectories() {
-  const json = JSON.stringify(approvedTrajectories, null, 2);
+  const json = JSON.stringify(approvedTrajectoryFiles, null, 2);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
 
   anchor.href = url;
-  anchor.download = `nagani-v1-approved-trajectories-${Date.now()}.json`;
+  anchor.download = `nagani-v1-approved-trajectory-files-${Date.now()}.json`;
   anchor.click();
 
   URL.revokeObjectURL(url);
+}
+
+function downloadTrajectoryManifest() {
+  if (approvedTrajectoryFiles.length === 0) return;
+
+  downloadApprovedTrajectoryManifest(approvedTrajectoryFiles);
+}
+
+async function runTrajectoryLibrarySmokeTest() {
+  setTrajectoryLibrarySmokeStatus("loading");
+  setTrajectoryLibrarySmokeRows([]);
+  setTrajectoryLibrarySmokeError("");
+
+  try {
+    const rows: TrajectoryLibrarySmokeRow[] = [];
+
+    for (const animal of DICE_TRAJECTORY_LIBRARY_ANIMALS) {
+      const { entry, trajectory } = await loadDiceTrajectoryForAnimal({
+        animal,
+        random: () => 0,
+      });
+
+      rows.push({
+        animal,
+        fileName: entry.fileName,
+        frames: trajectory.frames.length,
+        motionGrade: trajectory.quality.motionGrade,
+        confidence: trajectory.quality.confidence,
+      });
+    }
+
+    setTrajectoryLibrarySmokeRows(rows);
+    setTrajectoryLibrarySmokeStatus("pass");
+  } catch (error) {
+    setTrajectoryLibrarySmokeStatus("fail");
+    setTrajectoryLibrarySmokeError(
+      error instanceof Error
+        ? error.message
+        : "Trajectory library smoke test failed."
+    );
+  }
+}
+
+async function replayTrajectoryLibraryAnimal(
+  animal: DiceAnimalLabel = trajectoryLibraryReplayAnimal
+) {
+  setTrajectoryLibraryReplayStatus("loading");
+  setTrajectoryLibraryReplay(null);
+  setTrajectoryLibraryReplayError("");
+
+  setTrajectoryLibraryReplayRoundStatus("idle");
+setTrajectoryLibraryReplayRound([]);
+setTrajectoryLibraryReplayRoundIndex(0);
+setTrajectoryLibraryReplayRoundError("");
+
+  setTrajectoryRecorderEnabled(false);
+  setTrajectoryPreviewIndex(null);
+  setTrajectoryExportText("");
+
+  setShadowSmokeStatus("idle");
+  setShadowSmokeResult(null);
+  setShadowSequenceResults([]);
+  setShadowSequenceReplayIndex(0);
+  setShadowSequenceStatus("idle");
+
+  setShowDice(true);
+  setShowResultBoard(false);
+  setCleanTableShotMode(false);
+  setTestMode("trap");
+
+  try {
+    const { entry, trajectory } = await loadDiceTrajectoryForAnimal({
+      animal,
+      random: () => 0,
+    });
+
+    setTrajectoryLibraryReplay({
+      animal: trajectory.animal,
+      dieIndex: trajectory.dieIndex,
+      dieNumber: trajectory.dieNumber,
+      fileName: entry.fileName,
+      frames: trajectory.frames,
+      motionGrade: trajectory.quality.motionGrade,
+      confidence: trajectory.quality.confidence,
+    });
+
+    capturedDieNumbersRef.current.clear();
+    setCapturedResults([]);
+    setActiveDieIndex(trajectory.dieIndex);
+    setSettled(false);
+    setFaceResult(null);
+    setSequenceRunning(true);
+    setTrajectoryReplayKey((value) => value + 1);
+    setResetKey((value) => value + 1);
+    setTrajectoryLibraryReplayStatus("ready");
+  } catch (error) {
+    setSequenceRunning(false);
+    setTrajectoryLibraryReplayStatus("fail");
+    setTrajectoryLibraryReplayError(
+      error instanceof Error
+        ? error.message
+        : "Saved trajectory replay failed."
+    );
+  }
+}
+
+async function replayTrajectoryLibraryThreeDiceRound() {
+  setTrajectoryLibraryReplayRoundStatus("loading");
+  setTrajectoryLibraryReplayRound([]);
+  setTrajectoryLibraryReplayRoundIndex(0);
+  setTrajectoryLibraryReplayRoundError("");
+
+  setTrajectoryLibraryReplayStatus("idle");
+  setTrajectoryLibraryReplay(null);
+  setTrajectoryLibraryReplayError("");
+
+  setTrajectoryRecorderEnabled(false);
+  setTrajectoryPreviewIndex(null);
+  setTrajectoryExportText("");
+
+  setShadowSmokeStatus("idle");
+  setShadowSmokeResult(null);
+  setShadowSequenceResults([]);
+  setShadowSequenceReplayIndex(0);
+  setShadowSequenceStatus("idle");
+
+  setShowDice(true);
+  setShowResultBoard(false);
+  setCleanTableShotMode(false);
+  setTestMode("trap");
+
+  try {
+    const replayRound: TrajectoryLibraryReplay[] = [];
+
+    for (let dieIndex = 0; dieIndex < 3; dieIndex += 1) {
+      const animal = targetAnimals[dieIndex];
+
+      const { entry, trajectory } = await loadDiceTrajectoryForAnimal({
+        animal,
+        preferredDieIndex: dieIndex,
+        random: () => 0,
+      });
+
+      replayRound.push({
+        animal: trajectory.animal,
+        dieIndex: trajectory.dieIndex,
+        dieNumber: trajectory.dieNumber,
+        fileName: entry.fileName,
+        frames: trajectory.frames,
+        motionGrade: trajectory.quality.motionGrade,
+        confidence: trajectory.quality.confidence,
+      });
+    }
+
+    const firstReplay = replayRound[0];
+
+    if (!firstReplay) {
+      throw new Error("No saved trajectory was loaded for the 3-dice replay.");
+    }
+
+    setTrajectoryLibraryReplayRound(replayRound);
+    setTrajectoryLibraryReplayRoundIndex(0);
+    setTrajectoryLibraryReplay(firstReplay);
+
+    capturedDieNumbersRef.current.clear();
+    setCapturedResults([]);
+    setActiveDieIndex(firstReplay.dieIndex);
+    setSettled(false);
+    setFaceResult(null);
+    setSequenceRunning(true);
+    setTrajectoryReplayKey((value) => value + 1);
+    setResetKey((value) => value + 1);
+    setTrajectoryLibraryReplayRoundStatus("replaying");
+  } catch (error) {
+    setSequenceRunning(false);
+    setTrajectoryLibraryReplayRoundStatus("fail");
+    setTrajectoryLibraryReplayRoundError(
+      error instanceof Error
+        ? error.message
+        : "Saved 3-dice trajectory replay failed."
+    );
+  }
 }
 
 useEffect(() => {
@@ -543,16 +814,42 @@ const [sequenceRunning, setSequenceRunning] = useState(false);
 const [capturedResults, setCapturedResults] = useState<CapturedDiceResult[]>([]);
 const [trajectoryRecorderEnabled, setTrajectoryRecorderEnabled] =
   useState(false);
+const [trajectoryRecorderRunNonce, setTrajectoryRecorderRunNonce] = useState(0);
 const [trajectoryRecordings, setTrajectoryRecordings] = useState<
   DiceTrajectoryRecorderComplete[]
 >([]);
-const [approvedTrajectories, setApprovedTrajectories] = useState<
-  ApprovedDiceTrajectory[]
+const [approvedTrajectoryFiles, setApprovedTrajectoryFiles] = useState<
+  ApprovedDiceTrajectoryFile[]
 >([]);
 const [trajectoryPreviewIndex, setTrajectoryPreviewIndex] =
   useState<number | null>(null);
 const [trajectoryReplayKey, setTrajectoryReplayKey] = useState(0);
 const [trajectoryExportText, setTrajectoryExportText] = useState("");
+const [trajectoryLibrarySmokeStatus, setTrajectoryLibrarySmokeStatus] =
+  useState<TrajectoryLibrarySmokeStatus>("idle");
+const [trajectoryLibrarySmokeRows, setTrajectoryLibrarySmokeRows] = useState<
+  TrajectoryLibrarySmokeRow[]
+>([]);
+const [trajectoryLibrarySmokeError, setTrajectoryLibrarySmokeError] =
+  useState("");
+const [trajectoryLibraryReplayAnimal, setTrajectoryLibraryReplayAnimal] =
+  useState<DiceAnimalLabel>("Dragon");
+const [trajectoryLibraryReplayStatus, setTrajectoryLibraryReplayStatus] =
+  useState<TrajectoryLibraryReplayStatus>("idle");
+const [trajectoryLibraryReplay, setTrajectoryLibraryReplay] =
+  useState<TrajectoryLibraryReplay | null>(null);
+const [trajectoryLibraryReplayError, setTrajectoryLibraryReplayError] =
+  useState("");
+  const [
+  trajectoryLibraryReplayRoundStatus,
+  setTrajectoryLibraryReplayRoundStatus,
+] = useState<TrajectoryLibraryReplayRoundStatus>("idle");
+const [trajectoryLibraryReplayRound, setTrajectoryLibraryReplayRound] =
+  useState<TrajectoryLibraryReplay[]>([]);
+const [trajectoryLibraryReplayRoundIndex, setTrajectoryLibraryReplayRoundIndex] =
+  useState(0);
+const [trajectoryLibraryReplayRoundError, setTrajectoryLibraryReplayRoundError] =
+  useState("");
 const capturedDieNumbersRef = useRef<Set<number>>(new Set());
 const sequenceComplete = capturedResults.length === 3 && !sequenceRunning;
 const finalResultSummary =
@@ -565,8 +862,40 @@ const selectedTrajectoryPreview =
   trajectoryPreviewIndex === null
     ? null
     : trajectoryRecordings[trajectoryPreviewIndex] ?? null;
+const activeTrajectoryReplayFrames =
+  selectedTrajectoryPreview?.frames ?? trajectoryLibraryReplay?.frames ?? null;
 
-const isTrajectoryPreviewing = Boolean(selectedTrajectoryPreview);
+const isTrajectoryLibraryRoundReplayActive =
+  trajectoryLibraryReplayRoundStatus === "replaying" ||
+  trajectoryLibraryReplayRoundStatus === "complete";
+
+const trajectoryPreviewLabel = selectedTrajectoryPreview
+  ? `${selectedTrajectoryPreview.finalAnimal} · D${
+      selectedTrajectoryPreview.dieIndex + 1
+    }`
+  : isTrajectoryLibraryRoundReplayActive && trajectoryLibraryReplay
+    ? `Library 3 Dice ${trajectoryLibraryReplayRoundIndex + 1}/3 · ${
+        trajectoryLibraryReplay.animal
+      }`
+    : trajectoryLibraryReplay
+      ? `Library ${trajectoryLibraryReplay.animal} · D${trajectoryLibraryReplay.dieNumber}`
+      : "None";
+
+const approvedTrajectoryCounts =
+  getApprovedTrajectoryCounts(approvedTrajectoryFiles);
+
+const nextTrajectoryLibraryAnimal =
+  Object.entries(approvedTrajectoryCounts)
+    .filter(([, count]) => count < FIRST_TRAJECTORY_LIBRARY_TARGET_PER_ANIMAL)
+    .sort((a, b) => a[1] - b[1])[0]?.[0] ?? "Complete";
+
+const trajectoryLibraryComplete = Object.values(approvedTrajectoryCounts).every(
+  (count) => count >= FIRST_TRAJECTORY_LIBRARY_TARGET_PER_ANIMAL
+);
+
+const isTrajectoryPreviewing = Boolean(
+  selectedTrajectoryPreview || trajectoryLibraryReplay
+);
 
 const trajectoryRecorderStatus = trajectoryRecorderEnabled
   ? "Recording"
@@ -802,6 +1131,78 @@ const royalBoardSub = sequenceComplete
 ]);
 
 useEffect(() => {
+  if (trajectoryLibraryReplayRoundStatus !== "replaying") return;
+  if (!sequenceRunning || !settled || !faceResult) return;
+
+  const dieNumber = trajectoryLibraryReplayRoundIndex + 1;
+  const currentReplay = trajectoryLibraryReplayRound[trajectoryLibraryReplayRoundIndex];
+
+  if (!currentReplay) {
+    setSequenceRunning(false);
+    setTrajectoryLibraryReplayRoundStatus("fail");
+    setTrajectoryLibraryReplayRoundError("Saved replay round lost its current trajectory.");
+    return;
+  }
+
+  if (faceResult.status !== "accepted") {
+    setSequenceRunning(false);
+    setTrajectoryLibraryReplayRoundStatus("fail");
+    setTrajectoryLibraryReplayRoundError(
+      `Saved replay D${dieNumber} ended unreadable.`
+    );
+    return;
+  }
+
+  if (!capturedDieNumbersRef.current.has(dieNumber)) {
+    capturedDieNumbersRef.current.add(dieNumber);
+
+    setCapturedResults((current) => [
+      ...current.filter((result) => result.dieNumber !== dieNumber),
+      {
+        ...faceResult,
+        dieNumber,
+      },
+    ]);
+  }
+
+  if (trajectoryLibraryReplayRoundIndex >= trajectoryLibraryReplayRound.length - 1) {
+    setSequenceRunning(false);
+    setTrajectoryLibraryReplayRoundStatus("complete");
+    return;
+  }
+
+  const timer = window.setTimeout(() => {
+    const nextIndex = trajectoryLibraryReplayRoundIndex + 1;
+    const nextReplay = trajectoryLibraryReplayRound[nextIndex];
+
+    if (!nextReplay) {
+      setSequenceRunning(false);
+      setTrajectoryLibraryReplayRoundStatus("fail");
+      setTrajectoryLibraryReplayRoundError("Next saved trajectory is missing.");
+      return;
+    }
+
+    setTrajectoryLibraryReplayRoundIndex(nextIndex);
+    setTrajectoryLibraryReplay(nextReplay);
+    setActiveDieIndex(nextReplay.dieIndex);
+    setSettled(false);
+    setFaceResult(null);
+    setSequenceRunning(true);
+    setTrajectoryReplayKey((value) => value + 1);
+    setResetKey((value) => value + 1);
+  }, 1300);
+
+  return () => window.clearTimeout(timer);
+}, [
+  trajectoryLibraryReplayRoundStatus,
+  sequenceRunning,
+  settled,
+  faceResult,
+  trajectoryLibraryReplayRoundIndex,
+  trajectoryLibraryReplayRound,
+]);
+
+useEffect(() => {
   if (!sequenceRunning || !settled || !faceResult) return;
 
 if (shadowSmokeResult || isTrajectoryPreviewing) {
@@ -870,13 +1271,19 @@ useEffect(() => {
 
 useEffect(() => {
   if (!isTrajectoryPreviewing || !settled || !faceResult) return;
+  if (trajectoryLibraryReplayRoundStatus === "replaying") return;
 
   const timer = window.setTimeout(() => {
     setSequenceRunning(false);
   }, 1000);
 
   return () => window.clearTimeout(timer);
-}, [isTrajectoryPreviewing, settled, faceResult]);
+}, [
+  isTrajectoryPreviewing,
+  settled,
+  faceResult,
+  trajectoryLibraryReplayRoundStatus,
+]);
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -1184,6 +1591,14 @@ useEffect(() => {
 onClick={() => {
   setShadowSmokeStatus("idle");
   setShadowSmokeResult(null);
+  setTrajectoryLibraryReplay(null);
+  setTrajectoryLibraryReplayError("");
+  setTrajectoryLibraryReplayStatus("idle");
+  setTrajectoryPreviewIndex(null);
+  setTrajectoryLibraryReplayRoundStatus("idle");
+  setTrajectoryLibraryReplayRound([]);
+  setTrajectoryLibraryReplayRoundIndex(0);
+  setTrajectoryLibraryReplayRoundError("");
   setTestMode("trap");
   setSequenceRunning(true);
   capturedDieNumbersRef.current.clear();
@@ -1203,6 +1618,14 @@ onClick={() => {
 onClick={() => {
   setShadowSmokeStatus("idle");
   setShadowSmokeResult(null);
+  setTrajectoryLibraryReplay(null);
+  setTrajectoryLibraryReplayError("");
+  setTrajectoryLibraryReplayStatus("idle");
+  setTrajectoryPreviewIndex(null);
+  setTrajectoryLibraryReplayRoundStatus("idle");
+setTrajectoryLibraryReplayRound([]);
+setTrajectoryLibraryReplayRoundIndex(0);
+setTrajectoryLibraryReplayRoundError("");
   setSequenceRunning(false);
   capturedDieNumbersRef.current.clear();
   setCapturedResults([]);
@@ -1223,7 +1646,7 @@ setShadowSequenceStatus("idle");
 
 <section className="relative mt-5 overflow-hidden rounded-[2rem] border border-amber-300/25 bg-[radial-gradient(circle_at_50%_28%,rgba(117,46,26,0.55),rgba(44,12,8,0.96)_45%,rgba(10,4,3,1)_100%)] shadow-2xl shadow-red-950/30">
   <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_46%,rgba(255,214,128,0.14),transparent_42%)]" />
-    {effectiveShowResultBoard ? (
+    {effectiveShowResultBoard && !isTrajectoryPreviewing ? (
   <div className="pointer-events-none absolute right-5 top-5 z-20 w-[270px] rounded-[1.5rem] border border-amber-300/25 bg-black/55 p-4 shadow-2xl shadow-black/50 backdrop-blur-md">
     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-200/55">
       {royalBoardTitle}
@@ -1325,13 +1748,14 @@ shadowLaunchRecipe={
     ? shadowSmokeResult.launchRecipe
     : null
 }
-recordedTrajectoryFrames={selectedTrajectoryPreview?.frames ?? null}
+recordedTrajectoryFrames={activeTrajectoryReplayFrames}
 recordedTrajectoryReplayKey={trajectoryReplayKey}
 trajectoryRecorderEnabled={
   trajectoryRecorderEnabled && !selectedTrajectoryPreview
 }
 onTrajectoryRecorderComplete={handleTrajectoryRecorderComplete}
 enableV1PhysicalRelease
+trajectoryRecorderRunNonce={trajectoryRecorderRunNonce}
 />
   </div>
 </section>
@@ -1825,16 +2249,283 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
     {trajectoryRecorderStatus}
   </p>
 
-  <div className="mt-3 space-y-2 text-[11px] font-bold leading-relaxed text-white/55">
-    <p>Captured: {trajectoryRecordings.length}</p>
-    <p>Approved: {approvedTrajectories.length}</p>
+  <div className="mt-4 rounded-2xl border border-fuchsia-300/15 bg-black/25 p-4">
+  <div className="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-200/60">
+        First Library Routine
+      </p>
+
+      <h3 className="mt-1 text-lg font-black text-fuchsia-50">
+        Build 10 Approved Throws Per Animal
+      </h3>
+    </div>
+
+    <div
+      className={
+        trajectoryLibraryComplete
+          ? "rounded-full border border-emerald-300/25 bg-emerald-300/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
+          : "rounded-full border border-amber-300/25 bg-amber-300/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100"
+      }
+    >
+      {trajectoryLibraryComplete
+        ? "Library Complete"
+        : `Need: ${nextTrajectoryLibraryAnimal}`}
+    </div>
+  </div>
+
+  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+        Step 1
+      </p>
+      <p className="mt-1 text-xs font-bold leading-5 text-white/65">
+        Click Record V1 3 Dice and let all three dice finish naturally.
+      </p>
+    </div>
+
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+        Step 2
+      </p>
+      <p className="mt-1 text-xs font-bold leading-5 text-white/65">
+        Preview every captured throw before approving.
+      </p>
+    </div>
+
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+        Step 3
+      </p>
+      <p className="mt-1 text-xs font-bold leading-5 text-white/65">
+        Production Approve only beautiful, readable, natural throws.
+      </p>
+    </div>
+
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+        Step 4
+      </p>
+      <p className="mt-1 text-xs font-bold leading-5 text-white/65">
+        Save each downloaded file into its matching animal folder.
+      </p>
+    </div>
+  </div>
+
+  <div className="mt-3 rounded-xl border border-red-300/15 bg-red-300/10 px-3 py-2">
+    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-100/70">
+      Approval Rule
+    </p>
+
+    <p className="mt-1 text-xs font-bold leading-5 text-white/65">
+      Do not approve ugly motion, floating/stuck dice, fake-feeling correction,
+      poor readability, long dead slide, or weak tumble. Use Diagnostic Export
+      instead.
+    </p>
+  </div>
+</div>
+
+<div className="mt-3 space-y-2 text-[11px] font-bold leading-relaxed text-white/55">
+  <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/10 p-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-200/60">
+          Trajectory Library Loader
+        </p>
+
+        <p className="mt-1 text-sm font-black text-emerald-50">
+          {trajectoryLibrarySmokeStatus === "pass"
+            ? "Smoke Passed"
+            : trajectoryLibrarySmokeStatus === "fail"
+              ? "Smoke Failed"
+              : trajectoryLibrarySmokeStatus === "loading"
+                ? "Loading"
+                : "Ready"}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        disabled={trajectoryLibrarySmokeStatus === "loading"}
+        onClick={runTrajectoryLibrarySmokeTest}
+        className={
+          trajectoryLibrarySmokeStatus === "loading"
+            ? "cursor-wait rounded-xl border border-sky-300/25 bg-sky-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
+            : "rounded-xl border border-emerald-300/25 bg-emerald-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
+        }
+      >
+        Loader Smoke
+      </button>
+    </div>
+
+    <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-3">
+  <select
+    value={trajectoryLibraryReplayAnimal}
+    disabled={trajectoryLibraryReplayStatus === "loading"}
+    onChange={(event) =>
+      setTrajectoryLibraryReplayAnimal(event.target.value as DiceAnimalLabel)
+    }
+    className="rounded-xl border border-white/10 bg-black/45 px-3 py-2 text-xs font-black text-white outline-none"
+  >
+    {DICE_TRAJECTORY_LIBRARY_ANIMALS.map((animal) => (
+      <option key={`trajectory-replay-animal-${animal}`} value={animal}>
+        {animal}
+      </option>
+    ))}
+  </select>
+
+  <button
+    type="button"
+    disabled={trajectoryLibraryReplayStatus === "loading"}
+    onClick={() => replayTrajectoryLibraryAnimal()}
+    className={
+      trajectoryLibraryReplayStatus === "loading"
+        ? "cursor-wait rounded-xl border border-sky-300/25 bg-sky-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
+        : "rounded-xl border border-fuchsia-300/25 bg-fuchsia-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100"
+    }
+  >
+    Replay Saved
+  </button>
+
+  <button
+  type="button"
+  disabled={
+    trajectoryLibraryReplayRoundStatus === "loading" ||
+    trajectoryLibraryReplayRoundStatus === "replaying"
+  }
+  onClick={replayTrajectoryLibraryThreeDiceRound}
+  className={
+    trajectoryLibraryReplayRoundStatus === "loading" ||
+    trajectoryLibraryReplayRoundStatus === "replaying"
+      ? "cursor-wait rounded-xl border border-sky-300/25 bg-sky-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
+      : "rounded-xl border border-amber-300/25 bg-amber-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100"
+  }
+>
+  Replay Saved 3 Dice
+</button>
+
+  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
+    {trajectoryLibraryReplayStatus === "ready"
+      ? "Replay Ready"
+      : trajectoryLibraryReplayStatus === "fail"
+        ? "Replay Failed"
+        : trajectoryLibraryReplayStatus === "loading"
+          ? "Loading Replay"
+          : "Saved Replay Idle"}
+  </p>
+</div>
+
+{trajectoryLibraryReplayError ? (
+  <p className="mt-3 text-xs font-bold text-red-200">
+    {trajectoryLibraryReplayError}
+  </p>
+) : null}
+
+{trajectoryLibraryReplay ? (
+  <div className="mt-3 rounded-xl border border-fuchsia-300/15 bg-fuchsia-300/10 px-3 py-2">
+    <p className="text-xs font-black text-fuchsia-100">
+      Replaying {trajectoryLibraryReplay.animal}
+    </p>
+    <p className="mt-1 text-[10px] text-white/45">
+      {trajectoryLibraryReplay.fileName} · Frames{" "}
+      {trajectoryLibraryReplay.frames.length} ·{" "}
+      {trajectoryLibraryReplay.motionGrade} ·{" "}
+      {trajectoryLibraryReplay.confidence}%
+    </p>
+  </div>
+) : null}
+
+{trajectoryLibraryReplayRoundError ? (
+  <p className="mt-3 text-xs font-bold text-red-200">
+    {trajectoryLibraryReplayRoundError}
+  </p>
+) : null}
+
+{trajectoryLibraryReplayRound.length > 0 ? (
+  <div className="mt-3 rounded-xl border border-amber-300/15 bg-amber-300/10 px-3 py-2">
+    <p className="text-xs font-black text-amber-100">
+      Saved 3 Dice Replay:{" "}
+      {trajectoryLibraryReplayRoundStatus === "complete"
+        ? "Complete"
+        : trajectoryLibraryReplayRoundStatus === "fail"
+          ? "Failed"
+          : trajectoryLibraryReplayRoundStatus === "replaying"
+            ? `Playing ${trajectoryLibraryReplayRoundIndex + 1}/3`
+            : "Ready"}
+    </p>
+
+    <div className="mt-2 grid gap-2 sm:grid-cols-3">
+      {trajectoryLibraryReplayRound.map((replay, index) => (
+        <div
+          key={`trajectory-library-round-${index}-${replay.fileName}`}
+          className="rounded-lg border border-white/10 bg-black/25 px-2 py-2"
+        >
+          <p className="text-[10px] font-black text-amber-100">
+            D{index + 1}: {targetAnimals[index]}
+          </p>
+          <p className="mt-1 text-[9px] text-white/45">
+            {replay.fileName}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+) : null}
+
+    {trajectoryLibrarySmokeError ? (
+      <p className="mt-3 text-xs font-bold text-red-200">
+        {trajectoryLibrarySmokeError}
+      </p>
+    ) : null}
+
+    {trajectoryLibrarySmokeRows.length > 0 ? (
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {trajectoryLibrarySmokeRows.map((row) => (
+          <div
+            key={`trajectory-loader-smoke-${row.animal}`}
+            className="rounded-xl border border-white/10 bg-black/25 px-3 py-2"
+          >
+            <p className="text-xs font-black text-emerald-100">
+              {row.animal}
+            </p>
+            <p className="mt-1 text-[10px] text-white/45">
+              {row.fileName}
+            </p>
+            <p className="mt-1 text-[10px] text-white/45">
+              Frames {row.frames} · {row.motionGrade} · {row.confidence}%
+            </p>
+          </div>
+        ))}
+      </div>
+    ) : null}
+  </div>
+
+  <p>Captured: {trajectoryRecordings.length}</p>
+  <p>Approved production files: {approvedTrajectoryFiles.length}</p>
+
+    <div className="mt-4 rounded-2xl border border-amber-300/15 bg-black/25 p-3">
+  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-200/60">
+    Approved Library Count
+  </p>
+
+  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+    {Object.entries(approvedTrajectoryCounts).map(([animal, count]) => (
+      <div
+        key={`approved-count-${animal}`}
+        className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"
+      >
+        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
+          {animal}
+        </p>
+        <p className="mt-1 text-lg font-black text-amber-100">
+          {count} / 10
+        </p>
+      </div>
+    ))}
+  </div>
+</div>
     <p>
-      Preview:{" "}
-      {selectedTrajectoryPreview
-        ? `${selectedTrajectoryPreview.finalAnimal} · D${
-            selectedTrajectoryPreview.dieIndex + 1
-          }`
-        : "None"}
+Preview: {trajectoryPreviewLabel}
     </p>
   </div>
 
@@ -1862,23 +2553,96 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
             {recording.metrics.deflectorBounceScore}
           </p>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => previewTrajectoryRecording(index)}
-              className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
-            >
-              Preview
-            </button>
+          {(() => {
+  const candidate: DiceTrajectoryRecorderCandidate = {
+    finalAnimal: recording.finalAnimal,
+    dieIndex: recording.dieIndex,
+    frames: recording.frames,
 
-            <button
-              type="button"
-              onClick={() => approveTrajectoryRecording(index)}
-              className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
-            >
-              Approve
-            </button>
+    finalStatus: recording.finalStatus,
+    confidence: recording.finalConfidence,
+    tiltDegrees: recording.finalTiltDegrees,
+
+    readableAtSeconds: recording.readableAtSeconds,
+    motionEndSeconds: recording.motionEndSeconds,
+    replayEndSeconds: recording.replayEndSeconds,
+
+    metrics: recording.metrics,
+    motionScore: getRecordedMotionScore(recording.metrics),
+    motionGrade: getRecordedMotionGrade(recording.metrics),
+
+    notes: [
+      "Captured from V1 live physics recorder.",
+      `Shape preset: ${diceShapePreset}`,
+      `Collider preset: ${diceColliderPreset}`,
+    ],
+  };
+
+  const gate = evaluateDiceTrajectoryGate(candidate);
+
+  return (
+    <>
+      <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+        <p
+          className={
+            gate.severity === "block"
+              ? "text-[10px] font-black uppercase tracking-[0.16em] text-red-200"
+              : gate.severity === "warn"
+                ? "text-[10px] font-black uppercase tracking-[0.16em] text-amber-200"
+                : "text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200"
+          }
+        >
+          Gate: {gate.severity}
+        </p>
+
+        {gate.issues.length > 0 ? (
+          <div className="mt-2 space-y-1">
+            {gate.issues.slice(0, 3).map((issue) => (
+              <p key={issue.code} className="text-[10px] text-white/45">
+                • {issue.message}
+              </p>
+            ))}
           </div>
+        ) : (
+          <p className="mt-2 text-[10px] text-emerald-100/70">
+            Production-ready candidate.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => previewTrajectoryRecording(index)}
+          className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
+        >
+          Preview
+        </button>
+
+        <button
+          type="button"
+          onClick={() => diagnosticExportTrajectoryRecording(index)}
+          className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100"
+        >
+          Diagnostic Export
+        </button>
+
+        <button
+          type="button"
+          disabled={!gate.canProductionApprove}
+          onClick={() => approveTrajectoryRecording(index)}
+          className={
+            gate.canProductionApprove
+              ? "rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
+              : "cursor-not-allowed rounded-xl border border-red-300/15 bg-red-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-100/35"
+          }
+        >
+          Production Approve
+        </button>
+      </div>
+    </>
+  );
+})()}
         </div>
       ))}
     </div>
@@ -1887,10 +2651,10 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
   <div className="mt-3 flex flex-wrap gap-2">
     <button
       type="button"
-      disabled={approvedTrajectories.length === 0}
+      disabled={approvedTrajectoryFiles.length === 0}
       onClick={exportApprovedTrajectories}
       className={
-        approvedTrajectories.length > 0
+        approvedTrajectoryFiles.length > 0
           ? "rounded-xl border border-amber-300/25 bg-amber-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100"
           : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
       }
@@ -1899,11 +2663,24 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
     </button>
 
     <button
+  type="button"
+  disabled={approvedTrajectoryFiles.length === 0}
+  onClick={downloadTrajectoryManifest}
+  className={
+    approvedTrajectoryFiles.length > 0
+      ? "rounded-xl border border-emerald-300/25 bg-emerald-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
+      : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
+  }
+>
+  Manifest
+</button>
+
+    <button
       type="button"
-      disabled={approvedTrajectories.length === 0}
+      disabled={approvedTrajectoryFiles.length === 0}
       onClick={downloadApprovedTrajectories}
       className={
-        approvedTrajectories.length > 0
+        approvedTrajectoryFiles.length > 0
           ? "rounded-xl border border-cyan-300/25 bg-cyan-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100"
           : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
       }
