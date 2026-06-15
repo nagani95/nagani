@@ -124,7 +124,7 @@ function getTrajectoryEntryLoadPath(entry: ApprovedDiceTrajectoryManifestEntry) 
 
 async function fetchJson<T>(loadPath: string): Promise<T> {
   const response = await fetch(loadPath, {
-    cache: "force-cache",
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -273,11 +273,11 @@ export function getSlotAwareTrajectoryEntriesForAnimal({
     };
   }
 
-  return {
-    entries: animalEntries,
-    slotMatch: "fallback-any-slot",
-    requestedDieIndex,
-  };
+return {
+  entries: [],
+  slotMatch: "fallback-any-slot",
+  requestedDieIndex,
+};
 }
 
 export function selectSlotAwareTrajectoryEntryForAnimal({
@@ -297,9 +297,14 @@ export function selectSlotAwareTrajectoryEntryForAnimal({
     preferredDieIndex,
   });
 
-  if (selection.entries.length === 0) {
-    throw new Error(`No approved trajectory found for ${animal}.`);
-  }
+if (selection.entries.length === 0) {
+  const slotLabel =
+    selection.requestedDieIndex === null
+      ? ""
+      : ` D${selection.requestedDieIndex + 1}`;
+
+  throw new Error(`No approved trajectory found for ${animal}${slotLabel}.`);
+}
 
   const index = Math.floor(random() * selection.entries.length);
   const entry = selection.entries[Math.min(index, selection.entries.length - 1)];

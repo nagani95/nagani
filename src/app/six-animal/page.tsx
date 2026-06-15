@@ -44,6 +44,7 @@ const ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY =
 const SIX_ANIMAL_ROOM_UUID = "11111111-1111-1111-1111-111111111111";
 const BET_AMOUNT_STEP = 1000;
 const USE_V1_AUTO_VISIBLE_ROOM_RESULT = true;
+const USE_BACKEND_RESULT_FOR_ROOM_UI = true;
 
 type LiveSixAnimalRound = {
   id: string;
@@ -367,6 +368,8 @@ visualDiceStatusRef.current = "playing";
   diceResultRef.current = [];
 
 setServerRngResults(backendResultKeys);
+serverRngResultsRef.current = backendResultKeys;
+
 setRollingStartedAt(round.rolling_starts_at);
 setPhase("rolling");
 phaseRef.current = "rolling";
@@ -594,8 +597,10 @@ if (nextPhase === "rolling") {
     roundIdRef.current === round.id &&
     !isVisualDiceCompleteRef.current;
 
-  setServerRngResults(backendResultKeys);
-  setRollingStartedAt(round.rolling_starts_at);
+setServerRngResults(backendResultKeys);
+serverRngResultsRef.current = backendResultKeys;
+
+setRollingStartedAt(round.rolling_starts_at);;
   setShouldPlayLiveDiceSequence(shouldRunLocalDiceFlow);
   if (shouldRunLocalDiceFlow) {
   setVisualDiceStatus("playing");
@@ -640,6 +645,8 @@ const hasCompleteVisualDiceResult =
     !hasCompleteVisualDiceResult;
 
 setServerRngResults(backendResultKeys);
+serverRngResultsRef.current = backendResultKeys;
+
 setRollingStartedAt(round.rolling_starts_at);
 
 if (hasCompleteVisualDiceResult) {
@@ -845,7 +852,13 @@ const showFinalResultPanel =
 const isResultPhaseVisualGuard =
   phase === "result" && !showFinalResultPanel;
 
-const showRollingResultPanel = phase === "rolling" || isResultPhaseVisualGuard;
+const showPendingResultBoard =
+  (phase === "closed" &&
+    serverRngResults.length === SIX_ANIMAL_RULES.diceCount) ||
+  phase === "rolling" ||
+  isResultPhaseVisualGuard;
+
+const showRollingResultPanel = showPendingResultBoard;
 const showResultBoardPanel = showRollingResultPanel || showFinalResultPanel;
 
 const isRollingReconnectView = false;
@@ -1491,9 +1504,9 @@ function handleThreeDiceComplete(
     return;
   }
 
- const resultNames = USE_V1_AUTO_VISIBLE_ROOM_RESULT
-  ? getVisibleDicePayloadResultNames(payload, SIX_ANIMAL_RULES.diceCount)
-  : getBackendResultNames(SIX_ANIMAL_RULES.diceCount);
+ const resultNames = USE_BACKEND_RESULT_FOR_ROOM_UI
+  ? getBackendResultNames(SIX_ANIMAL_RULES.diceCount)
+  : getVisibleDicePayloadResultNames(payload, SIX_ANIMAL_RULES.diceCount);
 
   if (resultNames.length !== SIX_ANIMAL_RULES.diceCount) return;
 
@@ -1594,9 +1607,9 @@ function handleThreeDiceProgress(
     SIX_ANIMAL_RULES.diceCount
   );
 
-  const resultNames = USE_V1_AUTO_VISIBLE_ROOM_RESULT
-  ? getVisibleDicePayloadResultNames(payload, revealCount)
-  : getBackendResultNames(revealCount);
+const resultNames = USE_BACKEND_RESULT_FOR_ROOM_UI
+  ? getBackendResultNames(revealCount)
+  : getVisibleDicePayloadResultNames(payload, revealCount);
 
   if (resultNames.length > lastDiceSoundCountRef.current) {
     playRoomSound("result-reveal");
@@ -2164,7 +2177,7 @@ const isCurrent =
   activeBets={activeBets}
   showFinalResultPanel={showFinalResultPanel}
   isResultPhaseVisualGuard={isResultPhaseVisualGuard}
-  isRollingPhase={phase === "rolling"}
+  isRollingPhase={phase === "closed" || phase === "rolling"}
   isResultWin={isResultWin}
   animalAssets={ANIMAL_ASSETS}
 />

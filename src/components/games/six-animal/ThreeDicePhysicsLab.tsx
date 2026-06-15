@@ -48,6 +48,7 @@ const BACKEND_AUTHORITY_SHADOW_ATTEMPT_LIMIT = 980;
 const BACKEND_AUTHORITY_MAX_SIMULATION_SECONDS = 7.2;
 const BACKEND_AUTHORITY_FRAME_RATE: 30 | 60 = 30;
 const FIRST_TRAJECTORY_LIBRARY_TARGET_PER_ANIMAL = 10;
+const SHOW_DICE_LAB_ADVANCED_TOOLS = false;
 type TrajectoryLibrarySmokeStatus = "idle" | "loading" | "pass" | "fail";
 
 type TrajectoryLibrarySmokeRow = {
@@ -618,18 +619,28 @@ async function runTrajectoryLibrarySmokeTest() {
     const rows: TrajectoryLibrarySmokeRow[] = [];
 
     for (const animal of DICE_TRAJECTORY_LIBRARY_ANIMALS) {
-      const { entry, trajectory } = await loadDiceTrajectoryForAnimal({
-        animal,
-        random: () => 0,
-      });
+      for (let dieIndex = 0; dieIndex < 3; dieIndex += 1) {
+        const { entry, trajectory, slotMatch } =
+          await loadDiceTrajectoryForAnimal({
+            animal,
+            preferredDieIndex: dieIndex,
+            random: () => 0,
+          });
 
-      rows.push({
-        animal,
-        fileName: entry.fileName,
-        frames: trajectory.frames.length,
-        motionGrade: trajectory.quality.motionGrade,
-        confidence: trajectory.quality.confidence,
-      });
+        if (slotMatch !== "exact-slot") {
+          throw new Error(
+            `Missing exact D${dieIndex + 1} replay file for ${animal}.`
+          );
+        }
+
+        rows.push({
+          animal,
+          fileName: entry.fileName,
+          frames: trajectory.frames.length,
+          motionGrade: trajectory.quality.motionGrade,
+          confidence: trajectory.quality.confidence,
+        });
+      }
     }
 
     setTrajectoryLibrarySmokeRows(rows);
@@ -639,7 +650,7 @@ async function runTrajectoryLibrarySmokeTest() {
     setTrajectoryLibrarySmokeError(
       error instanceof Error
         ? error.message
-        : "Trajectory library smoke test failed."
+        : "Trajectory library exact 18-slot smoke test failed."
     );
   }
 }
@@ -1500,15 +1511,6 @@ useEffect(() => {
   onClick={() => {
     const nextValue = !cleanTableShotMode;
 
-    <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm font-black text-cyan-100 shadow-xl shadow-black/30">
-  <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-100/55">
-    Table Preview
-  </p>
-  <p className="mt-1 text-xs font-black text-cyan-50">
-    Dev Only
-  </p>
-</div>
-
     setCleanTableShotMode(nextValue);
 
     if (nextValue) {
@@ -2333,15 +2335,21 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
           Trajectory Library Loader
         </p>
 
-        <p className="mt-1 text-sm font-black text-emerald-50">
-          {trajectoryLibrarySmokeStatus === "pass"
-            ? "Smoke Passed"
-            : trajectoryLibrarySmokeStatus === "fail"
-              ? "Smoke Failed"
-              : trajectoryLibrarySmokeStatus === "loading"
-                ? "Loading"
-                : "Ready"}
-        </p>
+<p className="mt-1 text-sm font-black text-emerald-50">
+  {trajectoryLibrarySmokeStatus === "pass"
+    ? "Smoke Passed"
+    : trajectoryLibrarySmokeStatus === "fail"
+      ? "Smoke Failed"
+      : trajectoryLibrarySmokeStatus === "loading"
+        ? "Loading"
+        : "Ready"}
+</p>
+
+<p className="mt-2 text-xs font-bold leading-5 text-emerald-50/60">
+  For three-dice replay, choose animals from the top D1 / D2 / D3 selectors,
+  then click Test Selected D1/D2/D3 Replay. The one-animal replay tool is hidden
+  in simple mode.
+</p>
       </div>
 
       <button
@@ -2354,40 +2362,44 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
             : "rounded-xl border border-emerald-300/25 bg-emerald-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
         }
       >
-        Loader Smoke
+       Check 18 Replay Files
       </button>
     </div>
 
     <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-3">
-  <select
-    value={trajectoryLibraryReplayAnimal}
-    disabled={trajectoryLibraryReplayStatus === "loading"}
-    onChange={(event) =>
-      setTrajectoryLibraryReplayAnimal(event.target.value as DiceAnimalLabel)
-    }
-    className="rounded-xl border border-white/10 bg-black/45 px-3 py-2 text-xs font-black text-white outline-none"
-  >
-    {DICE_TRAJECTORY_LIBRARY_ANIMALS.map((animal) => (
-      <option key={`trajectory-replay-animal-${animal}`} value={animal}>
-        {animal}
-      </option>
-    ))}
-  </select>
+{SHOW_DICE_LAB_ADVANCED_TOOLS ? (
+  <>
+    <select
+      value={trajectoryLibraryReplayAnimal}
+      disabled={trajectoryLibraryReplayStatus === "loading"}
+      onChange={(event) =>
+        setTrajectoryLibraryReplayAnimal(event.target.value as DiceAnimalLabel)
+      }
+      className="rounded-xl border border-white/10 bg-black/45 px-3 py-2 text-xs font-black text-white outline-none"
+    >
+      {DICE_TRAJECTORY_LIBRARY_ANIMALS.map((animal) => (
+        <option key={`trajectory-replay-animal-${animal}`} value={animal}>
+          {animal}
+        </option>
+      ))}
+    </select>
 
-  <button
-    type="button"
-    disabled={trajectoryLibraryReplayStatus === "loading"}
-    onClick={() => replayTrajectoryLibraryAnimal()}
-    className={
-      trajectoryLibraryReplayStatus === "loading"
-        ? "cursor-wait rounded-xl border border-sky-300/25 bg-sky-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
-        : "rounded-xl border border-fuchsia-300/25 bg-fuchsia-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100"
-    }
-  >
-    Replay Saved
-  </button>
+    <button
+      type="button"
+      disabled={trajectoryLibraryReplayStatus === "loading"}
+      onClick={() => replayTrajectoryLibraryAnimal()}
+      className={
+        trajectoryLibraryReplayStatus === "loading"
+          ? "cursor-wait rounded-xl border border-sky-300/25 bg-sky-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
+          : "rounded-xl border border-fuchsia-300/25 bg-fuchsia-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100"
+      }
+    >
+      Test One Animal
+    </button>
+  </>
+) : null}
 
-  <button
+<button
   type="button"
   disabled={
     trajectoryLibraryReplayRoundStatus === "loading" ||
@@ -2401,8 +2413,12 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
       : "rounded-xl border border-amber-300/25 bg-amber-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100"
   }
 >
-  Replay Saved 3 Dice
+  Test Selected D1/D2/D3 Replay
 </button>
+
+<p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
+  Uses top D1 / D2 / D3 selectors
+</p>
 
   <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
     {trajectoryLibraryReplayStatus === "ready"
@@ -2482,7 +2498,7 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {trajectoryLibrarySmokeRows.map((row) => (
           <div
-            key={`trajectory-loader-smoke-${row.animal}`}
+            key={`trajectory-loader-smoke-${row.animal}-${row.fileName}`}
             className="rounded-xl border border-white/10 bg-black/25 px-3 py-2"
           >
             <p className="text-xs font-black text-emerald-100">
@@ -2500,33 +2516,39 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
     ) : null}
   </div>
 
-  <p>Captured: {trajectoryRecordings.length}</p>
-  <p>Approved production files: {approvedTrajectoryFiles.length}</p>
+<p>Captured: {trajectoryRecordings.length}</p>
+
+{SHOW_DICE_LAB_ADVANCED_TOOLS ? (
+  <>
+    <p>Approved production files: {approvedTrajectoryFiles.length}</p>
 
     <div className="mt-4 rounded-2xl border border-amber-300/15 bg-black/25 p-3">
-  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-200/60">
-    Approved Library Count
-  </p>
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-200/60">
+        Approved Library Count
+      </p>
 
-  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-    {Object.entries(approvedTrajectoryCounts).map(([animal, count]) => (
-      <div
-        key={`approved-count-${animal}`}
-        className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"
-      >
-        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
-          {animal}
-        </p>
-        <p className="mt-1 text-lg font-black text-amber-100">
-          {count} / 10
-        </p>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {Object.entries(approvedTrajectoryCounts).map(([animal, count]) => (
+          <div
+            key={`approved-count-${animal}`}
+            className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"
+          >
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
+              {animal}
+            </p>
+            <p className="mt-1 text-lg font-black text-amber-100">
+              {count} / 10
+            </p>
+          </div>
+        ))}
       </div>
-    ))}
-  </div>
-</div>
-    <p>
-Preview: {trajectoryPreviewLabel}
-    </p>
+    </div>
+  </>
+) : null}
+
+<p>
+  Preview: {trajectoryPreviewLabel}
+</p>
   </div>
 
   {trajectoryRecordings.length > 0 ? (
@@ -2648,54 +2670,58 @@ Preview: {trajectoryPreviewLabel}
     </div>
   ) : null}
 
-  <div className="mt-3 flex flex-wrap gap-2">
-    <button
-      type="button"
-      disabled={approvedTrajectoryFiles.length === 0}
-      onClick={exportApprovedTrajectories}
-      className={
-        approvedTrajectoryFiles.length > 0
-          ? "rounded-xl border border-amber-300/25 bg-amber-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100"
-          : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
-      }
-    >
-      Export JSON
-    </button>
+{SHOW_DICE_LAB_ADVANCED_TOOLS ? (
+  <>
+    <div className="mt-3 flex flex-wrap gap-2">
+      <button
+        type="button"
+        disabled={approvedTrajectoryFiles.length === 0}
+        onClick={exportApprovedTrajectories}
+        className={
+          approvedTrajectoryFiles.length > 0
+            ? "rounded-xl border border-amber-300/25 bg-amber-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100"
+            : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
+        }
+      >
+        Export JSON
+      </button>
 
-    <button
-  type="button"
-  disabled={approvedTrajectoryFiles.length === 0}
-  onClick={downloadTrajectoryManifest}
-  className={
-    approvedTrajectoryFiles.length > 0
-      ? "rounded-xl border border-emerald-300/25 bg-emerald-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
-      : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
-  }
->
-  Manifest
-</button>
+      <button
+        type="button"
+        disabled={approvedTrajectoryFiles.length === 0}
+        onClick={downloadTrajectoryManifest}
+        className={
+          approvedTrajectoryFiles.length > 0
+            ? "rounded-xl border border-emerald-300/25 bg-emerald-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
+            : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
+        }
+      >
+        Manifest
+      </button>
 
-    <button
-      type="button"
-      disabled={approvedTrajectoryFiles.length === 0}
-      onClick={downloadApprovedTrajectories}
-      className={
-        approvedTrajectoryFiles.length > 0
-          ? "rounded-xl border border-cyan-300/25 bg-cyan-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100"
-          : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
-      }
-    >
-      Download
-    </button>
-  </div>
+      <button
+        type="button"
+        disabled={approvedTrajectoryFiles.length === 0}
+        onClick={downloadApprovedTrajectories}
+        className={
+          approvedTrajectoryFiles.length > 0
+            ? "rounded-xl border border-cyan-300/25 bg-cyan-300/15 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100"
+            : "cursor-not-allowed rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/25"
+        }
+      >
+        Download
+      </button>
+    </div>
 
-  {trajectoryExportText ? (
-    <textarea
-      readOnly
-      value={trajectoryExportText}
-      className="mt-3 h-48 w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-[10px] leading-relaxed text-fuchsia-50 outline-none"
-    />
-  ) : null}
+    {trajectoryExportText ? (
+      <textarea
+        readOnly
+        value={trajectoryExportText}
+        className="mt-3 h-48 w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-[10px] leading-relaxed text-fuchsia-50 outline-none"
+      />
+    ) : null}
+  </>
+) : null}
 </div>
 
 <div className={`rounded-2xl border p-4 md:col-span-2 xl:col-span-4 ${resultPanelTone}`}>

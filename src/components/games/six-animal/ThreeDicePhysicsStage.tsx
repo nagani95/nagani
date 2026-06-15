@@ -136,7 +136,9 @@ const COCKED_RESULT_MESSAGE =
   "Dice stopped at an unreadable angle. Result not accepted.";
 
 const VISIBLE_FACE_CAPTURE_MIN_ROLL_MS = 6200;
-const RECORDED_TRAJECTORY_REPLAY_TIME_SCALE = 1.35;
+const RECORDED_TRAJECTORY_REPLAY_TIME_SCALE = 1.18;
+const RECORDED_TRAJECTORY_INTRO_SECONDS = 0.52;
+const RECORDED_TRAJECTORY_VISUAL_SMOOTHING = 28;
 const VISIBLE_FACE_CAPTURE_STABLE_SECONDS = 0.42;
 const VISIBLE_FACE_CAPTURE_SPEED = 1.05;
 const VISIBLE_FACE_HARD_READ_MS = 9800;
@@ -1244,7 +1246,11 @@ function RecordedTrajectoryDice({
   activeDieIndex: number;
 }) {
   const groupRef = useRef<Group | null>(null);
-  const replayStartedAtRef = useRef(0);
+const smoothedPositionRef = useRef(new Vector3());
+const targetPositionRef = useRef(new Vector3());
+const smoothedQuaternionRef = useRef(new Quaternion());
+const targetQuaternionRef = useRef(new Quaternion());
+const replayStartedAtRef = useRef(0);
   const finalCapturedRef = useRef(false);
   const readableCapturedRef = useRef(false);
   const readableCaptureRef = useRef<RecordedReadableCapture | null>(null);
@@ -1287,21 +1293,26 @@ function RecordedTrajectoryDice({
   const handoffFrame = frames[handoffFrameIndex] ?? firstFrame;
   const handoffTime = handoffFrame?.t ?? 0;
 
-  function copyRecordedFrameToGroup(frame: DiceTrajectoryFrame) {
-    const group = groupRef.current;
-    if (!group) return;
+function copyRecordedFrameToGroup(frame: DiceTrajectoryFrame) {
+  const group = groupRef.current;
+  if (!group) return;
 
-    group.position.set(frame.position[0], frame.position[1], frame.position[2]);
+  group.position.set(frame.position[0], frame.position[1], frame.position[2]);
 
-    group.quaternion
-      .set(
-        frame.rotation[0],
-        frame.rotation[1],
-        frame.rotation[2],
-        frame.rotation[3]
-      )
-      .normalize();
-  }
+  group.quaternion
+    .set(
+      frame.rotation[0],
+      frame.rotation[1],
+      frame.rotation[2],
+      frame.rotation[3]
+    )
+    .normalize();
+
+  smoothedPositionRef.current.copy(group.position);
+  targetPositionRef.current.copy(group.position);
+  smoothedQuaternionRef.current.copy(group.quaternion).normalize();
+  targetQuaternionRef.current.copy(group.quaternion).normalize();
+}
 
   function copyHolderReleaseIntroToGroup(progress: number) {
     const group = groupRef.current;
@@ -1347,6 +1358,10 @@ function RecordedTrajectoryDice({
       .normalize();
 
     group.quaternion.copy(introQuaternion);
+    smoothedPositionRef.current.copy(group.position);
+targetPositionRef.current.copy(group.position);
+smoothedQuaternionRef.current.copy(group.quaternion).normalize();
+targetQuaternionRef.current.copy(group.quaternion).normalize();
   }
 
   useLayoutEffect(() => {
@@ -1357,9 +1372,9 @@ function RecordedTrajectoryDice({
 
   useEffect(() => {
     replayStartedAtRef.current = performance.now();
-    finalCapturedRef.current = false;
-    readableCapturedRef.current = false;
-    readableCaptureRef.current = getRecordedTrajectoryReadableCapture(frames);
+finalCapturedRef.current = false;
+readableCapturedRef.current = false;
+readableCaptureRef.current = getRecordedTrajectoryReadableCapture(frames);
 
     if (firstFrame) {
       copyHolderReleaseIntroToGroup(0);
@@ -1369,7 +1384,7 @@ function RecordedTrajectoryDice({
     onFaceResultChange(null);
   }, [frames, replayKey, activeDieIndex, onSettledChange, onFaceResultChange]);
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     const group = groupRef.current;
     if (!group || frames.length === 0 || !firstFrame || !handoffFrame) return;
 
@@ -1380,46 +1395,59 @@ function RecordedTrajectoryDice({
     const replayElapsedSeconds =
       (performance.now() - replayStartedAtRef.current) / 1000;
 
-    const holderReleaseIntroSeconds = 0.68;
+const holderReleaseIntroSeconds = RECORDED_TRAJECTORY_INTRO_SECONDS;
 
-    if (replayElapsedSeconds < holderReleaseIntroSeconds) {
-      copyHolderReleaseIntroToGroup(
-        replayElapsedSeconds / holderReleaseIntroSeconds
-      );
+if (replayElapsedSeconds < holderReleaseIntroSeconds) {
+  copyHolderReleaseIntroToGroup(
+    replayElapsedSeconds / holderReleaseIntroSeconds
+  );
 
-      return;
-    }
+  return;
+}
 
-    const trajectorySeconds =
-      handoffTime +
-      (replayElapsedSeconds - holderReleaseIntroSeconds) /
-        RECORDED_TRAJECTORY_REPLAY_TIME_SCALE;
+const trajectorySeconds =
+  handoffTime +
+  (replayElapsedSeconds - holderReleaseIntroSeconds) /
+    RECORDED_TRAJECTORY_REPLAY_TIME_SCALE;
 
     const { previousFrame, nextFrame, alpha } =
       getRecordedTrajectoryFramePair(frames, trajectorySeconds);
 
-    group.position.set(
-      MathUtils.lerp(previousFrame.position[0], nextFrame.position[0], alpha),
-      MathUtils.lerp(previousFrame.position[1], nextFrame.position[1], alpha),
-      MathUtils.lerp(previousFrame.position[2], nextFrame.position[2], alpha)
-    );
+targetPositionRef.current.set(
+  MathUtils.lerp(previousFrame.position[0], nextFrame.position[0], alpha),
+  MathUtils.lerp(previousFrame.position[1], nextFrame.position[1], alpha),
+  MathUtils.lerp(previousFrame.position[2], nextFrame.position[2], alpha)
+);
 
-    const previousQuaternion = new Quaternion(
-      previousFrame.rotation[0],
-      previousFrame.rotation[1],
-      previousFrame.rotation[2],
-      previousFrame.rotation[3]
-    ).normalize();
+const previousQuaternion = new Quaternion(
+  previousFrame.rotation[0],
+  previousFrame.rotation[1],
+  previousFrame.rotation[2],
+  previousFrame.rotation[3]
+).normalize();
 
-    const nextQuaternion = new Quaternion(
-      nextFrame.rotation[0],
-      nextFrame.rotation[1],
-      nextFrame.rotation[2],
-      nextFrame.rotation[3]
-    ).normalize();
+const nextQuaternion = new Quaternion(
+  nextFrame.rotation[0],
+  nextFrame.rotation[1],
+  nextFrame.rotation[2],
+  nextFrame.rotation[3]
+).normalize();
 
-    previousQuaternion.slerp(nextQuaternion, alpha).normalize();
-    group.quaternion.copy(previousQuaternion);
+targetQuaternionRef.current
+  .copy(previousQuaternion)
+  .slerp(nextQuaternion, alpha)
+  .normalize();
+
+const visualSmoothing =
+  1 - Math.exp(-delta * RECORDED_TRAJECTORY_VISUAL_SMOOTHING);
+
+smoothedPositionRef.current.lerp(targetPositionRef.current, visualSmoothing);
+smoothedQuaternionRef.current
+  .slerp(targetQuaternionRef.current, visualSmoothing)
+  .normalize();
+
+group.position.copy(smoothedPositionRef.current);
+group.quaternion.copy(smoothedQuaternionRef.current);
 
     const readableCapture = readableCaptureRef.current;
 
@@ -1462,11 +1490,11 @@ function RecordedTrajectoryDice({
       position={holderStartPosition}
       rotation={DISPLAY_DICE_ROTATIONS[activeDieIndex] ?? [0, 0, 0]}
     >
-      <DiceVisual
-        shapePreset={diceShapePreset}
-        showFaceLayer={!hideActiveDiceFaces}
-        showHiddenFaceSeal={Boolean(hideActiveDiceFaces)}
-      />
+<DiceVisual
+  shapePreset={diceShapePreset}
+  showFaceLayer={!hideActiveDiceFaces}
+  showHiddenFaceSeal={Boolean(hideActiveDiceFaces)}
+/>
     </group>
   );
 }
@@ -1766,6 +1794,106 @@ function getDevTrapReleaseDicePosition({
   ];
 }
 
+type RecorderReleasePattern = {
+  position: DiceLaunchVelocity;
+  rotation: DiceLaunchVelocity;
+  linvel: DiceLaunchVelocity;
+  angvel: DiceLaunchVelocity;
+};
+
+const RECORDER_RELEASE_PATTERNS: RecorderReleasePattern[] = [
+  {
+    // A — natural forward tumble
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0.08, y: 0.12, z: -0.06 },
+    linvel: { x: 0.02, y: -0.04, z: 0.22 },
+    angvel: { x: 3.75, y: 0.85, z: 1.65 },
+  },
+  {
+    // B — opposite forward tumble
+    position: { x: 0, y: 0, z: 0.02 },
+    rotation: { x: -0.1, y: -0.16, z: 0.08 },
+    linvel: { x: -0.02, y: -0.04, z: 0.24 },
+    angvel: { x: -3.75, y: -0.85, z: -1.65 },
+  },
+  {
+    // C — side tumble left
+    position: { x: -0.12, y: 0.01, z: -0.03 },
+    rotation: { x: 0.18, y: 0.62, z: -0.24 },
+    linvel: { x: -0.18, y: -0.05, z: 0.18 },
+    angvel: { x: 1.45, y: 3.35, z: 1.25 },
+  },
+  {
+    // D — side tumble right
+    position: { x: 0.12, y: 0.01, z: -0.03 },
+    rotation: { x: -0.18, y: -0.62, z: 0.24 },
+    linvel: { x: 0.18, y: -0.05, z: 0.18 },
+    angvel: { x: -1.45, y: -3.35, z: -1.25 },
+  },
+  {
+    // E — crab/elephant front-back flip
+    position: { x: 0.05, y: 0.02, z: 0.05 },
+    rotation: { x: 0.28, y: 0.18, z: 0.74 },
+    linvel: { x: 0.08, y: -0.02, z: 0.28 },
+    angvel: { x: 1.05, y: 0.9, z: 3.85 },
+  },
+  {
+    // F — reverse front-back flip
+    position: { x: -0.05, y: 0.02, z: 0.05 },
+    rotation: { x: -0.28, y: -0.18, z: -0.74 },
+    linvel: { x: -0.08, y: -0.02, z: 0.28 },
+    angvel: { x: -1.05, y: -0.9, z: -3.85 },
+  },
+  {
+    // G — high soft pop
+    position: { x: 0.04, y: 0.045, z: -0.08 },
+    rotation: { x: 0.44, y: -0.36, z: 0.28 },
+    linvel: { x: 0.1, y: 0.04, z: 0.12 },
+    angvel: { x: 2.35, y: -2.45, z: 2.1 },
+  },
+  {
+    // H — opposite high soft pop
+    position: { x: -0.04, y: 0.045, z: -0.08 },
+    rotation: { x: -0.44, y: 0.36, z: -0.28 },
+    linvel: { x: -0.1, y: 0.04, z: 0.12 },
+    angvel: { x: -2.35, y: 2.45, z: -2.1 },
+  },
+  {
+    // I — diagonal deflector kiss
+    position: { x: -0.16, y: 0.015, z: 0.03 },
+    rotation: { x: 0.34, y: 0.74, z: 0.18 },
+    linvel: { x: 0.2, y: -0.04, z: 0.3 },
+    angvel: { x: 2.55, y: 2.65, z: 2.35 },
+  },
+  {
+    // J — opposite diagonal deflector kiss
+    position: { x: 0.16, y: 0.015, z: 0.03 },
+    rotation: { x: -0.34, y: -0.74, z: -0.18 },
+    linvel: { x: -0.2, y: -0.04, z: 0.3 },
+    angvel: { x: -2.55, y: -2.65, z: -2.35 },
+  },
+  {
+    // K — low rolling twist
+    position: { x: 0.07, y: -0.02, z: 0.08 },
+    rotation: { x: 0.16, y: 0.88, z: -0.38 },
+    linvel: { x: 0.14, y: -0.08, z: 0.2 },
+    angvel: { x: 0.95, y: 3.8, z: -2.6 },
+  },
+  {
+    // L — opposite low rolling twist
+    position: { x: -0.07, y: -0.02, z: 0.08 },
+    rotation: { x: -0.16, y: -0.88, z: 0.38 },
+    linvel: { x: -0.14, y: -0.08, z: 0.2 },
+    angvel: { x: -0.95, y: -3.8, z: 2.6 },
+  },
+];
+
+function getRecorderReleasePattern(index: number): RecorderReleasePattern {
+  return RECORDER_RELEASE_PATTERNS[
+    Math.abs(index) % RECORDER_RELEASE_PATTERNS.length
+  ];
+}
+
 function DiceCube({
   resetKey,
   onSettledChange,
@@ -1835,35 +1963,67 @@ const recorderReleaseJitterEnabled =
   !targetLaunchRecipeEnabled &&
   !hasShadowLaunchRecipe;
 
+const recorderReleasePatternIndex = recorderReleaseJitterEnabled
+  ? trajectoryRecorderRunNonce + activeDieIndex * 5 + resetKey * 2
+  : 0;
+
+const recorderReleasePattern = getRecorderReleasePattern(
+  recorderReleasePatternIndex
+);
+
 const recorderPositionJitter = recorderReleaseJitterEnabled
   ? {
-      x: seededRange(recorderReleaseSeed + 1, -0.085, 0.085),
-      y: seededRange(recorderReleaseSeed + 2, -0.025, 0.035),
-      z: seededRange(recorderReleaseSeed + 3, -0.055, 0.055),
+      x:
+        recorderReleasePattern.position.x +
+        seededRange(recorderReleaseSeed + 1, -0.055, 0.055),
+      y:
+        recorderReleasePattern.position.y +
+        seededRange(recorderReleaseSeed + 2, -0.018, 0.028),
+      z:
+        recorderReleasePattern.position.z +
+        seededRange(recorderReleaseSeed + 3, -0.045, 0.045),
     }
   : { x: 0, y: 0, z: 0 };
 
 const recorderRotationJitter = recorderReleaseJitterEnabled
   ? {
-      x: seededRange(recorderReleaseSeed + 4, -0.18, 0.18),
-      y: seededRange(recorderReleaseSeed + 5, -0.24, 0.24),
-      z: seededRange(recorderReleaseSeed + 6, -0.18, 0.18),
+      x:
+        recorderReleasePattern.rotation.x +
+        seededRange(recorderReleaseSeed + 4, -0.18, 0.18),
+      y:
+        recorderReleasePattern.rotation.y +
+        seededRange(recorderReleaseSeed + 5, -0.22, 0.22),
+      z:
+        recorderReleasePattern.rotation.z +
+        seededRange(recorderReleaseSeed + 6, -0.18, 0.18),
     }
   : { x: 0, y: 0, z: 0 };
 
 const recorderInitialLinvel = recorderReleaseJitterEnabled
   ? {
-      x: seededRange(recorderReleaseSeed + 7, -0.12, 0.12),
-      y: seededRange(recorderReleaseSeed + 8, -0.04, 0.04),
-      z: seededRange(recorderReleaseSeed + 9, -0.16, 0.18),
+      x:
+        recorderReleasePattern.linvel.x +
+        seededRange(recorderReleaseSeed + 7, -0.045, 0.045),
+      y:
+        recorderReleasePattern.linvel.y +
+        seededRange(recorderReleaseSeed + 8, -0.025, 0.025),
+      z:
+        recorderReleasePattern.linvel.z +
+        seededRange(recorderReleaseSeed + 9, -0.05, 0.05),
     }
   : { x: 0, y: 0, z: 0 };
 
 const recorderInitialAngvel = recorderReleaseJitterEnabled
   ? {
-      x: seededRange(recorderReleaseSeed + 10, -0.85, 0.85),
-      y: seededRange(recorderReleaseSeed + 11, -0.55, 0.55),
-      z: seededRange(recorderReleaseSeed + 12, -0.85, 0.85),
+      x:
+        recorderReleasePattern.angvel.x +
+        seededRange(recorderReleaseSeed + 10, -0.42, 0.42),
+      y:
+        recorderReleasePattern.angvel.y +
+        seededRange(recorderReleaseSeed + 11, -0.42, 0.42),
+      z:
+        recorderReleasePattern.angvel.z +
+        seededRange(recorderReleaseSeed + 12, -0.42, 0.42),
     }
   : { x: 0, y: 0, z: 0 };
 
@@ -4018,8 +4178,13 @@ const devPhysicalReleaseEnabled =
 return (
 <Canvas
   shadows
+  dpr={[1, 1.5]}
   camera={cameraConfig}
-  gl={{ antialias: true }}
+  gl={{
+    antialias: true,
+    powerPreference: "high-performance",
+    alpha: false,
+  }}
   style={{ touchAction: variant === "room" ? "none" : "auto" }}
 >
 <DicePhysicsScene
