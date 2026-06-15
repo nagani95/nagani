@@ -218,135 +218,134 @@ export default function SixAnimalBettingSheet({
             <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-300/55 to-amber-100/10" />
           </div>
 
-          <div className="rounded-[1.1rem] border border-amber-300/20 bg-[linear-gradient(135deg,rgba(18,2,2,0.98),rgba(44,8,4,0.97))] p-1.5 shadow-inner shadow-black/50">
-            <div className="mb-1.5 grid grid-cols-2 gap-1.5">
-              <button
-                type="button"
-                disabled={!canEditBet}
-                onClick={() => onBetModeChange("single")}
-                className={`rounded-xl border px-2 py-1.5 text-center transition active:scale-[0.96] ${
-                  betMode === "single"
-                    ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.18)]"
-                    : "border-amber-300/18 bg-black/38 text-amber-100"
-                } disabled:opacity-35`}
-              >
-                <p className="text-[11px] font-black leading-none">မောင်း</p>
-                <p className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] opacity-70">
-                  ၁ ဆ မှ ၃ ဆ
-                </p>
-              </button>
+<div className="rounded-[1.15rem] border border-amber-300/20 bg-[linear-gradient(135deg,rgba(18,2,2,0.98),rgba(44,8,4,0.97))] p-2 shadow-inner shadow-black/50">
+  <div className="grid grid-cols-2 gap-2">
+    <button
+      type="button"
+      disabled={!canEditBet}
+      onClick={() => onBetModeChange("single")}
+      className={`min-h-[42px] rounded-xl border px-2 py-2 text-center transition active:scale-[0.96] ${
+        betMode === "single"
+          ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.18)]"
+          : "border-amber-300/18 bg-black/38 text-amber-100"
+      } disabled:opacity-35`}
+    >
+      <p className="text-[12px] font-black leading-none">မောင်း</p>
+      <p className="mt-1 text-[8px] font-black leading-none opacity-65">
+        ၁ ဆ မှ ၃ ဆ
+      </p>
+    </button>
 
-              <button
-                type="button"
-                disabled={!canEditBet}
-                onClick={() => onBetModeChange("pair")}
-                className={`rounded-xl border px-2 py-1.5 text-center transition active:scale-[0.96] ${
-                  betMode === "pair"
-                    ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.18)]"
-                    : "border-amber-300/18 bg-black/38 text-amber-100"
-                } disabled:opacity-35`}
-              >
-                <p className="text-[11px] font-black leading-none">ကြိုး</p>
-                <p className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] opacity-70">
-                  ၅ ဆ
-                </p>
-              </button>
-            </div>
+    <button
+      type="button"
+      disabled={!canEditBet}
+      onClick={() => onBetModeChange("pair")}
+      className={`min-h-[42px] rounded-xl border px-2 py-2 text-center transition active:scale-[0.96] ${
+        betMode === "pair"
+          ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.18)]"
+          : "border-amber-300/18 bg-black/38 text-amber-100"
+      } disabled:opacity-35`}
+    >
+      <p className="text-[12px] font-black leading-none">ကြိုး</p>
+      <p className="mt-1 text-[8px] font-black leading-none opacity-65">
+        ၅ ဆ
+      </p>
+    </button>
+  </div>
 
-            <div className="grid grid-cols-[48px_1fr_48px] items-stretch gap-1.5">
-              <button
-                type="button"
-                disabled={!canEditBet}
-                onClick={onDecreaseAmount}
-                className="flex min-h-[52px] flex-col items-center justify-center rounded-xl border border-amber-300/20 bg-black/45 text-amber-100 shadow-inner shadow-black/45 transition-all duration-150 active:scale-[0.93] active:bg-amber-300/18 disabled:opacity-35"
-                aria-label="Decrease bet amount"
-              >
-                <span className="text-2xl font-black leading-none">−</span>
-                <span className="mt-0.5 text-[8px] font-black leading-none text-amber-100/65">
-                  လျှော့
-                </span>
-              </button>
+  <div className="mt-2 rounded-xl border border-amber-300/16 bg-black/38 px-3 py-2 text-center shadow-inner shadow-black/40">
+    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-200/45">
+      လောင်းကြေး
+    </p>
+    <p className="mt-1 text-[20px] font-black leading-none text-amber-100">
+      {formatMMK(numericBetAmount)}
+    </p>
+    <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/42">
+      {betMode === "pair" ? "ကြိုး" : "မောင်း"} ·{" "}
+      {getBetCommandHint(betMode, selectedAnimal, selectedPairAnimals)}
+    </p>
+  </div>
 
-              <button
-                type="button"
-                disabled={!canEditBet}
-                onClick={() => {
-                  if (canPlaceBet) {
-                    onPlaceBet();
-                    return;
-                  }
+  <div className="mt-2 grid grid-cols-[52px_1fr_52px] items-stretch gap-2">
+    <button
+      type="button"
+      disabled={!canEditBet}
+      onClick={onDecreaseAmount}
+      className="flex min-h-[50px] flex-col items-center justify-center rounded-xl border border-amber-300/20 bg-black/45 text-amber-100 shadow-inner shadow-black/45 transition-all duration-150 active:scale-[0.93] active:bg-amber-300/18 disabled:opacity-35"
+      aria-label="Decrease bet amount"
+    >
+      <span className="text-2xl font-black leading-none">−</span>
+      <span className="mt-1 text-[8px] font-black leading-none text-amber-100/65">
+        လျှော့
+      </span>
+    </button>
 
-                  const hasSelectedBetTarget =
-                    betMode === "pair"
-                      ? selectedPairAnimals.length === 2
-                      : Boolean(selectedAnimal);
+    <button
+      type="button"
+      disabled={!canEditBet}
+      onClick={() => {
+        if (canPlaceBet) {
+          onPlaceBet();
+          return;
+        }
 
-                  if (!hasSelectedBetTarget) {
-                    onInvalidBetClick?.();
-                  }
-                }}
-                className={`min-h-[52px] rounded-xl border px-2 py-1.5 text-center shadow-inner shadow-black/50 transition-all duration-150 active:scale-[0.95] ${
-                  canPlaceBet
-                    ? "border-amber-100/75 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_18px_rgba(251,191,36,0.24)]"
-                    : "border-amber-300/20 bg-[linear-gradient(145deg,rgba(18,2,2,0.99),rgba(34,6,4,0.97))] text-amber-100/48"
-                } disabled:cursor-not-allowed disabled:opacity-35`}
-                aria-label="Place bet"
-              >
-                <p className="text-[12px] font-black leading-none">
-                  {getBetCommandLabel(betMode)}
-                </p>
+        const hasSelectedBetTarget =
+          betMode === "pair"
+            ? selectedPairAnimals.length === 2
+            : Boolean(selectedAnimal);
 
-                <p className="mt-0.5 text-[8px] font-black leading-none opacity-65">
-                  {getBetCommandHint(
-                    betMode,
-                    selectedAnimal,
-                    selectedPairAnimals
-                  )}
-                </p>
+        if (!hasSelectedBetTarget) {
+          onInvalidBetClick?.();
+        }
+      }}
+      className={`min-h-[50px] rounded-xl border px-2 py-2 text-center shadow-inner shadow-black/50 transition-all duration-150 active:scale-[0.95] ${
+        canPlaceBet
+          ? "border-amber-100/75 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_18px_rgba(251,191,36,0.24)]"
+          : "border-amber-300/20 bg-[linear-gradient(145deg,rgba(18,2,2,0.99),rgba(34,6,4,0.97))] text-amber-100/48"
+      } disabled:cursor-not-allowed disabled:opacity-35`}
+      aria-label="Place bet"
+    >
+      <p className="text-[16px] font-black leading-none">ထိုးပါ</p>
+    </button>
 
-                <p className="mt-1 text-base font-black leading-none">
-                  {formatMMK(numericBetAmount)}
-                </p>
-              </button>
+    <button
+      type="button"
+      disabled={!canEditBet}
+      onClick={onIncreaseAmount}
+      className="flex min-h-[50px] flex-col items-center justify-center rounded-xl border border-amber-300/20 bg-black/45 text-amber-100 shadow-inner shadow-black/45 transition-all duration-150 active:scale-[0.93] active:bg-amber-300/18 disabled:opacity-35"
+      aria-label="Increase bet amount"
+    >
+      <span className="text-2xl font-black leading-none">+</span>
+      <span className="mt-1 text-[8px] font-black leading-none text-amber-100/65">
+        တိုး
+      </span>
+    </button>
+  </div>
 
-              <button
-                type="button"
-                disabled={!canEditBet}
-                onClick={onIncreaseAmount}
-                className="flex min-h-[52px] flex-col items-center justify-center rounded-xl border border-amber-300/20 bg-black/45 text-amber-100 shadow-inner shadow-black/45 transition-all duration-150 active:scale-[0.93] active:bg-amber-300/18 disabled:opacity-35"
-                aria-label="Increase bet amount"
-              >
-                <span className="text-2xl font-black leading-none">+</span>
-                <span className="mt-0.5 text-[8px] font-black leading-none text-amber-100/65">
-                  တိုး
-                </span>
-              </button>
-            </div>
+  <div className="mt-2 grid grid-cols-3 gap-1.5">
+    {QUICK_AMOUNTS.map((amount) => {
+      const isCurrentAmount = numericBetAmount === amount;
 
-            <div className="mt-1.5 grid grid-cols-3 gap-1">
-              {QUICK_AMOUNTS.map((amount) => {
-                const isCurrentAmount = numericBetAmount === amount;
+      return (
+        <button
+          key={amount}
+          type="button"
+          disabled={!canEditBet}
+          onClick={() => onQuickAmountSelect(amount)}
+          className={`min-h-[34px] rounded-lg border px-2 py-1.5 text-[11px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
+            isCurrentAmount
+              ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.16)]"
+              : "border-amber-300/18 bg-[linear-gradient(145deg,rgba(28,5,3,0.99),rgba(44,8,4,0.97))] text-amber-100"
+          } disabled:opacity-35`}
+        >
+          {formatMMK(amount)}
+        </button>
+      );
+    })}
+  </div>
 
-                return (
-                  <button
-                    key={amount}
-                    type="button"
-                    disabled={!canEditBet}
-                    onClick={() => onQuickAmountSelect(amount)}
-                    className={`min-h-[34px] rounded-lg border px-2 py-1.5 text-[11px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
-                      isCurrentAmount
-                        ? "border-amber-100/70 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] text-black shadow-[0_0_14px_rgba(251,191,36,0.16)]"
-                        : "border-amber-300/18 bg-[linear-gradient(145deg,rgba(28,5,3,0.99),rgba(44,8,4,0.97))] text-amber-100"
-                    } disabled:opacity-35`}
-                  >
-                    {formatMMK(amount)}
-                  </button>
-                );
-              })}
-            </div>
-
-            <ActiveBetsSummaryPanel activeBets={activeBets} className="mt-2" />
-          </div>
+  <ActiveBetsSummaryPanel activeBets={activeBets} className="mt-2" />
+</div>
         </div>
       </div>
     </div>
