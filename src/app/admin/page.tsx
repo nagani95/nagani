@@ -136,6 +136,22 @@ export default async function AdminPage() {
       label: "Pending",
     },
     {
+      title: "Agent Referral",
+      description:
+        "Create agents, set custom commission percentages, pause partners, and manage referral partner status.",
+      href: "/admin/agents",
+      stat: "Open",
+      label: "Agents",
+    },
+    {
+      title: "Referral Assignment",
+      description:
+        "Assign registered players to active agents for monthly net settlement. No instant commission.",
+      href: "/admin/referrals",
+      stat: "Open",
+      label: "Players",
+    },
+    {
       title: "Audit Log",
       description: "View recent operator actions and admin records.",
       href: "/admin/audit",
