@@ -36,7 +36,7 @@ const ROOM_SOUND_VOLUME = 0.72;
 const ROOM_BACKGROUND_MUSIC_SRC =
   "/assets/nagani/sounds/six-animal/room-bgm.mp3";
 
-const ROOM_BACKGROUND_MUSIC_VOLUME = 0.28;
+const ROOM_BACKGROUND_MUSIC_VOLUME = 0.14;
 const ROOM_BACKGROUND_MUSIC_FADE_MS = 700;
 const ROOM_BACKGROUND_MUSIC_FADE_STEP_MS = 40;
 const ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY =
@@ -141,7 +141,8 @@ type SixAnimalSoundEvent =
   | "settlement-lose"
   | "bet-locked"
   | "exit-button"
-  | "bet-invalid";
+  | "bet-invalid"
+  | "ui-click";
 
 const SIX_ANIMAL_SOUND_SRC: Record<SixAnimalSoundEvent, string> = {
   loading: "/assets/nagani/sounds/six-animal/loading.mp3",
@@ -149,24 +150,26 @@ const SIX_ANIMAL_SOUND_SRC: Record<SixAnimalSoundEvent, string> = {
   "bets-closed": "/assets/nagani/sounds/six-animal/bets-closed.mp3",
   "dice-drop": "/assets/nagani/sounds/six-animal/dice-drop.mp3",
   "settlement-round": "/assets/nagani/sounds/six-animal/settlement-round.mp3",
+  "settlement-win": "/assets/nagani/sounds/six-animal/settlement-win.mp3",
+  "settlement-lose": "/assets/nagani/sounds/six-animal/settlement-lose.mp3",
   "bet-locked": "/assets/nagani/sounds/six-animal/bet-locked.mp3",
   "exit-button": "/assets/nagani/sounds/six-animal/exit-button.mp3",
   "bet-invalid": "/assets/nagani/sounds/six-animal/bet-invalid.mp3",
-  "settlement-win": "/assets/nagani/sounds/six-animal/settlement-win.mp3",
-"settlement-lose": "/assets/nagani/sounds/six-animal/settlement-lose.mp3",
+  "ui-click": "/assets/nagani/sounds/six-animal/ui-click.mp3",
 };
 
 const SIX_ANIMAL_SOUND_VOLUME: Record<SixAnimalSoundEvent, number> = {
-  loading: 0.42,
-  "betting-round": 0.52,
-  "bets-closed": 0.62,
-  "dice-drop": 0.78,
-  "settlement-round": 0.7,
-  "bet-locked": 0.5,
-  "exit-button": 0.56,
-  "bet-invalid": 0.54,
-  "settlement-win": 0.78,
-"settlement-lose": 0.68,
+  loading: 0.82,
+  "betting-round": 0.76,
+  "bets-closed": 0.82,
+  "dice-drop": 0.9,
+  "settlement-round": 0.82,
+  "settlement-win": 0.9,
+  "settlement-lose": 0.86,
+  "bet-locked": 0.68,
+  "exit-button": 0.62,
+  "bet-invalid": 0.72,
+  "ui-click": 0.42,
 };
 
 const SIX_ANIMAL_RESULT_SOUND_SRC: Record<SixAnimalKey, string> = {
@@ -179,12 +182,12 @@ const SIX_ANIMAL_RESULT_SOUND_SRC: Record<SixAnimalKey, string> = {
 };
 
 const SIX_ANIMAL_RESULT_SOUND_VOLUME: Record<SixAnimalKey, number> = {
-  tiger: 0.76,
-  dragon: 0.76,
-  rooster: 0.72,
-  fish: 0.68,
-  crab: 0.72,
-  elephant: 0.76,
+  tiger: 0.92,
+  dragon: 0.92,
+  rooster: 0.88,
+  fish: 0.86,
+  crab: 0.88,
+  elephant: 0.92,
 };
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
@@ -1773,6 +1776,8 @@ const resultNames = USE_BACKEND_RESULT_FOR_ROOM_UI
 function handleSelectAnimal(animal: SixAnimalKey) {
   if (!canEditBet) return;
 
+  playRoomSound("ui-click");
+
   if (betMode === "pair") {
     setSelectedPairAnimals((currentAnimals) => {
       if (currentAnimals.includes(animal)) {
@@ -1795,6 +1800,7 @@ function handleSelectAnimal(animal: SixAnimalKey) {
 function handleBetModeChange(nextMode: BetMode) {
   if (!canEditBet) return;
 
+  playRoomSound("ui-click");
   setBetMode(nextMode);
 }
   function clampBetAmount(amount: number) {
@@ -1812,14 +1818,23 @@ function setSafeBetAmount(amount: number) {
 }
 
 function handleQuickAmountSelect(amount: number) {
+  if (!canEditBet) return;
+
+  playRoomSound("ui-click");
   setSafeBetAmount(amount);
 }
 
 function handleIncreaseBetAmount() {
+  if (!canEditBet) return;
+
+  playRoomSound("ui-click");
   setSafeBetAmount(numericBetAmount + BET_AMOUNT_STEP);
 }
 
 function handleDecreaseBetAmount() {
+  if (!canEditBet) return;
+
+  playRoomSound("ui-click");
   setSafeBetAmount(numericBetAmount - BET_AMOUNT_STEP);
 }
 

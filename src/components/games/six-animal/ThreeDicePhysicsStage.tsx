@@ -97,6 +97,12 @@ export type ThreeDiceRoundPayload = {
   results: DiceAnimalLabel[];
 };
 
+export type HeldRecordedTrajectoryDice = {
+  dieIndex: number;
+  frames: DiceTrajectoryFrame[];
+  replayKey?: number;
+};
+
 export function createThreeDiceRoundPayload(
   capturedResults: CapturedDiceResult[],
   sequenceRunning: boolean
@@ -1495,6 +1501,54 @@ group.quaternion.copy(smoothedQuaternionRef.current);
   showFaceLayer={!hideActiveDiceFaces}
   showHiddenFaceSeal={Boolean(hideActiveDiceFaces)}
 />
+    </group>
+  );
+}
+
+function StaticRecordedTrajectoryDice({
+  heldDice,
+  diceShapePreset,
+  hideActiveDiceFaces = false,
+}: {
+  heldDice: HeldRecordedTrajectoryDice;
+  diceShapePreset: DiceShapePreset;
+  hideActiveDiceFaces?: boolean;
+}) {
+  const finalFrame = heldDice.frames[heldDice.frames.length - 1];
+
+  if (!finalFrame) return null;
+
+  const finalQuaternion = new Quaternion(
+    finalFrame.rotation[0],
+    finalFrame.rotation[1],
+    finalFrame.rotation[2],
+    finalFrame.rotation[3]
+  ).normalize();
+
+  const finalEuler = new Euler().setFromQuaternion(finalQuaternion, "XYZ");
+
+  const finalPosition: [number, number, number] = [
+    finalFrame.position[0],
+    finalFrame.position[1],
+    finalFrame.position[2],
+  ];
+
+  const finalRotation: [number, number, number] = [
+    finalEuler.x,
+    finalEuler.y,
+    finalEuler.z,
+  ];
+
+  return (
+    <group
+      position={finalPosition}
+      rotation={finalRotation}
+    >
+      <DiceVisual
+        shapePreset={diceShapePreset}
+        showFaceLayer={!hideActiveDiceFaces}
+        showHiddenFaceSeal={Boolean(hideActiveDiceFaces)}
+      />
     </group>
   );
 }
@@ -3936,6 +3990,7 @@ strictReadableResultGate = false,
 targetLaunchRecipeEnabled = false,
 recordedTrajectoryFrames = null,
 recordedTrajectoryReplayKey = 0,
+heldRecordedTrajectoryDice = [],
 devPhysicalReleaseEnabled = false,
 shadowLaunchRecipe = null,
 trajectoryRecorderEnabled = false,
@@ -3964,6 +4019,7 @@ strictReadableResultGate?: boolean;
 targetLaunchRecipeEnabled?: boolean;
 recordedTrajectoryFrames?: DiceTrajectoryFrame[] | null;
 recordedTrajectoryReplayKey?: number;
+heldRecordedTrajectoryDice?: HeldRecordedTrajectoryDice[];
 devPhysicalReleaseEnabled?: boolean;
 shadowLaunchRecipe?: DiceShadowLaunchRecipe | null;
 trajectoryRecorderEnabled?: boolean;
@@ -4040,6 +4096,17 @@ onTrajectoryRecorderComplete?:
   resetKey={resetKey}
 devPhysicalReleaseEnabled={activeDevPhysicalReleaseEnabled}
 />
+
+{!displayOnly && showDice
+  ? heldRecordedTrajectoryDice.map((heldDice) => (
+      <StaticRecordedTrajectoryDice
+        key={`held-recorded-die-${heldDice.dieIndex}-${heldDice.replayKey ?? 0}`}
+        heldDice={heldDice}
+        diceShapePreset={diceShapePreset}
+        hideActiveDiceFaces={hideActiveDiceFaces}
+      />
+    ))
+  : null}
 
 {shouldRenderRecordedDice && recordedTrajectoryFrames ? (
 <RecordedTrajectoryDice
@@ -4119,6 +4186,7 @@ strictReadableResultGate = false,
 targetLaunchRecipeEnabled = false,
 recordedTrajectoryFrames = null,
 recordedTrajectoryReplayKey = 0,
+heldRecordedTrajectoryDice = [],
 enableV1PhysicalRelease = false,
 shadowLaunchRecipe = null,
 trajectoryRecorderEnabled = false,
@@ -4147,6 +4215,7 @@ strictReadableResultGate?: boolean;
 targetLaunchRecipeEnabled?: boolean;
 recordedTrajectoryFrames?: DiceTrajectoryFrame[] | null;
 recordedTrajectoryReplayKey?: number;
+heldRecordedTrajectoryDice?: HeldRecordedTrajectoryDice[];
 enableV1PhysicalRelease?: boolean;
 shadowLaunchRecipe?: DiceShadowLaunchRecipe | null;
 trajectoryRecorderEnabled?: boolean;
@@ -4208,9 +4277,10 @@ return (
   targetPerformanceEnabled={targetPerformanceEnabled}
   strictReadableResultGate={strictReadableResultGate}
   targetLaunchRecipeEnabled={targetLaunchRecipeEnabled}
-  recordedTrajectoryFrames={recordedTrajectoryFrames}
-  recordedTrajectoryReplayKey={recordedTrajectoryReplayKey}
-  devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
+recordedTrajectoryFrames={recordedTrajectoryFrames}
+recordedTrajectoryReplayKey={recordedTrajectoryReplayKey}
+heldRecordedTrajectoryDice={heldRecordedTrajectoryDice}
+devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
   shadowLaunchRecipe={shadowLaunchRecipe}
   trajectoryRecorderEnabled={trajectoryRecorderEnabled}
   trajectoryRecorderRunNonce={trajectoryRecorderRunNonce}

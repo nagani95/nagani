@@ -23,56 +23,56 @@ const DICE_SOUND_VARIANTS: DiceSoundVariant[] = [
   {
     key: "release",
     src: "/assets/nagani/sounds/six-animal/dice/release-01.wav",
-    volume: 0.38,
+    volume: 0.48,
   },
   {
     key: "deflectorHit",
     src: "/assets/nagani/sounds/six-animal/dice/deflector-hit-01.wav",
-    volume: 0.72,
+    volume: 0.76,
   },
   {
     key: "deflectorHit",
     src: "/assets/nagani/sounds/six-animal/dice/deflector-hit-02.wav",
-    volume: 0.62,
+    volume: 0.68,
   },
   {
     key: "trayImpact",
     src: "/assets/nagani/sounds/six-animal/dice/tray-impact-01.wav",
-    volume: 0.82,
+    volume: 1.18,
   },
   {
     key: "trayImpact",
     src: "/assets/nagani/sounds/six-animal/dice/tray-impact-02.wav",
-    volume: 0.74,
+    volume: 1.08,
   },
   {
     key: "rollLoop",
     src: "/assets/nagani/sounds/six-animal/dice/roll-loop-soft.wav",
-    volume: 0.22,
+    volume: 0.62,
   },
   {
     key: "tap",
     src: "/assets/nagani/sounds/six-animal/dice/tap-01.wav",
-    volume: 0.42,
+    volume: 0.72,
   },
   {
     key: "tap",
     src: "/assets/nagani/sounds/six-animal/dice/tap-02.wav",
-    volume: 0.36,
+    volume: 0.64,
   },
   {
     key: "tap",
     src: "/assets/nagani/sounds/six-animal/dice/tap-03.wav",
-    volume: 0.3,
+    volume: 0.56,
   },
   {
     key: "settle",
     src: "/assets/nagani/sounds/six-animal/dice/settle-01.wav",
-    volume: 0.46,
+    volume: 0.74,
   },
 ];
 
-const MASTER_VOLUME = 0.9;
+const MASTER_VOLUME = 1.0;
 
 function getAudioContextConstructor() {
   if (typeof window === "undefined") return null;
@@ -172,18 +172,18 @@ class DiceSoundDirector {
     this.schedule(() => this.playOneShot("trayImpact", forceBoost), 720 + timingOffset);
 
     this.schedule(() => {
-      this.startRollLoop(0.2 * forceBoost);
+      this.startRollLoop(0.82 * forceBoost);
     }, 860 + timingOffset);
 
-    this.schedule(() => this.playOneShot("tap", 0.78), 1180 + timingOffset);
-    this.schedule(() => this.playOneShot("tap", 0.58), 1740 + timingOffset);
-    this.schedule(() => this.playOneShot("tap", 0.42), 2480 + timingOffset);
-    this.schedule(() => this.playOneShot("tap", 0.28), 3380 + timingOffset);
+this.schedule(() => this.playOneShot("tap", 0.95), 1180 + timingOffset);
+this.schedule(() => this.playOneShot("tap", 0.78), 1740 + timingOffset);
+this.schedule(() => this.playOneShot("tap", 0.62), 2480 + timingOffset);
+this.schedule(() => this.playOneShot("tap", 0.46), 3380 + timingOffset);
 
-    this.schedule(() => {
-      this.fadeOutRollLoops(520);
-      this.playOneShot("settle", 0.8);
-    }, 4400 + timingOffset);
+this.schedule(() => {
+  this.fadeOutRollLoops(620);
+  this.playOneShot("settle", 1.0);
+}, 4400 + timingOffset);
   }
 
   stopAll() {

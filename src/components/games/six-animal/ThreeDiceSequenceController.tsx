@@ -9,6 +9,7 @@ import ThreeDicePhysicsStage, {
   type CapturedDiceResult,
   type DiceAnimalLabel,
   type DiceFaceResult,
+  type HeldRecordedTrajectoryDice,
   type MountedDiceRackMode,
   type ThreeDiceRoundPayload,
 } from "./ThreeDicePhysicsStage";
@@ -17,9 +18,13 @@ import { loadDiceTrajectoryForAnimal } from "./physics/diceTrajectoryLibrary";
 
 const EXPECTED_DICE_RESULT_COUNT = 3;
 
-const APPROVED_DICE_CONFIRM_HOLD_MS = 1550;
-const APPROVED_DICE_FINAL_HOLD_MS = 1800;
+const APPROVED_DICE_CONFIRM_HOLD_MS = 950;
+const APPROVED_DICE_FINAL_HOLD_MS = 2400;
 const APPROVED_LIBRARY_CAPTURE_GUARD_MS = 3200;
+
+// The replay file already knows when the motion should visually finish.
+// Do not reveal the result board only because the face became readable early.
+const APPROVED_REPLAY_REVEAL_EXTRA_HOLD_MS = 650;
 
 type ThreeDiceSequenceControllerProps = {
   enabled: boolean;
@@ -45,6 +50,9 @@ type ApprovedReplayTrajectory = {
   targetAnimal: DiceAnimalLabel;
   finalAnimal: DiceAnimalLabel;
   frames: DiceTrajectoryFrame[];
+  readableAtSeconds?: number;
+  motionEndSeconds?: number;
+  replayEndSeconds?: number;
   motionGrade?: string;
   motionScore?: number;
   fileName: string;
@@ -82,6 +90,23 @@ function createApprovedReplayCapturedResult({
     message: `Approved trajectory replay captured from ${trajectory.fileName}.`,
     dieNumber,
   };
+}
+
+function getApprovedReplayRevealGateMs(
+  trajectory: ApprovedReplayTrajectory
+) {
+  const lastFrame = trajectory.frames[trajectory.frames.length - 1];
+
+  const replayEndSeconds =
+    Number.isFinite(trajectory.replayEndSeconds) &&
+    Number(trajectory.replayEndSeconds) > 0
+      ? Number(trajectory.replayEndSeconds)
+      : Number.isFinite(trajectory.motionEndSeconds) &&
+          Number(trajectory.motionEndSeconds) > 0
+        ? Number(trajectory.motionEndSeconds)
+        : lastFrame?.t ?? 0;
+
+  return Math.ceil(replayEndSeconds * 1000) + APPROVED_REPLAY_REVEAL_EXTRA_HOLD_MS;
 }
 
 export default function ThreeDiceSequenceController({
@@ -186,15 +211,18 @@ export default function ThreeDiceSequenceController({
             );
           }
 
-          return {
-            dieIndex,
-            targetAnimal,
-            finalAnimal: trajectory.animal,
-            frames: trajectory.frames,
-            motionGrade: trajectory.quality.motionGrade,
-            motionScore: trajectory.quality.motionScore,
-            fileName: entry.fileName,
-          } satisfies ApprovedReplayTrajectory;
+return {
+  dieIndex,
+  targetAnimal,
+  finalAnimal: trajectory.animal,
+  frames: trajectory.frames,
+  readableAtSeconds: trajectory.timing.readableAtSeconds,
+  motionEndSeconds: trajectory.timing.motionEndSeconds,
+  replayEndSeconds: trajectory.timing.replayEndSeconds,
+  motionGrade: trajectory.quality.motionGrade,
+  motionScore: trajectory.quality.motionScore,
+  fileName: entry.fileName,
+} satisfies ApprovedReplayTrajectory;
         })
       );
 
@@ -398,18 +426,27 @@ export default function ThreeDiceSequenceController({
 
     clearTimers();
 
-    const elapsedMs = Date.now() - activeDieStartedAtRef.current;
+const elapsedMs = Date.now() - activeDieStartedAtRef.current;
 
-    if (elapsedMs < APPROVED_LIBRARY_CAPTURE_GUARD_MS) {
-      const waitMs = APPROVED_LIBRARY_CAPTURE_GUARD_MS - elapsedMs;
+const replayRevealGateMs = getApprovedReplayRevealGateMs(
+  activeReplayTrajectory
+);
 
-      captureGateTimerRef.current = window.setTimeout(() => {
-        captureGateTimerRef.current = null;
-        setCaptureGateTick((value) => value + 1);
-      }, waitMs);
+const requiredRevealGateMs = Math.max(
+  APPROVED_LIBRARY_CAPTURE_GUARD_MS,
+  replayRevealGateMs
+);
 
-      return;
-    }
+if (elapsedMs < requiredRevealGateMs) {
+  const waitMs = requiredRevealGateMs - elapsedMs;
+
+  captureGateTimerRef.current = window.setTimeout(() => {
+    captureGateTimerRef.current = null;
+    setCaptureGateTick((value) => value + 1);
+  }, waitMs);
+
+  return;
+}
 
     const capturedResult = createApprovedReplayCapturedResult({
       result: faceCaptureOwner.result,
@@ -507,6 +544,8 @@ export default function ThreeDiceSequenceController({
     ? activeReplayFrames
     : null;
 
+const heldRecordedTrajectoryDice: HeldRecordedTrajectoryDice[] = [];
+
   return (
     <div
       className={`relative h-full min-h-[360px] overflow-hidden rounded-[1.6rem] border border-amber-300/15 bg-black/35 ${className}`}
@@ -529,8 +568,9 @@ export default function ThreeDiceSequenceController({
         strictReadableResultGate={false}
         targetLaunchRecipeEnabled={false}
         recordedTrajectoryFrames={stageRecordedFrames}
-        recordedTrajectoryReplayKey={resetKey}
-        enableV1PhysicalRelease={false}
+recordedTrajectoryReplayKey={resetKey}
+heldRecordedTrajectoryDice={heldRecordedTrajectoryDice}
+enableV1PhysicalRelease={false}
       />
 
       {showInternalResultStrip ? (
