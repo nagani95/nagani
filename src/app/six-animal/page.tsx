@@ -1256,7 +1256,7 @@ function unlockRoomAudio() {
 }
 
 async function handleLobbyClick() {
-  playRoomSound("exit-button");
+  playRoomSound("ui-click");
   setShowExitConfirm(false);
   await exitFullscreenIfNeeded();
   router.push("/");
@@ -2100,7 +2100,10 @@ function handleInvalidBetButtonClick() {
         <div className="mt-5 grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => setShowExitConfirm(false)}
+            onClick={() => {
+  playRoomSound("ui-click");
+  setShowExitConfirm(false);
+}}
             className="rounded-xl border border-amber-300/18 bg-black/35 px-4 py-3 text-sm font-black text-amber-100 transition active:scale-[0.96]"
           >
             Stay
