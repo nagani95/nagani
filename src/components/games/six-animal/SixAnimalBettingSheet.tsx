@@ -47,26 +47,6 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
-function getBetCommandLabel(betMode: BetMode) {
-  return betMode === "pair" ? "ကြိုး ထိုးပါ" : "မောင်း ထိုးပါ";
-}
-
-function getBetCommandHint(
-  betMode: BetMode,
-  selectedAnimal: SixAnimalKey | null,
-  selectedPairAnimals: SixAnimalKey[]
-) {
-  if (betMode === "pair") {
-    if (selectedPairAnimals.length === 0) return "အကောင် ၂ ကောင် ရွေးပါ";
-    if (selectedPairAnimals.length === 1) return "နောက် ၁ ကောင် ရွေးပါ";
-    return "ရွေးထားသော ကြိုး";
-  }
-
-  if (!selectedAnimal) return "အကောင် ၁ ကောင် ရွေးပါ";
-
-  return "ရွေးထားသော မောင်း";
-}
-
 export default function SixAnimalBettingSheet({
   isOpen,
   betMode,
@@ -253,16 +233,12 @@ export default function SixAnimalBettingSheet({
     </button>
   </div>
 
-  <div className="mt-2 rounded-xl border border-amber-300/16 bg-black/38 px-3 py-2 text-center shadow-inner shadow-black/40">
+  <div className="mt-2 rounded-xl border border-amber-300/16 bg-black/38 px-3 py-2.5 text-center shadow-inner shadow-black/40">
     <p className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-200/45">
       လောင်းကြေး
     </p>
-    <p className="mt-1 text-[20px] font-black leading-none text-amber-100">
+    <p className="mt-1 text-[22px] font-black leading-none text-amber-100">
       {formatMMK(numericBetAmount)}
-    </p>
-    <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/42">
-      {betMode === "pair" ? "ကြိုး" : "မောင်း"} ·{" "}
-      {getBetCommandHint(betMode, selectedAnimal, selectedPairAnimals)}
     </p>
   </div>
 
