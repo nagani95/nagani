@@ -179,13 +179,13 @@ class DiceSoundDirector {
     // Tray impact comes shortly after deflector hit.
     this.schedule(
       () => this.playOneShot("trayImpact", 1.05 * forceBoost),
-      1480 + timingOffset
+      1560 + timingOffset
     );
 
     // Rolling must start only after tray impact, not during wall drop.
     this.schedule(() => {
       this.startRollLoop(0.62 * forceBoost);
-    }, 1520 + timingOffset);
+    }, 1700 + timingOffset);
 
     // Small bounces after the die has landed.
     this.schedule(() => this.playOneShot("tap", 0.82), 1880 + timingOffset);
