@@ -51,13 +51,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               ) : null}
 
               <NaganiRoyalInput
-                label="အကောင့်"
-                name="email"
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="အီးမေးလ်လိပ်စာ"
-              />
+  label="ဖုန်းနံပါတ်"
+  name="email"
+  type="tel"
+  required
+  autoComplete="tel"
+  inputMode="tel"
+  placeholder="ဖုန်းနံပါတ်"
+/>
 
               <NaganiRoyalInput
                 label="စကားဝှက်"

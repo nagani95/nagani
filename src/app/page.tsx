@@ -2,31 +2,16 @@
 
 import Link from "next/link";
 
-import AppShell from "@/components/layout/AppShell";
-import LobbyGameCards from "@/components/nagani/LobbyGameCards";
-import LobbyHero from "@/components/nagani/LobbyHero";
-import LobbyRecentActivity from "@/components/nagani/LobbyRecentActivity";
+import {
+  NaganiBottomNav,
+  NaganiFloatingSupport,
+  NaganiPageShell,
+  NaganiVideoBackground,
+} from "@/components/nagani-v2";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { createClient } from "@/lib/supabase/server";
 
 const SIX_ANIMAL_MIN_BALANCE = 1000;
-
-const games = [
-  {
-    title: "Six Animal",
-    subtitle: "Traditional animal dice live room",
-    href: "/six-animal",
-    tag: "Live Dice",
-  },
-  {
-    title: "Thirty Six",
-    subtitle: "Coming soon",
-    href: "/thirty-six",
-    tag: "Coming Soon",
-    isLocked: true,
-    lockedReason: "Coming soon",
-  },
-];
 
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
@@ -59,80 +44,79 @@ export default async function HomePage() {
 
   const canEnterSixAnimal = Boolean(user) && walletBalance >= SIX_ANIMAL_MIN_BALANCE;
 
-  const lobbyGames = games.map((game) => {
-    if (game.href !== "/six-animal") return game;
-
-    if (canEnterSixAnimal) return game;
-
-    if (!user) {
-      return {
-        ...game,
-        subtitle: "Login or register to enter",
-        tag: "Login Required",
-        isLocked: true,
-        lockedReason: "Login or register before entering the live room",
-      };
-    }
-
-    return {
-      ...game,
-      subtitle: "Minimum 1,000 MMK balance required",
-      tag: "Need Balance",
-      isLocked: true,
-      lockedReason: "Deposit at least 1,000 MMK to enter",
-    };
-  });
+  const playHref = !user ? "/login" : canEnterSixAnimal ? "/six-animal" : "/cashier";
+  const playLabel = !user
+    ? "ဝင်ရောက်ရန် လိုအပ်ပါသည်"
+    : canEnterSixAnimal
+      ? "ကစားပွဲသို့"
+      : "ငွေဖြည့်ရန် လိုအပ်ပါသည်";
 
   return (
-    <AppShell>
-      <header className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+    <NaganiPageShell
+      background={<NaganiVideoBackground />}
+      bottomNav={<NaganiBottomNav />}
+      floatingSupport={<NaganiFloatingSupport />}
+    >
+      <section className="relative flex min-h-screen flex-col px-5 pb-8 pt-[calc(1.2rem+env(safe-area-inset-top))]">
+        <header className="flex items-center justify-between gap-3">
           <div
-            className="h-20 w-20 shrink-0 bg-contain bg-center bg-no-repeat"
+            className="h-16 w-16 shrink-0 bg-contain bg-center bg-no-repeat drop-shadow-[0_8px_18px_rgba(0,0,0,0.7)]"
             style={{
               backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
             }}
-            aria-label="Nagani dragon mark"
+            aria-label="နဂါးနီ"
           />
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-300/70">
-              Nagani
-            </p>
-            <h1 className="mt-1 text-2xl font-black tracking-tight text-amber-100">
-              Nagani Traditional
+          <div className="rounded-full border border-[#d6a84f]/25 bg-black/35 px-4 py-2 text-right shadow-lg shadow-black/30 backdrop-blur-md">
+            <div className="text-[0.65rem] font-semibold text-[#f7dfaa]/65">
+              လက်ကျန်ငွေ
+            </div>
+            <div className="mt-0.5 text-sm font-black text-[#ffd77a]">
+              {formatMMK(walletBalance)} ကျပ်
+            </div>
+          </div>
+        </header>
+
+        <div className="flex flex-1 flex-col items-center justify-center pb-24 text-center">
+          <div className="mb-7">
+            <h1 className="text-4xl font-black tracking-[0.14em] text-[#ffd77a] drop-shadow-[0_4px_14px_rgba(0,0,0,0.8)]">
+              နဂါးနီ
             </h1>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#fff3d0]/78">
+              မြန်မာ့ရိုးရာ တော်ဝင်ပွဲခန်းမ
+            </p>
           </div>
+
+          <Link
+            href={playHref}
+            className="group flex flex-col items-center focus:outline-none"
+            aria-label={playLabel}
+          >
+            <div className="relative flex h-44 w-44 items-center justify-center rounded-full border border-[#ffd77a]/35 bg-radial-[circle_at_50%_35%] from-[#fff3d0] via-[#d6a84f] to-[#5a2f18] shadow-[0_24px_70px_rgba(0,0,0,0.72)] transition group-active:scale-[0.98]">
+              <div className="absolute inset-[-1.1rem] rounded-full border border-[#d6a84f]/15 bg-[#d6a84f]/5 blur-sm" />
+
+              <div className="relative grid h-24 w-24 grid-cols-3 grid-rows-3 gap-2 rounded-3xl border border-[#7f1111]/20 bg-[#fff3d0] p-5 shadow-inner shadow-[#5a2f18]/30">
+                <span className="col-start-1 row-start-1 rounded-full bg-[#4b0808]" />
+                <span className="col-start-3 row-start-1 rounded-full bg-[#4b0808]" />
+                <span className="col-start-2 row-start-2 rounded-full bg-[#4b0808]" />
+                <span className="col-start-1 row-start-3 rounded-full bg-[#4b0808]" />
+                <span className="col-start-3 row-start-3 rounded-full bg-[#4b0808]" />
+              </div>
+            </div>
+
+            <div className="mt-7 rounded-full border border-[#ffd77a]/35 bg-gradient-to-b from-[#b21b16] via-[#7f1111] to-[#3a0707] px-9 py-4 text-base font-black text-[#fff3d0] shadow-[0_16px_34px_rgba(0,0,0,0.52)]">
+              {playLabel}
+            </div>
+          </Link>
+
+          <Link
+            href="/thirty-six"
+            className="mt-7 rounded-full border border-[#d6a84f]/15 bg-black/20 px-5 py-2.5 text-xs font-semibold text-[#f7dfaa]/62 backdrop-blur-sm"
+          >
+            ၃၆ ကောင်ထီ — မကြာမီလာမည်
+          </Link>
         </div>
-
-        {user ? (
-          <div className="rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1 text-xs font-bold text-green-200">
-            Signed In
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-bold text-amber-200 transition hover:bg-amber-400/20 hover:text-white"
-            >
-              Login
-            </Link>
-
-            <Link
-              href="/register"
-              className="rounded-full border border-amber-300/40 bg-amber-300 px-4 py-2 text-xs font-black text-[#210807] shadow-lg shadow-black/20 transition hover:bg-amber-200"
-            >
-              Register
-            </Link>
-          </div>
-        )}
-      </header>
-
-      <LobbyHero balanceLabel={`${formatMMK(walletBalance)} MMK`} statusLabel="Open" />
-
-      <LobbyGameCards games={lobbyGames} />
-
-      <LobbyRecentActivity />
-    </AppShell>
+      </section>
+    </NaganiPageShell>
   );
 }

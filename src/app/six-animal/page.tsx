@@ -1655,10 +1655,10 @@ function handleInvalidBetButtonClick() {
 
   return (
     <main
-  onPointerDownCapture={unlockRoomAudio}
-  className="relative isolate h-[100dvh] overflow-hidden bg-black text-white"
+      onPointerDownCapture={unlockRoomAudio}
+      className="relative isolate h-[100dvh] overflow-hidden bg-[#090202] text-[#fff3d0]"
       style={{
-        backgroundImage: `radial-gradient(circle at 50% 4%, rgba(251,191,36,0.08), transparent 34%), linear-gradient(135deg, rgba(8,1,1,0.52), rgba(32,5,5,0.32), rgba(0,0,0,0.78)), url(${ROOM_BACKGROUND})`,
+        backgroundImage: `radial-gradient(circle at 50% 0%, rgba(255,215,122,0.16), transparent 32%), radial-gradient(circle at 18% 82%, rgba(127,17,17,0.28), transparent 34%), linear-gradient(135deg, rgba(9,2,2,0.42), rgba(75,8,8,0.28), rgba(0,0,0,0.82)), url(${ROOM_BACKGROUND})`,
         backgroundSize: "cover",
         backgroundPosition: "center top",
       }}
@@ -1693,7 +1693,7 @@ function handleInvalidBetButtonClick() {
   />
 ) : null}
 
-      <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden px-2 py-2 sm:px-4">
+            <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-[calc(0.5rem+env(safe-area-inset-top))] sm:px-4">
         <RoyalRoomTopBar
   exitDoorAsset={ROYAL_EXIT_DOOR_BUTTON}
   logoAsset={NAGANI_LOGO}
@@ -1706,7 +1706,7 @@ function handleInvalidBetButtonClick() {
   onFullscreenToggle={handleFullscreenToggle}
 />
 
-        <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.65rem] border border-amber-300/12 bg-[linear-gradient(145deg,rgba(45,7,3,0.62),rgba(10,1,1,0.52),rgba(65,18,5,0.34))] p-2 shadow-[0_18px_58px_rgba(0,0,0,0.52),inset_0_0_42px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(251,191,36,0.08)] backdrop-blur-[2px]">
+                <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.85rem] border border-[#d6a84f]/20 bg-[linear-gradient(145deg,rgba(75,8,8,0.62),rgba(9,2,2,0.58),rgba(90,47,24,0.34))] p-2 shadow-[0_22px_64px_rgba(0,0,0,0.58),inset_0_0_48px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,215,122,0.1)] backdrop-blur-[2px]">
           {showTopPanel ? (
             <SixAnimalBettingCommandPanel
               commandBarClass={commandBarClass}
@@ -1716,9 +1716,9 @@ function handleInvalidBetButtonClick() {
           ) : null}
 
           <div
-            className="relative mt-2 min-h-0 flex-1 overflow-visible rounded-[1.55rem] border border-amber-300/10 bg-black/46 shadow-[inset_0_0_48px_rgba(0,0,0,0.62),inset_0_0_34px_rgba(251,191,36,0.035),0_18px_46px_rgba(0,0,0,0.35)]"
+            className="relative mt-2 min-h-0 flex-1 overflow-visible rounded-[1.65rem] border border-[#d6a84f]/16 bg-black/50 shadow-[inset_0_0_54px_rgba(0,0,0,0.68),inset_0_0_38px_rgba(214,168,79,0.045),0_20px_50px_rgba(0,0,0,0.4)]"
             style={{
-              backgroundImage: `linear-gradient(to bottom, rgba(5,1,1,0.34), rgba(18,2,2,0.3), rgba(0,0,0,0.68)), url(${ROOM_BACKGROUND})`,
+              backgroundImage: `linear-gradient(to bottom, rgba(9,2,2,0.28), rgba(42,18,9,0.28), rgba(0,0,0,0.72)), url(${ROOM_BACKGROUND})`,
               backgroundSize: "cover",
               backgroundPosition: "center 38%",
             }}

@@ -34,7 +34,7 @@ function isResultNameMatchedByBet(
   nameMm: string,
   activeBets: FloatingResultBoardActiveBet[],
   diceResult: string[],
-  showFinalResultPanel: boolean
+  showFinalResultPanel: boolean,
 ) {
   if (!showFinalResultPanel) return false;
 
@@ -83,59 +83,61 @@ export default function FloatingResultBoard({
                 nameMm,
                 activeBets,
                 diceResult,
-                showFinalResultPanel
-              )
+                showFinalResultPanel,
+              ),
           );
 
           return (
             <div
-              key={`royal-mystery-result-box-${index}`}
-              className={`relative flex h-[70px] w-[70px] shrink-0 items-center justify-center overflow-hidden rounded-[1.15rem] border shadow-[0_18px_30px_rgba(0,0,0,0.62),inset_0_2px_0_rgba(255,224,150,0.2),inset_0_-16px_22px_rgba(0,0,0,0.42)] ${
-isMatched
-  ? "border-emerald-200/70 bg-[linear-gradient(135deg,#064e3b,#3a0a06,#120101)] shadow-[0_0_24px_rgba(16,185,129,0.26),0_18px_30px_rgba(0,0,0,0.62)]"
-  : animal
-    ? "border-amber-100/75 bg-[linear-gradient(135deg,#5b120b,#370505,#140101)] shadow-[0_0_24px_rgba(251,191,36,0.22),0_18px_30px_rgba(0,0,0,0.62)]"
-    : "border-amber-200/42 bg-[linear-gradient(145deg,#8e1216,#5c090c,#240204)]"
+              key={`royal-result-box-${index}`}
+              className={`relative flex h-[70px] w-[70px] shrink-0 items-center justify-center overflow-hidden rounded-[1.18rem] border shadow-[0_18px_30px_rgba(0,0,0,0.62),inset_0_2px_0_rgba(255,243,208,0.18),inset_0_-16px_22px_rgba(0,0,0,0.42)] ${
+                isMatched
+                  ? "border-emerald-200/70 bg-[linear-gradient(135deg,#064e3b,#4b0808,#120101)] shadow-[0_0_24px_rgba(16,185,129,0.26),0_18px_30px_rgba(0,0,0,0.62)]"
+                  : animal
+                    ? "border-[#ffd77a]/75 bg-[linear-gradient(135deg,#7f1111,#4b0808,#140101)] shadow-[0_0_24px_rgba(255,215,122,0.22),0_18px_30px_rgba(0,0,0,0.62)]"
+                    : "border-[#d6a84f]/46 bg-[linear-gradient(145deg,#7f1111,#4b0808,#240204)]"
               }`}
             >
-              <div className="pointer-events-none absolute inset-[5px] rounded-[0.88rem] border border-amber-100/18" />
-              <div className="pointer-events-none absolute inset-[9px] rounded-[0.62rem] border border-black/24" />
-              <div className="pointer-events-none absolute inset-[10px] rounded-[0.58rem] bg-[linear-gradient(145deg,#4a190d_0%,#2a0e09_42%,#140707_100%)] shadow-[inset_0_1px_0_rgba(255,223,154,0.16),inset_0_-10px_18px_rgba(0,0,0,0.55)]" />
-<div className="pointer-events-none absolute inset-[10px] rounded-[0.58rem] opacity-[0.18] bg-[repeating-linear-gradient(90deg,rgba(255,240,200,0.08)_0px,rgba(255,240,200,0.08)_1px,transparent_1px,transparent_8px)]" />
-              {animal ? (
-  <div className="pointer-events-none absolute inset-[10px] rounded-[0.58rem] bg-[linear-gradient(145deg,#1a0303,#2b0504,#090101)] shadow-[inset_0_1px_0_rgba(251,191,36,0.16),inset_0_-10px_16px_rgba(0,0,0,0.62)]" />
-) : null}
-              <div className="pointer-events-none absolute inset-[10px] rounded-[0.58rem] bg-[linear-gradient(145deg,rgba(18,3,3,0.92),rgba(45,7,5,0.84),rgba(8,1,1,0.96))] shadow-[inset_0_1px_0_rgba(251,191,36,0.12),inset_0_-10px_16px_rgba(0,0,0,0.44)]" />
+              <div className="pointer-events-none absolute inset-[5px] rounded-[0.9rem] border border-[#fff3d0]/16" />
+              <div className="pointer-events-none absolute inset-[9px] rounded-[0.64rem] border border-black/24" />
+              <div className="pointer-events-none absolute inset-[10px] rounded-[0.6rem] bg-[linear-gradient(145deg,#4a190d_0%,#2a0e09_42%,#140707_100%)] shadow-[inset_0_1px_0_rgba(255,243,208,0.14),inset_0_-10px_18px_rgba(0,0,0,0.55)]" />
+              <div className="pointer-events-none absolute inset-[10px] rounded-[0.6rem] bg-[repeating-linear-gradient(90deg,rgba(255,243,208,0.08)_0px,rgba(255,243,208,0.08)_1px,transparent_1px,transparent_8px)] opacity-[0.18]" />
 
-              <div className="pointer-events-none absolute inset-x-2 top-1.5 h-px bg-gradient-to-r from-transparent via-amber-100/55 to-transparent" />
+              {animal ? (
+                <div className="pointer-events-none absolute inset-[10px] rounded-[0.6rem] bg-[linear-gradient(145deg,#1a0303,#2b0504,#090101)] shadow-[inset_0_1px_0_rgba(255,215,122,0.16),inset_0_-10px_16px_rgba(0,0,0,0.62)]" />
+              ) : null}
+
+              <div className="pointer-events-none absolute inset-[10px] rounded-[0.6rem] bg-[linear-gradient(145deg,rgba(18,3,3,0.92),rgba(75,8,8,0.72),rgba(8,1,1,0.96))] shadow-[inset_0_1px_0_rgba(255,215,122,0.12),inset_0_-10px_16px_rgba(0,0,0,0.44)]" />
+
+              <div className="pointer-events-none absolute inset-x-2 top-1.5 h-px bg-gradient-to-r from-transparent via-[#fff3d0]/55 to-transparent" />
               <div className="pointer-events-none absolute inset-x-2 bottom-1.5 h-px bg-gradient-to-r from-transparent via-black/50 to-transparent" />
 
-{animal ? (
-  <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden">
-    <div className="pointer-events-none absolute inset-0 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] bg-[radial-gradient(circle_at_50%_38%,rgba(255,244,190,0.34),rgba(251,191,36,0.2)_26%,rgba(120,53,15,0.09)_48%,transparent_74%)]" />
+              {animal ? (
+                <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden">
+                  <div className="pointer-events-none absolute inset-0 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] bg-[radial-gradient(circle_at_50%_38%,rgba(255,243,208,0.34),rgba(255,215,122,0.2)_26%,rgba(90,47,24,0.09)_48%,transparent_74%)]" />
 
-    <div className="pointer-events-none absolute left-1/2 top-[9px] h-[18px] w-[40px] -translate-x-1/2 rounded-full bg-amber-50/18 blur-[8px]" />
+                  <div className="pointer-events-none absolute left-1/2 top-[9px] h-[18px] w-[40px] -translate-x-1/2 rounded-full bg-[#fff3d0]/18 blur-[8px]" />
 
-    <div className="pointer-events-none absolute inset-y-[-25%] left-[-48%] w-[42%] rotate-12 animate-[resultLightSweep_1.45s_ease-out_1] bg-gradient-to-r from-transparent via-amber-50/40 to-transparent" />
+                  <div className="pointer-events-none absolute inset-y-[-25%] left-[-48%] w-[42%] rotate-12 animate-[resultLightSweep_1.45s_ease-out_1] bg-gradient-to-r from-transparent via-[#fff3d0]/40 to-transparent" />
 
-    <img
-      src={animalAssets[animal.key]}
-      alt=""
-      className="relative z-10 h-[64px] w-[64px] scale-[1.08] animate-[resultAnimalPop_520ms_cubic-bezier(0.2,1.2,0.25,1)_1] object-contain brightness-125 contrast-115 drop-shadow-[0_0_18px_rgba(251,191,36,0.72)]"
-    />
+                  <img
+                    src={animalAssets[animal.key]}
+                    alt=""
+                    className="relative z-10 h-[64px] w-[64px] scale-[1.08] animate-[resultAnimalPop_520ms_cubic-bezier(0.2,1.2,0.25,1)_1] object-contain brightness-125 contrast-115 drop-shadow-[0_0_18px_rgba(255,215,122,0.72)]"
+                  />
 
-    <div className="pointer-events-none absolute bottom-[7px] h-[5px] w-11 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] rounded-full bg-amber-100/70 blur-[4px]" />
-  </div>
-) : (
-<span
-  className={`relative z-10 text-[34px] font-black leading-none ${
-    isCurrent
-      ? "text-amber-50 drop-shadow-[0_0_12px_rgba(255,248,220,0.32)]"
-      : "text-amber-100 drop-shadow-[0_0_10px_rgba(251,191,36,0.34)]"
-  }`}
->
-  ?
-</span>
+                  <div className="pointer-events-none absolute bottom-[7px] h-[5px] w-11 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] rounded-full bg-[#fff3d0]/70 blur-[4px]" />
+                </div>
+              ) : (
+                <span
+                  className={`relative z-10 text-[34px] font-black leading-none ${
+                    isCurrent
+                      ? "text-[#fff3d0] drop-shadow-[0_0_12px_rgba(255,243,208,0.32)]"
+                      : "text-[#ffd77a] drop-shadow-[0_0_10px_rgba(255,215,122,0.34)]"
+                  }`}
+                >
+                  ?
+                </span>
               )}
 
               {isCurrent && !animal ? (
@@ -157,25 +159,25 @@ isMatched
       />
 
       <style jsx>{`
-@keyframes resultAnimalPop {
-  0% {
-    opacity: 0;
-    transform: scale(0.62) translateY(5px);
-    filter: brightness(1.8);
-  }
+        @keyframes resultAnimalPop {
+          0% {
+            opacity: 0;
+            transform: scale(0.62) translateY(5px);
+            filter: brightness(1.8);
+          }
 
-  58% {
-    opacity: 1;
-    transform: scale(1.14) translateY(-1px);
-    filter: brightness(1.35);
-  }
+          58% {
+            opacity: 1;
+            transform: scale(1.14) translateY(-1px);
+            filter: brightness(1.35);
+          }
 
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: brightness(1);
-  }
-}
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            filter: brightness(1);
+          }
+        }
 
         @keyframes resultLightSweep {
           0% {
