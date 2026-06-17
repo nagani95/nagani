@@ -2,6 +2,8 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
+
 import RoyalRoomTopBar from "./RoyalRoomTopBar";
 
 type RoomIntroPhase = "loading" | "betting" | "closed" | "rolling" | "result";
@@ -65,8 +67,28 @@ export default function RoomIntroOverlay({
   onBackgroundMusicToggle,
   onFullscreenToggle,
 }: RoomIntroOverlayProps) {
-  const safeCountdown = Math.max(0, countdown);
-  const showCountdown = isWaitingForNextRound && safeCountdown > 0;
+  const safeCountdown = Math.max(0, Math.ceil(countdown));
+  const [estimatedCountdown, setEstimatedCountdown] = useState(10);
+
+  useEffect(() => {
+    if (!isWaitingForNextRound) {
+      setEstimatedCountdown(10);
+      return;
+    }
+
+    setEstimatedCountdown(10);
+
+    const timer = window.setInterval(() => {
+      setEstimatedCountdown((value) => Math.max(0, value - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isWaitingForNextRound]);
+
+  const displayCountdown =
+    safeCountdown > 0 ? Math.min(10, safeCountdown) : estimatedCountdown;
+
+  const showCountdown = isWaitingForNextRound && displayCountdown > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-[#090202] px-5 pb-[15vh]">
@@ -97,14 +119,6 @@ export default function RoomIntroOverlay({
         <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/70 to-transparent" />
 
         <div className="relative z-10">
-          {showCountdown ? (
-            <div className="mb-4 flex justify-center">
-              <div className="min-w-[86px] rounded-full border border-[#d6a84f]/25 bg-black/45 px-4 py-2 text-center text-xl font-black tabular-nums text-[#ffd77a] shadow-inner shadow-black/50">
-                {safeCountdown}
-              </div>
-            </div>
-          ) : null}
-
           <h2 className="text-lg font-black text-[#ffd77a]">
             {getIntroTitle(phase, isWaitingForNextRound)}
           </h2>
@@ -112,6 +126,19 @@ export default function RoomIntroOverlay({
           <p className="mt-2 text-sm font-semibold leading-6 text-[#fff3d0]/70">
             {getIntroSubtitle(phase, isWaitingForNextRound)}
           </p>
+
+          {showCountdown ? (
+            <div className="mt-4 flex justify-center">
+              <div className="rounded-full border border-[#d6a84f]/25 bg-black/45 px-4 py-2 text-center shadow-inner shadow-black/50">
+                <span className="mr-2 text-xs font-bold text-[#f7dfaa]/60">
+                  ခန့်မှန်းချိန်
+                </span>
+                <span className="text-xl font-black tabular-nums text-[#ffd77a]">
+                  {displayCountdown}s
+                </span>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-5 overflow-hidden rounded-full border border-[#d6a84f]/16 bg-black/45 p-[2px] shadow-inner shadow-black/60">
             <div className="relative h-2.5 overflow-hidden rounded-full bg-[#fff3d0]/10">

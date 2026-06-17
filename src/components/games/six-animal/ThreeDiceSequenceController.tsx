@@ -548,8 +548,10 @@ const heldRecordedTrajectoryDice: HeldRecordedTrajectoryDice[] = [];
 
   return (
     <div
-      className={`relative h-full min-h-[360px] overflow-hidden rounded-[1.6rem] border border-amber-300/15 bg-black/35 ${className}`}
-    >
+  className={`relative h-full min-h-[360px] overflow-hidden rounded-[1.6rem] border border-amber-300/15 bg-black/35 shadow-[inset_0_0_42px_rgba(0,0,0,0.62)] ${className}`}
+>
+  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-20 bg-gradient-to-b from-black/45 via-black/12 to-transparent" />
+  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-28 bg-gradient-to-t from-black/72 via-black/20 to-transparent" />
       <ThreeDicePhysicsStage
         resetKey={resetKey}
         onSettledChange={setSettled}
@@ -572,6 +574,8 @@ recordedTrajectoryReplayKey={resetKey}
 heldRecordedTrajectoryDice={heldRecordedTrajectoryDice}
 enableV1PhysicalRelease={false}
       />
+
+      <div className="pointer-events-none absolute inset-x-6 bottom-12 z-10 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/35 to-transparent" />
 
       {showInternalResultStrip ? (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 w-[min(92%,360px)] -translate-x-1/2 rounded-2xl border border-amber-300/20 bg-black/60 p-3 text-center shadow-2xl shadow-black/60 backdrop-blur-md">

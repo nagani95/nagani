@@ -17,10 +17,6 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
-function formatMemberId(userId: string) {
-  return `NG-${userId.slice(0, 8).toUpperCase()}`;
-}
-
 export default async function ProfilePage() {
   const supabase = await createClient();
 
@@ -32,11 +28,11 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .maybeSingle<{ username: string | null }>();
+const { data: profile } = await supabase
+  .from("profiles")
+  .select("username, member_code")
+  .eq("id", user.id)
+  .maybeSingle<{ username: string | null; member_code: string | null }>();
 
   const { data: wallet } = await supabase
     .from("wallets")
@@ -47,6 +43,7 @@ export default async function ProfilePage() {
   const balance = toSafeAmount(wallet?.balance);
   const memberName = profile?.username || "နဂါးနီ မိတ်ဆွေ";
   const accountLabel = user.email || "ဖုန်းနံပါတ် မရှိသေးပါ";
+  const memberCode = profile?.member_code || user.id.slice(0, 6).toUpperCase();
 
   return (
     <AppShell>
@@ -97,7 +94,7 @@ export default async function ProfilePage() {
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <span className="text-sm text-[#f7dfaa]/60">အဖွဲ့ဝင်နံပါတ်</span>
             <span className="text-sm font-bold text-[#ffd77a]">
-              {formatMemberId(user.id)}
+              {memberCode}
             </span>
           </div>
 

@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
 import CashierHero from "@/components/cashier/CashierHero";
-import CashierNote from "@/components/cashier/CashierNote";
 import CashierRecentTickets from "@/components/cashier/CashierRecentTickets";
 import CashierRequestForm from "@/components/cashier/CashierRequestForm";
 import AppShell from "@/components/layout/AppShell";
@@ -186,8 +185,6 @@ function CashierPageContent() {
       />
 
       <CashierRecentTickets tickets={recentTickets} />
-
-      <CashierNote />
     </AppShell>
   );
 }
