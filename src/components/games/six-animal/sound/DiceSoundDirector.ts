@@ -173,13 +173,13 @@ class DiceSoundDirector {
     // Deflector sound must wait until the visual die reaches the bar.
     this.schedule(
       () => this.playOneShot("deflectorHit", 0.95 * forceBoost),
-      1050 + timingOffset
+      850 + timingOffset
     );
 
     // Tray impact comes shortly after deflector hit.
     this.schedule(
       () => this.playOneShot("trayImpact", 1.05 * forceBoost),
-      1380 + timingOffset
+      1480 + timingOffset
     );
 
     // Rolling must start only after tray impact, not during wall drop.
