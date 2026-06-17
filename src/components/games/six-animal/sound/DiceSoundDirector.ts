@@ -48,7 +48,7 @@ const DICE_SOUND_VARIANTS: DiceSoundVariant[] = [
   {
     key: "rollLoop",
     src: "/assets/nagani/sounds/six-animal/dice/roll-loop-soft.wav",
-    volume: 0.6,
+    volume: 0.54,
   },
   {
     key: "tap",
