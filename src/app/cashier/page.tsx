@@ -44,7 +44,8 @@ function formatMMK(amount: number) {
 function formatTicketTime(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Yangon",
-    month: "short",
+    year: "numeric",
+    month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
@@ -60,7 +61,7 @@ function formatRequestStatus(status: WalletRequestRow["status"]) {
   if (status === "rejected") return "Rejected";
   if (status === "cancelled") return "Cancelled";
 
-  return "Pending review";
+  return "Pending";
 }
 
 function CashierPageContent() {
@@ -80,9 +81,7 @@ function CashierPageContent() {
   const isValidAmount = numericAmount >= 1000;
 
   const actionLabel = useMemo(() => {
-    return activeTab === "deposit"
-      ? "Submit Deposit Request"
-      : "Submit Withdrawal Request";
+    return activeTab === "deposit" ? "ငွေသွင်း တင်မည်" : "ငွေထုတ် တင်မည်";
   }, [activeTab]);
 
   useEffect(() => {
@@ -120,7 +119,7 @@ function CashierPageContent() {
           amount: toSafeAmount(request.amount),
           status: formatRequestStatus(request.status),
           time: formatTicketTime(request.created_at),
-        }))
+        })),
       );
     }
 
@@ -150,12 +149,12 @@ function CashierPageContent() {
   return (
     <AppShell>
       <header className="flex items-center justify-between">
-        <Link href="/" className="text-sm font-bold text-amber-300">
-          ← Lobby
+        <Link href="/" className="text-sm font-bold text-[#ffd77a]">
+          မူလသို့
         </Link>
 
-        <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-100">
-          Wallet
+        <div className="rounded-full border border-[#d6a84f]/20 bg-[#d6a84f]/10 px-3 py-1 text-xs font-bold text-[#ffd77a]">
+          ပိုက်ဆံအိတ်
         </div>
       </header>
 
@@ -163,13 +162,13 @@ function CashierPageContent() {
 
       {successMessage ? (
         <div className="mt-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-100">
-          {successMessage}
+          တင်သွင်းမှု အောင်မြင်ပါသည်။
         </div>
       ) : null}
 
       {errorMessage ? (
         <div className="mt-4 rounded-[1.25rem] border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-100">
-          {errorMessage}
+          တင်သွင်းမှု မအောင်မြင်ပါ။ ပြန်စစ်ပါ။
         </div>
       ) : null}
 
@@ -198,8 +197,8 @@ export default function CashierPage() {
     <Suspense
       fallback={
         <AppShell>
-          <div className="rounded-[1.5rem] border border-amber-400/20 bg-black/40 p-5 text-sm font-bold text-amber-100">
-            Loading cashier...
+          <div className="rounded-[1.5rem] border border-[#d6a84f]/20 bg-black/40 p-5 text-sm font-bold text-[#fff3d0]">
+            ပိုက်ဆံအိတ် ပြင်ဆင်နေပါသည်
           </div>
         </AppShell>
       }

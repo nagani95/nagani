@@ -1,5 +1,7 @@
 // src/components/cashier/CashierRecentTickets.tsx
 
+import NaganiStatusBadge from "@/components/nagani-v2/NaganiStatusBadge";
+
 type CashierTicket = {
   id: string;
   type: string;
@@ -16,88 +18,67 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
-function getStatusClass(status: string) {
-  if (status === "Approved") {
-    return "border-emerald-400/20 bg-emerald-400/10 text-emerald-100";
-  }
-
-  if (status === "Rejected" || status === "Cancelled") {
-    return "border-red-400/20 bg-red-400/10 text-red-100";
-  }
-
-  return "border-amber-400/20 bg-amber-400/10 text-amber-100";
+function getTypeLabel(type: string) {
+  return type.toLowerCase().includes("withdraw") ? "ငွေထုတ်" : "ငွေသွင်း";
 }
 
 export default function CashierRecentTickets({
   tickets,
 }: CashierRecentTicketsProps) {
   return (
-    <section className="mt-6 rounded-[1.75rem] border border-red-400/15 bg-red-950/10 p-4">
+    <section className="mt-6 rounded-[2rem] border border-[#d6a84f]/20 bg-[#090202]/50 p-4 shadow-xl shadow-black/35 backdrop-blur-md">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-200/60">
-            Recent Wallet Tickets
+          <p className="text-xs font-semibold text-[#f7dfaa]/60">
+            နောက်ဆုံးမှတ်တမ်း
           </p>
-          <h3 className="mt-2 text-lg font-black text-amber-100">
-            Request History
+          <h3 className="mt-2 text-lg font-black text-[#ffd77a]">
+            ငွေကြေးမှတ်တမ်း
           </h3>
         </div>
 
-        <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-100">
-          Wallet
+        <div className="rounded-full border border-[#d6a84f]/20 bg-[#d6a84f]/10 px-3 py-1 text-[0.68rem] font-bold text-[#ffd77a]">
+          ၅ ခု
         </div>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4">
         {tickets.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-center">
-            <p className="text-sm font-black text-amber-100">
-              No wallet tickets yet
+          <div className="rounded-2xl border border-[#d6a84f]/15 bg-black/25 p-4 text-center">
+            <p className="text-sm font-black text-[#fff3d0]">
+              မှတ်တမ်းမရှိသေးပါ
             </p>
-            <p className="mt-2 text-xs leading-5 text-white/45">
-              Deposit and withdrawal requests will appear here after you submit
-              them.
+            <p className="mt-2 text-xs leading-5 text-[#f7dfaa]/50">
+              ငွေသွင်း သို့မဟုတ် ငွေထုတ် တင်ပြီးပါက ဤနေရာတွင် ပြပါမည်။
             </p>
           </div>
         ) : null}
 
-        {tickets.map((ticket) => (
-          <div
-            key={ticket.id}
-            className="rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg shadow-black/20"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-bold text-white/35">
-                  {ticket.id}
-                </p>
-                <p className="mt-1 text-lg font-black text-amber-100">
-                  {ticket.type}
-                </p>
-              </div>
+        <div className="divide-y divide-[#d6a84f]/10">
+          {tickets.slice(0, 5).map((ticket) => (
+            <div key={ticket.id} className="py-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black text-[#fff3d0]">
+                    {getTypeLabel(ticket.type)}
+                  </p>
+                  <p className="mt-1 truncate text-[0.68rem] text-[#f7dfaa]/48">
+                    {ticket.time}
+                  </p>
+                </div>
 
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-black text-amber-100">
-                  {formatMMK(ticket.amount)} MMK
-                </p>
-                <p
-                  className={`mt-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${getStatusClass(
-                    ticket.status
-                  )}`}
-                >
-                  {ticket.status}
-                </p>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-black text-[#ffd77a]">
+                    {formatMMK(ticket.amount)} ကျပ်
+                  </p>
+                  <div className="mt-2">
+                    <NaganiStatusBadge status={ticket.status} />
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
-              <p className="text-xs text-white/35">{ticket.time}</p>
-              <p className="text-xs font-bold text-white/45">
-                Wallet request
-              </p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
