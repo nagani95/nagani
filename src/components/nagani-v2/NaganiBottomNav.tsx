@@ -39,8 +39,8 @@ export default function NaganiBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))]">
-      <div className="grid grid-cols-3 items-end rounded-[2rem] border border-[#d6a84f]/25 bg-gradient-to-b from-[#4b0808]/96 via-[#2a0707]/96 to-[#090202]/98 px-2 py-2 shadow-[0_-18px_40px_rgba(0,0,0,0.55)] backdrop-blur-md">
+    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <div className="grid grid-cols-3 items-end rounded-[2rem] border border-[#d6a84f]/30 bg-gradient-to-b from-[#4b0808]/96 via-[#2a0707]/96 to-[#090202]/98 px-2.5 py-2.5 shadow-[0_-18px_42px_rgba(0,0,0,0.58)] backdrop-blur-md">
         {navItems.map((item) => {
           const isActive = item.active(pathname);
 
@@ -49,7 +49,7 @@ export default function NaganiBottomNav() {
               key={item.href}
               href={item.href}
               aria-current={isActive ? "page" : undefined}
-              className={`group flex min-h-14 flex-col items-center justify-center rounded-[1.5rem] text-center transition active:scale-[0.98] ${
+              className={`group flex min-h-[3.65rem] flex-col items-center justify-center rounded-[1.5rem] text-center transition active:scale-[0.98] ${
                 item.isCenter ? "-mt-6 min-h-[4.6rem]" : ""
               } ${
                 isActive
@@ -72,9 +72,9 @@ export default function NaganiBottomNav() {
               </span>
 
               <span
-                className={`text-[0.68rem] font-semibold leading-none ${
-                  item.isCenter ? "text-[0.74rem]" : ""
-                }`}
+                className={`text-[0.72rem] font-bold leading-none ${
+  item.isCenter ? "text-[0.8rem]" : ""
+}`}
               >
                 {item.label}
               </span>

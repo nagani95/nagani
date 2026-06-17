@@ -1,35 +1,28 @@
 //src/components/nagani-v2/NaganiVideoBackground.tsx
 
 type NaganiVideoBackgroundProps = {
-  src?: string;
-  poster?: string;
-  fallbackClassName?: string;
+  videoSrc?: string;
+  posterSrc?: string;
 };
 
 export default function NaganiVideoBackground({
-  src,
-  poster,
-  fallbackClassName = "bg-gradient-to-b from-[#090202] via-[#2a1209] to-[#090202]",
+  videoSrc = "/assets/nagani/v2/home-palace-loop.mp4",
+  posterSrc = "/assets/nagani/v2/home-palace-poster.png",
 }: NaganiVideoBackgroundProps) {
-  if (!src) {
-    return <div className={`h-full w-full ${fallbackClassName}`} />;
-  }
-
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#090202]">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[#090202]">
       <video
-        className="h-full w-full object-cover"
-        src={src}
-        poster={poster}
+        className="absolute inset-0 h-full w-full object-cover"
         autoPlay
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="auto"
+        poster={posterSrc}
         aria-hidden="true"
-      />
-
-      <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/70" />
+      >
+        <source src={videoSrc} type="video/mp4" />
+      </video>
     </div>
   );
 }

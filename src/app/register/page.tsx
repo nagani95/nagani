@@ -23,9 +23,9 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
   return (
     <NaganiPageShell>
-      <section className="flex min-h-screen items-center justify-center px-5 py-8">
+      <section className="flex min-h-[100svh] items-start justify-center px-5 pb-8 pt-14 sm:pt-16">
         <div className="w-full max-w-sm">
-          <div className="mb-7 text-center">
+         <div className="mb-6 text-center">
             <div
               className="mx-auto h-24 w-24 bg-contain bg-center bg-no-repeat drop-shadow-[0_8px_22px_rgba(0,0,0,0.65)]"
               style={{
@@ -38,13 +38,13 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               နဂါးနီ
             </h1>
 
-            <p className="mt-3 text-sm font-semibold leading-6 text-[#fff3d0]/70">
+           <p className="mt-3 text-[0.95rem] font-bold leading-7 text-[#fff3d0]/82">
               တော်ဝင်ပွဲခန်းမသို့ ဝင်ရန် အကောင့်ဖွင့်ပါ
             </p>
           </div>
 
-          <div className="rounded-[2rem] border border-[#d6a84f]/25 bg-[#090202]/58 p-5 shadow-2xl shadow-black/50 backdrop-blur-md">
-            <form action={registerWithEmail} className="space-y-4">
+          <div className="rounded-[2rem] border border-[#d6a84f]/30 bg-[#090202]/68 px-5 py-5 shadow-2xl shadow-black/55 backdrop-blur-md">
+            <form action={registerWithEmail} className="space-y-[1.05rem]">
               {errorMessage ? (
                 <div className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
                   အကောင့်ဖွင့်မှု မအောင်မြင်ပါ။ အချက်အလက်များကို ပြန်စစ်ပါ။
@@ -91,7 +91,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 အကောင့်ဖွင့်မည်
               </NaganiRoyalButton>
 
-              <div className="flex items-center justify-between gap-4 pt-2 text-sm font-semibold">
+              <div className="flex items-center justify-between gap-4 px-1 pt-3 text-[0.85rem] font-bold leading-6">
                 <Link href="/" className="text-[#f7dfaa]/70 hover:text-[#fff3d0]">
                   မူလသို့
                 </Link>

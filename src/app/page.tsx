@@ -4,23 +4,23 @@ import Link from "next/link";
 
 import {
   NaganiBottomNav,
-  NaganiFloatingSupport,
   NaganiPageShell,
   NaganiVideoBackground,
 } from "@/components/nagani-v2";
+import NaganiHomeTopControls from "@/components/nagani-v2/NaganiHomeTopControls";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { createClient } from "@/lib/supabase/server";
 
 const SIX_ANIMAL_MIN_BALANCE = 1000;
 
-function formatMMK(amount: number) {
-  return new Intl.NumberFormat("en-US").format(amount);
-}
-
 function toSafeBalance(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
 
   return Number.isFinite(amount) ? amount : 0;
+}
+
+function formatMMK(amount: number) {
+  return new Intl.NumberFormat("en-US").format(amount);
 }
 
 export default async function HomePage() {
@@ -31,90 +31,107 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   let walletBalance = 0;
+let memberCode: string | null = null;
 
-  if (user) {
-    const { data: wallet } = await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("profile_id", user.id)
-      .maybeSingle<{ balance: number | string | null }>();
+if (user) {
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("profile_id", user.id)
+    .maybeSingle<{ balance: number | string | null }>();
 
-    walletBalance = toSafeBalance(wallet?.balance);
-  }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("member_code")
+    .eq("id", user.id)
+    .maybeSingle<{ member_code: string | null }>();
 
-  const canEnterSixAnimal = Boolean(user) && walletBalance >= SIX_ANIMAL_MIN_BALANCE;
+  walletBalance = toSafeBalance(wallet?.balance);
+  memberCode = profile?.member_code ?? null;
+}
 
-  const playHref = !user ? "/login" : canEnterSixAnimal ? "/six-animal" : "/cashier";
+const canEnterSixAnimal = Boolean(user) && walletBalance >= SIX_ANIMAL_MIN_BALANCE;
+const memberIdLabel = user ? memberCode ?? "------" : "ဧည့်သည်";
+
+const playHref = !user ? "/login" : canEnterSixAnimal ? "/six-animal" : "/cashier";
   const playLabel = !user
-    ? "ဝင်ရောက်ရန် လိုအပ်ပါသည်"
+    ? "ဝင်ရောက်ရန်"
     : canEnterSixAnimal
       ? "ကစားပွဲသို့"
-      : "ငွေဖြည့်ရန် လိုအပ်ပါသည်";
+      : "ငွေဖြည့်ရန်";
 
   return (
-    <NaganiPageShell
-      background={<NaganiVideoBackground />}
-      bottomNav={<NaganiBottomNav />}
-      floatingSupport={<NaganiFloatingSupport />}
-    >
-      <section className="relative flex min-h-screen flex-col px-5 pb-8 pt-[calc(1.2rem+env(safe-area-inset-top))]">
-        <header className="flex items-center justify-between gap-3">
-          <div
-            className="h-16 w-16 shrink-0 bg-contain bg-center bg-no-repeat drop-shadow-[0_8px_18px_rgba(0,0,0,0.7)]"
-            style={{
-              backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
-            }}
-            aria-label="နဂါးနီ"
-          />
+<NaganiPageShell
+  background={<NaganiVideoBackground />}
+  bottomNav={<NaganiBottomNav />}
+  contentClassName="relative z-10 h-[100svh] overflow-hidden"
+>
+<section className="relative h-[100svh] overflow-hidden">
+  <div className="absolute left-[1.8%] top-[3.2%] z-30 min-w-[6.9rem] rounded-[1.15rem] border border-[#ffd77a]/32 bg-[#090202]/42 px-2.5 py-2.5 text-left shadow-lg shadow-black/45 backdrop-blur-md">
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#f7dfaa]/62">
+        ID
+      </span>
+      <span className="text-[0.86rem] font-black tracking-[0.12em] text-[#ffd77a]">
+        {memberIdLabel}
+      </span>
+    </div>
 
-          <div className="rounded-full border border-[#d6a84f]/25 bg-black/35 px-4 py-2 text-right shadow-lg shadow-black/30 backdrop-blur-md">
-            <div className="text-[0.65rem] font-semibold text-[#f7dfaa]/65">
-              လက်ကျန်ငွေ
-            </div>
-            <div className="mt-0.5 text-sm font-black text-[#ffd77a]">
-              {formatMMK(walletBalance)} ကျပ်
-            </div>
+    <div className="mt-2 border-t border-[#d6a84f]/18 pt-2">
+      <p className="text-[0.62rem] font-bold text-[#f7dfaa]/62">
+        လက်ကျန်
+      </p>
+      <p className="mt-0.5 text-[0.74rem] font-black leading-none text-[#ffd77a]">
+        {formatMMK(walletBalance)} ကျပ်
+      </p>
+    </div>
+  </div>
+
+  <NaganiHomeTopControls />
+<div className="absolute left-1/2 top-[3.6%] z-20 flex -translate-x-1/2 flex-col items-center">
+  <div
+    className="h-40 w-40 bg-contain bg-center bg-no-repeat drop-shadow-[0_14px_34px_rgba(0,0,0,0.88)]"
+      style={{
+        backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
+      }}
+      aria-label="နဂါးနီ"
+    />
+
+<div className="-mt-4 rounded-full border border-[#ffd77a]/30 bg-[#090202]/42 px-5 py-1.5 text-base font-black tracking-[0.12em] text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-[2px]">
+  နဂါးနီ
+</div>
+  </div>
+
+        {/* Premium dice spotlight */}
+        <div className="pointer-events-none absolute left-1/2 top-[58.85%] z-10 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,215,122,0.46)_0%,rgba(214,168,79,0.18)_38%,transparent_72%)] blur-xl" />
+
+        <div className="pointer-events-none absolute left-1/2 top-[58.85%] z-10 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ffd77a]/25 bg-[#ffd77a]/10 shadow-[0_0_34px_rgba(255,215,122,0.45)]" />
+
+        <Link
+          href={playHref}
+          aria-label={playLabel}
+          className="absolute left-1/2 top-[58.85%] z-20 h-[3.35rem] w-[3.35rem] -translate-x-1/2 -translate-y-1/2 rounded-[0.72rem] bg-cover bg-center bg-no-repeat shadow-[0_0_16px_rgba(255,243,208,0.65),0_0_34px_rgba(255,215,122,0.42),0_12px_26px_rgba(0,0,0,0.58)] ring-1 ring-[#fff3d0]/55 transition active:scale-[0.95]"
+          style={{
+            backgroundImage: "url('/assets/nagani/v2/dice.jpg')",
+          }}
+        />
+
+        <div className="absolute inset-x-0 top-[65.2%] z-20 flex justify-center px-5">
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-[-0.55rem] rounded-full bg-[radial-gradient(circle,rgba(255,215,122,0.32)_0%,rgba(214,168,79,0.14)_42%,transparent_72%)] blur-md" />
+
+            <Link
+              href={playHref}
+              className="relative block overflow-hidden rounded-full border border-[#ffd77a]/65 bg-gradient-to-b from-[#d93a2b] via-[#941313] to-[#3a0707] px-12 py-4 text-base font-black leading-6 text-[#fff3d0] shadow-[0_18px_38px_rgba(0,0,0,0.66),0_0_26px_rgba(255,215,122,0.28),inset_0_1px_0_rgba(255,243,208,0.32),inset_0_-8px_18px_rgba(0,0,0,0.28)] ring-1 ring-[#7a4a12]/45 transition active:scale-[0.98]"
+            >
+              <span className="pointer-events-none absolute inset-x-4 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/20 via-white/8 to-transparent" />
+              <span className="pointer-events-none absolute inset-x-5 bottom-1 h-1/3 rounded-full bg-gradient-to-t from-black/20 to-transparent" />
+
+              <span className="relative tracking-[0.02em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.72)]">
+                {playLabel}
+              </span>
+            </Link>
           </div>
-        </header>
-
-        <div className="flex flex-1 flex-col items-center justify-center pb-24 text-center">
-          <div className="mb-7">
-            <h1 className="text-4xl font-black tracking-[0.14em] text-[#ffd77a] drop-shadow-[0_4px_14px_rgba(0,0,0,0.8)]">
-              နဂါးနီ
-            </h1>
-            <p className="mt-3 text-sm font-semibold leading-6 text-[#fff3d0]/78">
-              မြန်မာ့ရိုးရာ တော်ဝင်ပွဲခန်းမ
-            </p>
-          </div>
-
-          <Link
-            href={playHref}
-            className="group flex flex-col items-center focus:outline-none"
-            aria-label={playLabel}
-          >
-            <div className="relative flex h-44 w-44 items-center justify-center rounded-full border border-[#ffd77a]/35 bg-radial-[circle_at_50%_35%] from-[#fff3d0] via-[#d6a84f] to-[#5a2f18] shadow-[0_24px_70px_rgba(0,0,0,0.72)] transition group-active:scale-[0.98]">
-              <div className="absolute inset-[-1.1rem] rounded-full border border-[#d6a84f]/15 bg-[#d6a84f]/5 blur-sm" />
-
-              <div className="relative grid h-24 w-24 grid-cols-3 grid-rows-3 gap-2 rounded-3xl border border-[#7f1111]/20 bg-[#fff3d0] p-5 shadow-inner shadow-[#5a2f18]/30">
-                <span className="col-start-1 row-start-1 rounded-full bg-[#4b0808]" />
-                <span className="col-start-3 row-start-1 rounded-full bg-[#4b0808]" />
-                <span className="col-start-2 row-start-2 rounded-full bg-[#4b0808]" />
-                <span className="col-start-1 row-start-3 rounded-full bg-[#4b0808]" />
-                <span className="col-start-3 row-start-3 rounded-full bg-[#4b0808]" />
-              </div>
-            </div>
-
-            <div className="mt-7 rounded-full border border-[#ffd77a]/35 bg-gradient-to-b from-[#b21b16] via-[#7f1111] to-[#3a0707] px-9 py-4 text-base font-black text-[#fff3d0] shadow-[0_16px_34px_rgba(0,0,0,0.52)]">
-              {playLabel}
-            </div>
-          </Link>
-
-          <Link
-            href="/thirty-six"
-            className="mt-7 rounded-full border border-[#d6a84f]/15 bg-black/20 px-5 py-2.5 text-xs font-semibold text-[#f7dfaa]/62 backdrop-blur-sm"
-          >
-            ၃၆ ကောင်ထီ — မကြာမီလာမည်
-          </Link>
         </div>
       </section>
     </NaganiPageShell>

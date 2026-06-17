@@ -50,17 +50,18 @@ export default async function ProfilePage() {
 
   return (
     <AppShell>
-      <header className="flex items-center justify-between">
-        <Link href="/" className="text-sm font-bold text-[#ffd77a]">
-          မူလသို့
-        </Link>
+<header className="flex items-center justify-between px-1 pt-1">
+  <div>
+    <p className="text-xs font-bold text-[#f7dfaa]/55">နဂါးနီ</p>
+    <h1 className="mt-1 text-xl font-black text-[#ffd77a]">ပရိုဖိုင်</h1>
+  </div>
 
-        <div className="rounded-full border border-[#d6a84f]/20 bg-[#d6a84f]/10 px-3 py-1 text-xs font-bold text-[#ffd77a]">
-          ပရိုဖိုင်
-        </div>
-      </header>
+  <div className="rounded-full border border-[#d6a84f]/25 bg-[#d6a84f]/10 px-3 py-1.5 text-xs font-bold text-[#ffd77a]">
+    အကောင့်
+  </div>
+</header>
 
-      <section className="mt-6 overflow-hidden rounded-[2rem] border border-[#d6a84f]/25 bg-[#090202]/58 p-5 shadow-2xl shadow-black/45 backdrop-blur-md">
+      <section className="mt-5 overflow-hidden rounded-[2rem] border border-[#d6a84f]/30 bg-[#090202]/68 p-5 shadow-2xl shadow-black/50 backdrop-blur-md">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold text-[#f7dfaa]/60">
@@ -110,12 +111,12 @@ export default async function ProfilePage() {
       </section>
 
       <section className="mt-6 rounded-[2rem] border border-[#d6a84f]/20 bg-black/25 p-4">
-        <h2 className="text-lg font-black text-[#ffd77a]">လုပ်ဆောင်ချက်များ</h2>
+        <h2 className="text-lg font-black text-[#ffd77a]">အကောင့် လုပ်ဆောင်ချက်များ</h2>
 
         <div className="mt-4 grid gap-3">
           <Link
             href="/cashier"
-            className="flex min-h-12 items-center justify-between rounded-2xl border border-[#d6a84f]/18 bg-[#d6a84f]/10 px-4 py-3 text-sm font-bold text-[#fff3d0] active:scale-[0.99]"
+            className="flex min-h-14 items-center justify-between rounded-2xl border border-[#d6a84f]/20 bg-[#d6a84f]/10 px-4 py-3 text-sm font-bold leading-6 text-[#fff3d0] active:scale-[0.99]"
           >
             <span>ပိုက်ဆံအိတ်သို့</span>
             <span className="text-[#ffd77a]">›</span>
@@ -123,7 +124,7 @@ export default async function ProfilePage() {
 
           <Link
             href="/profile"
-            className="flex min-h-12 items-center justify-between rounded-2xl border border-[#d6a84f]/18 bg-black/20 px-4 py-3 text-sm font-bold text-[#fff3d0] active:scale-[0.99]"
+            className="flex min-h-14 items-center justify-between rounded-2xl border border-[#d6a84f]/15 bg-black/20 px-4 py-3 text-sm font-bold leading-6 text-[#fff3d0]/90 active:scale-[0.99]"
           >
             <span>စကားဝှက်ပြောင်းရန်</span>
             <span className="text-[#f7dfaa]/50">မကြာမီ</span>
@@ -131,15 +132,14 @@ export default async function ProfilePage() {
 
           <Link
             href="/profile"
-            className="flex min-h-12 items-center justify-between rounded-2xl border border-[#d6a84f]/18 bg-black/20 px-4 py-3 text-sm font-bold text-[#fff3d0] active:scale-[0.99]"
-          >
+            className="flex min-h-14 items-center justify-between rounded-2xl border border-[#d6a84f]/15 bg-black/20 px-4 py-3 text-sm font-bold leading-6 text-[#fff3d0]/90 active:scale-[0.99]"          >
             <span>ကူညီရေး ဆက်သွယ်ရန်</span>
             <span className="text-[#f7dfaa]/50">ကူညီရေး</span>
           </Link>
         </div>
       </section>
 
-      <form action={logout}>
+      <form action={logout} className="pb-28">
         <button
           type="submit"
           className="mt-6 min-h-12 w-full rounded-full border border-red-300/25 bg-red-500/10 px-5 py-4 text-sm font-black text-red-100 active:scale-[0.98]"
