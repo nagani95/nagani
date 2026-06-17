@@ -38,17 +38,17 @@ const DICE_SOUND_VARIANTS: DiceSoundVariant[] = [
   {
     key: "trayImpact",
     src: "/assets/nagani/sounds/six-animal/dice/tray-impact-01.wav",
-    volume: 1.18,
+    volume: 1.45,
   },
   {
     key: "trayImpact",
     src: "/assets/nagani/sounds/six-animal/dice/tray-impact-02.wav",
-    volume: 1.08,
+    volume: 1.35,
   },
   {
     key: "rollLoop",
     src: "/assets/nagani/sounds/six-animal/dice/roll-loop-soft.wav",
-    volume: 0.54,
+    volume: 0.52,
   },
   {
     key: "tap",

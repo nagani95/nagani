@@ -19,7 +19,7 @@ export const ROOM_SOUND_VOLUME = 0.72;
 export const ROOM_BACKGROUND_MUSIC_SRC =
   "/assets/nagani/sounds/six-animal/room-bgm.mp3";
 
-export const ROOM_BACKGROUND_MUSIC_VOLUME = 0.10;
+export const ROOM_BACKGROUND_MUSIC_VOLUME = 0.06;
 export const ROOM_BACKGROUND_MUSIC_FADE_MS = 700;
 export const ROOM_BACKGROUND_MUSIC_FADE_STEP_MS = 40;
 export const ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY =
