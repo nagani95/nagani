@@ -5,7 +5,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { naganiAssets } from "@/lib/naganiAssets";
 import SixAnimalBettingSheet from "@/components/games/six-animal/SixAnimalBettingSheet";
 import ThreeDiceSequenceController from "@/components/games/six-animal/ThreeDiceSequenceController";
 import type {
@@ -18,235 +17,49 @@ import { RoyalRoomAtmosphere } from "@/components/games/six-animal/RoyalRoomAtmo
 import RoyalTableChamberBackdrop from "@/components/games/six-animal/RoyalTableChamberBackdrop";
 import RoyalRoomTopBar from "@/components/games/six-animal/RoyalRoomTopBar";
 import RoomIntroOverlay from "@/components/games/six-animal/RoomIntroOverlay";
+import SixAnimalExitConfirm from "@/components/games/six-animal/SixAnimalExitConfirm";
+import SixAnimalLeavingRoomOverlay from "@/components/games/six-animal/SixAnimalLeavingRoomOverlay";
+import SixAnimalBettingCommandPanel from "@/components/games/six-animal/SixAnimalBettingCommandPanel";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import { createClient } from "@/lib/supabase/client";
 import type { SixAnimalKey } from "@/types/games";
 import { diceSoundDirector } from "@/components/games/six-animal/sound/DiceSoundDirector";
-
-const ROOM_BACKGROUND = naganiAssets.sixAnimal.room.palaceBgV1;
-const ROYAL_EXIT_DOOR_BUTTON = naganiAssets.sixAnimal.ui.royalExitDoor;
-const NAGANI_LOGO = "/assets/nagani/shared/logo/nagani-logo-concept-v1.png";
-
-const RESULT_REVEAL_DELAY_MS = 900;
-const SETTLEMENT_POPUP_DELAY_MS = 1400;
-
-const ROOM_SOUND_ENABLED = true;
-const ROOM_SOUND_VOLUME = 0.72;
-
-const ROOM_BACKGROUND_MUSIC_SRC =
-  "/assets/nagani/sounds/six-animal/room-bgm.mp3";
-
-const ROOM_BACKGROUND_MUSIC_VOLUME = 0.14;
-const ROOM_BACKGROUND_MUSIC_FADE_MS = 700;
-const ROOM_BACKGROUND_MUSIC_FADE_STEP_MS = 40;
-const ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY =
-  "nagani-six-animal-bgm-muted";
-
-const SIX_ANIMAL_ROOM_UUID = "11111111-1111-1111-1111-111111111111";
-const BET_AMOUNT_STEP = 1000;
-const USE_V1_AUTO_VISIBLE_ROOM_RESULT = true;
-const USE_BACKEND_RESULT_FOR_ROOM_UI = true;
-
-type LiveSixAnimalRound = {
-  id: string;
-  room_id: string;
-  round_number: number;
-  phase: "betting" | "closed" | "rolling" | "result" | "settled";
-  betting_starts_at: string | null;
-  betting_ends_at: string | null;
-  rolling_starts_at: string | null;
-  result_revealed_at: string | null;
-  next_round_starts_at: string | null;
-  result_animals: string[] | null;
-  status: string;
-};
-
-type LiveSixAnimalBet = {
-  id: string;
-  round_id: string;
-  profile_id: string;
-  bet_type: BetMode;
-  animal: SixAnimalKey;
-  animal_2: SixAnimalKey | null;
-  amount: number;
-  locked: boolean;
-  settled: boolean;
-  created_at: string;
-};
-
-function secondsUntil(targetIso: string | null | undefined) {
-  if (!targetIso) return 0;
-
-  const targetTime = new Date(targetIso).getTime();
-  const nowTime = Date.now();
-
-  return Math.max(0, Math.ceil((targetTime - nowTime) / 1000));
-}
-
-function getRoundPhaseTargetAt(round: LiveSixAnimalRound) {
-  if (round.phase === "betting") return round.betting_ends_at;
-  if (round.phase === "closed") return round.rolling_starts_at;
-  if (round.phase === "rolling") {
-    return round.result_revealed_at ?? round.next_round_starts_at;
-  }
-  if (round.phase === "result") return round.next_round_starts_at;
-
-  return null;
-}
-
-function getLiveRoundCountdown(round: LiveSixAnimalRound) {
-  return secondsUntil(getRoundPhaseTargetAt(round));
-}
-
-function mapLiveRoundPhase(round: LiveSixAnimalRound): RoundPhase {
-  if (round.phase === "betting") return "betting";
-  if (round.phase === "closed") return "closed";
-  if (round.phase === "rolling") return "rolling";
-  if (round.phase === "result" || round.phase === "settled") return "result";
-
-  return "loading";
-}
-
-const ANIMAL_ASSETS: Record<SixAnimalKey, string> = {
-  tiger: naganiAssets.sixAnimal.animals.tiger,
-  dragon: naganiAssets.sixAnimal.animals.dragon,
-  rooster: naganiAssets.sixAnimal.animals.rooster,
-  fish: naganiAssets.sixAnimal.animals.fish,
-  crab: naganiAssets.sixAnimal.animals.crab,
-  elephant: naganiAssets.sixAnimal.animals.elephant,
-};
-
-type RoundPhase = "loading" | "betting" | "closed" | "rolling" | "result";
-type VisualDiceStatus = "idle" | "playing" | "complete";
-type BetMode = "single" | "pair";
-
-type ActiveBet = {
-  betType: BetMode;
-  animalKey: SixAnimalKey;
-  animalKey2?: SixAnimalKey | null;
-  animalNameMm: string;
-  animalNameMm2?: string | null;
-  amount: number;
-  roundNumber: number;
-  
-};
-
-type SixAnimalSoundEvent =
-  | "loading"
-  | "betting-round"
-  | "bets-closed"
-  | "dice-drop"
-  | "settlement-round"
-  | "settlement-win"
-  | "settlement-lose"
-  | "bet-locked"
-  | "exit-button"
-  | "bet-invalid"
-  | "ui-click";
-
-const SIX_ANIMAL_SOUND_SRC: Record<SixAnimalSoundEvent, string> = {
-  loading: "/assets/nagani/sounds/six-animal/loading.mp3",
-  "betting-round": "/assets/nagani/sounds/six-animal/betting-round.mp3",
-  "bets-closed": "/assets/nagani/sounds/six-animal/bets-closed.mp3",
-  "dice-drop": "/assets/nagani/sounds/six-animal/dice-drop.mp3",
-  "settlement-round": "/assets/nagani/sounds/six-animal/settlement-round.mp3",
-  "settlement-win": "/assets/nagani/sounds/six-animal/settlement-win.mp3",
-  "settlement-lose": "/assets/nagani/sounds/six-animal/settlement-lose.mp3",
-  "bet-locked": "/assets/nagani/sounds/six-animal/bet-locked.mp3",
-  "exit-button": "/assets/nagani/sounds/six-animal/exit-button.mp3",
-  "bet-invalid": "/assets/nagani/sounds/six-animal/bet-invalid.mp3",
-  "ui-click": "/assets/nagani/sounds/six-animal/ui-click.mp3",
-};
-
-const SIX_ANIMAL_SOUND_VOLUME: Record<SixAnimalSoundEvent, number> = {
-  loading: 0.82,
-  "betting-round": 0.76,
-  "bets-closed": 0.82,
-  "dice-drop": 0.9,
-  "settlement-round": 0.82,
-  "settlement-win": 0.9,
-  "settlement-lose": 0.86,
-  "bet-locked": 0.68,
-  "exit-button": 0.62,
-  "bet-invalid": 0.72,
-  "ui-click": 0.42,
-};
-
-const SIX_ANIMAL_RESULT_SOUND_SRC: Record<SixAnimalKey, string> = {
-  tiger: "/assets/nagani/sounds/six-animal/results/tiger.mp3",
-  dragon: "/assets/nagani/sounds/six-animal/results/dragon.mp3",
-  rooster: "/assets/nagani/sounds/six-animal/results/rooster.mp3",
-  fish: "/assets/nagani/sounds/six-animal/results/fish.mp3",
-  crab: "/assets/nagani/sounds/six-animal/results/crab.mp3",
-  elephant: "/assets/nagani/sounds/six-animal/results/elephant.mp3",
-};
-
-const SIX_ANIMAL_RESULT_SOUND_VOLUME: Record<SixAnimalKey, number> = {
-  tiger: 0.92,
-  dragon: 0.92,
-  rooster: 0.88,
-  fish: 0.86,
-  crab: 0.88,
-  elephant: 0.92,
-};
-function formatMMK(amount: number) {
-  return new Intl.NumberFormat("en-US").format(amount);
-}
-
-function getPairKey(animalA: SixAnimalKey, animalB: SixAnimalKey) {
-  return [animalA, animalB].sort().join(":");
-}
-
-function getAnimalByNameMm(nameMm: string) {
-  return SIX_ANIMAL_OPTIONS.find((animal) => animal.nameMm === nameMm);
-}
-
-function getVisibleDicePayloadResultNames(
-  payload: ThreeDiceRoundPayload,
-  revealCount = SIX_ANIMAL_RULES.diceCount
-) {
-  return payload.results
-    .slice(0, revealCount)
-    .map((label) => {
-      const normalizedLabel = String(label).toLowerCase();
-
-      return (
-        SIX_ANIMAL_OPTIONS.find(
-          (animal) =>
-            animal.name.toLowerCase() === normalizedLabel ||
-            animal.nameMm === label ||
-            animal.key === normalizedLabel
-        )?.nameMm ?? null
-      );
-    })
-    .filter((nameMm): nameMm is string => Boolean(nameMm));
-}
-
-function convertBackendBetToActiveBet(
-  bet: LiveSixAnimalBet,
-  roundNumber: number
-): ActiveBet | null {
-  const animal = SIX_ANIMAL_OPTIONS.find((option) => option.key === bet.animal);
-
-  if (!animal) return null;
-
-  const betType: BetMode = bet.bet_type === "pair" ? "pair" : "single";
-  const animal2 = bet.animal_2
-    ? SIX_ANIMAL_OPTIONS.find((option) => option.key === bet.animal_2)
-    : null;
-
-  if (betType === "pair" && !animal2) return null;
-
-  return {
-    betType,
-    animalKey: animal.key,
-    animalKey2: animal2?.key ?? null,
-    animalNameMm: animal.nameMm,
-    animalNameMm2: animal2?.nameMm ?? null,
-    amount: Number(bet.amount),
-    roundNumber,
-  };
-}
+import { useSixAnimalFullscreenControls } from "@/components/games/six-animal/hooks/useSixAnimalFullscreenControls";
+import { useSixAnimalBackgroundMusic } from "@/components/games/six-animal/hooks/useSixAnimalBackgroundMusic";
+import {
+  ANIMAL_ASSETS,
+  BET_AMOUNT_STEP,
+  NAGANI_LOGO,
+  RESULT_REVEAL_DELAY_MS,
+  ROOM_BACKGROUND,
+  ROOM_SOUND_ENABLED,
+  ROOM_SOUND_VOLUME,
+  ROYAL_EXIT_DOOR_BUTTON,
+  SETTLEMENT_POPUP_DELAY_MS,
+  SIX_ANIMAL_RESULT_SOUND_SRC,
+  SIX_ANIMAL_RESULT_SOUND_VOLUME,
+  SIX_ANIMAL_ROOM_UUID,
+  SIX_ANIMAL_SOUND_SRC,
+  SIX_ANIMAL_SOUND_VOLUME,
+  USE_BACKEND_RESULT_FOR_ROOM_UI,
+  USE_V1_AUTO_VISIBLE_ROOM_RESULT,
+  convertBackendBetToActiveBet,
+  formatMMK,
+  getAnimalByNameMm,
+  getLiveRoundCountdown,
+  getPairKey,
+  getRoundPhaseTargetAt,
+  getVisibleDicePayloadResultNames,
+  mapLiveRoundPhase,
+  secondsUntil,
+  type ActiveBet,
+  type BetMode,
+  type LiveSixAnimalBet,
+  type LiveSixAnimalRound,
+  type RoundPhase,
+  type SixAnimalSoundEvent,
+  type VisualDiceStatus,
+} from "@/components/games/six-animal/sixAnimalRoomHelpers";
 
 export default function SixAnimalPage() {
   const router = useRouter();
@@ -274,9 +87,12 @@ const [visualActiveRoundId, setVisualActiveRoundId] = useState<string | null>(nu
 const [threeDiceRunKey, setThreeDiceRunKey] = useState(0);
   const [shouldPlayLiveDiceSequence, setShouldPlayLiveDiceSequence] =
     useState(false);
-const [isBackgroundMusicMuted, setIsBackgroundMusicMuted] = useState(false);
-const [isFullscreenMode, setIsFullscreenMode] = useState(false);
-const [canUseFullscreen, setCanUseFullscreen] = useState(false);
+const {
+  isFullscreenMode,
+  canUseFullscreen,
+  handleFullscreenToggle,
+  exitFullscreenIfNeeded,
+} = useSixAnimalFullscreenControls();
 
 const gameSoundEnabled = ROOM_SOUND_ENABLED;
   const [showRoomIntro, setShowRoomIntro] = useState(true);
@@ -288,7 +104,6 @@ const [settlementWaitingRoundId, setSettlementWaitingRoundId] =
   
   // --- QUEUING STATES ---
   const [isWaitingForNextRound, setIsWaitingForNextRound] = useState(false);
-  const [showInRoomNextRoundPause, setShowInRoomNextRoundPause] = useState(false);
 const [isQuitting, setIsQuitting] = useState(false);
 const [joinedRoundId, setJoinedRoundId] = useState<string | null>(null);
 
@@ -304,9 +119,14 @@ const resultAnimalAudioPoolRef = useRef<
   Partial<Record<SixAnimalKey, HTMLAudioElement>>
 >({});
 const lastPhaseSoundKeyRef = useRef<string | null>(null);
+const {
+  isBackgroundMusicMuted,
+  handleBackgroundMusicToggle,
+  syncBackgroundMusic,
+} = useSixAnimalBackgroundMusic({
+  isRoomAudioUnlockedRef: roomAudioUnlockedRef,
+});
 const lastLoadingAnnouncementKeyRef = useRef<string | null>(null);
-const backgroundMusicAudioRef = useRef<HTMLAudioElement | null>(null);
-const backgroundMusicFadeTimerRef = useRef<number | null>(null);
 
   // Refs for Realtime Websocket closures to prevent stale state
 const phaseRef = useRef(phase);
@@ -323,9 +143,7 @@ const visualCompleteRoundIdRef = useRef<string | null>(null);
 const visualStartedRoundIdRef = useRef<string | null>(null);
 const visualActiveRoundIdRef = useRef<string | null>(null);
 const settlementWaitingRoundIdRef = useRef<string | null>(null);
-const showInRoomNextRoundPauseRef = useRef(false);
 const showSettlementMomentRef = useRef(false);
-const pendingBettingRoundRef = useRef<LiveSixAnimalRound | null>(null);
 const isSubmittingBetRef = useRef(false);
 
 function clearVisibleDiceRoundState() {
@@ -362,9 +180,6 @@ showSettlementMomentRef.current = false;
 
 setSettlementWaitingRoundId(null);
 settlementWaitingRoundIdRef.current = null;
-
-setShowInRoomNextRoundPause(false);
-showInRoomNextRoundPauseRef.current = false;
 
 lastDiceSoundCountRef.current = 0;
 }
@@ -425,10 +240,6 @@ async function applyLiveRound(round: LiveSixAnimalRound) {
 
   const isSwitchingRound =
     Boolean(roundIdRef.current) && roundIdRef.current !== round.id;
-
-// When backend opens the next betting round, switch immediately.
-// The settlement card stays visible only until the new betting round is applied.
-pendingBettingRoundRef.current = null;
 
 if (isSwitchingRound) {
   clearVisibleDiceRoundState();
@@ -533,8 +344,6 @@ setCountdown(nextCountdown);
 setIsWaitingForNextRound(false);
 
   if (nextPhase === "betting") {
-    setShowInRoomNextRoundPause(false);
-showInRoomNextRoundPauseRef.current = false;
 setIsWaitingForNextRound(false);
 setShouldPlayLiveDiceSequence(false);
 clearVisibleDiceRoundState();
@@ -717,7 +526,6 @@ isVisualDiceCompleteRef.current = isVisualDiceComplete;
 visualCompleteRoundIdRef.current = visualCompleteRoundId;
 visualActiveRoundIdRef.current = visualActiveRoundId;
 settlementWaitingRoundIdRef.current = settlementWaitingRoundId;
-showInRoomNextRoundPauseRef.current = showInRoomNextRoundPause;
 showSettlementMomentRef.current = showSettlementMoment;
 }, [
   phase,
@@ -731,7 +539,6 @@ showSettlementMomentRef.current = showSettlementMoment;
   visualCompleteRoundId,
   visualActiveRoundId,
   settlementWaitingRoundId,
-  showInRoomNextRoundPause,
   showSettlementMoment,
 ]);
 
@@ -826,17 +633,7 @@ const activeBetResults = activeBets.map((bet) => {
   };
 });
 
-const totalMatchCount = activeBetResults.reduce(
-  (sum, item) => sum + item.matchCount,
-  0
-);
-
 const matchCount = activeBetResults[0]?.matchCount ?? 0;
-
-const displayProfitAmount =
-  phase === "result"
-    ? activeBetResults.reduce((sum, item) => sum + item.profit, 0)
-    : 0;
 
 const displayPayoutAmount =
   phase === "result"
@@ -847,15 +644,6 @@ const displayNetAmount =
   hasActiveBets && phase === "result"
     ? displayPayoutAmount - totalActiveBetAmount
     : 0;
-
-const settlementStatus =
-  !hasActiveBets
-    ? "No active bet"
-    : phase !== "result"
-      ? "Pending result"
-      : displayPayoutAmount > 0
-        ? "Win"
-        : "No Match";
 
   const displayCountdown = Math.max(0, countdown);
 
@@ -898,14 +686,10 @@ const showPendingResultBoard =
 const showRollingResultPanel = showPendingResultBoard;
 const showResultBoardPanel = showRollingResultPanel || showFinalResultPanel;
 
-const isRollingReconnectView = false;
-
   const showTopPanel = phase === "betting";
-  const showFloatingClosedPanel = false;
   const showFloatingResultBoard = showResultBoardPanel;
 const showSettlementSheet =
   showFinalResultPanel && showSettlementMoment && hasActiveBets;
-const showNextRoundPause = false;
 
 const fallbackVisualRoundId =
   roundId && (phase === "closed" || phase === "rolling" || isResultPhaseVisualGuard)
@@ -1062,134 +846,9 @@ function playNewResultAnimalSounds(resultNames: string[]) {
   lastDiceSoundCountRef.current = resultNames.length;
 }
 
-function getBackgroundMusicAudio() {
-  if (backgroundMusicAudioRef.current) {
-    return backgroundMusicAudioRef.current;
-  }
-
-  const audio = new Audio(ROOM_BACKGROUND_MUSIC_SRC);
-  audio.preload = "auto";
-  audio.loop = true;
-  audio.volume = ROOM_BACKGROUND_MUSIC_VOLUME;
-
-  backgroundMusicAudioRef.current = audio;
-
-  return audio;
-}
-
-function clearBackgroundMusicFadeTimer() {
-  if (!backgroundMusicFadeTimerRef.current) return;
-
-  window.clearInterval(backgroundMusicFadeTimerRef.current);
-  backgroundMusicFadeTimerRef.current = null;
-}
-
-function fadeBackgroundMusicTo(targetVolume: number, pauseWhenDone = false) {
-  const audio = getBackgroundMusicAudio();
-
-  clearBackgroundMusicFadeTimer();
-
-  const startVolume = audio.volume;
-  const startedAt = Date.now();
-
-  backgroundMusicFadeTimerRef.current = window.setInterval(() => {
-    const progress = Math.min(
-      1,
-      (Date.now() - startedAt) / ROOM_BACKGROUND_MUSIC_FADE_MS
-    );
-
-    audio.volume = startVolume + (targetVolume - startVolume) * progress;
-
-    if (progress < 1) return;
-
-    clearBackgroundMusicFadeTimer();
-    audio.volume = targetVolume;
-
-    if (pauseWhenDone) {
-      audio.pause();
-    }
-  }, ROOM_BACKGROUND_MUSIC_FADE_STEP_MS);
-}
-
-function syncBackgroundMusic() {
-  if (!ROOM_SOUND_ENABLED) return;
-
-  const audio = getBackgroundMusicAudio();
-
-  if (!roomAudioUnlockedRef.current || isBackgroundMusicMuted) {
-    fadeBackgroundMusicTo(0, true);
-    return;
-  }
-
-  try {
-    if (audio.paused) {
-      audio.volume = 0;
-
-      void audio.play().then(() => {
-        fadeBackgroundMusicTo(ROOM_BACKGROUND_MUSIC_VOLUME);
-      }).catch(() => {
-        // Browser may still block if user has not interacted.
-      });
-
-      return;
-    }
-
-    fadeBackgroundMusicTo(ROOM_BACKGROUND_MUSIC_VOLUME);
-  } catch {
-    // Background music must never affect game flow.
-  }
-}
-
-function handleBackgroundMusicToggle() {
-  setIsBackgroundMusicMuted((currentValue) => {
-    const nextValue = !currentValue;
-
-    try {
-      window.localStorage.setItem(
-        ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY,
-        String(nextValue)
-      );
-    } catch {
-      // Keep preference saving non-blocking.
-    }
-
-    return nextValue;
-  });
-}
-
 function handleExitButtonClick() {
   playRoomSound("exit-button");
   setShowExitConfirm(true);
-}
-
-function syncFullscreenState() {
-  setIsFullscreenMode(Boolean(document.fullscreenElement));
-}
-
-async function handleFullscreenToggle() {
-  if (!canUseFullscreen) return;
-
-  try {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      return;
-    }
-
-    await document.documentElement.requestFullscreen();
-  } catch {
-    // Some mobile browsers block fullscreen.
-    // Keep this non-blocking.
-  }
-}
-
-async function exitFullscreenIfNeeded() {
-  try {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-    }
-  } catch {
-    // Keep navigation non-blocking.
-  }
 }
 
 function playLoadingWaitAnnouncement() {
@@ -1253,6 +912,11 @@ function unlockRoomAudio() {
 
   playCurrentPhaseSound();
   syncBackgroundMusic();
+}
+
+function handleStayInRoomClick() {
+  playRoomSound("ui-click");
+  setShowExitConfirm(false);
 }
 
 async function handleLobbyClick() {
@@ -1436,9 +1100,6 @@ useEffect(() => {
   };
 }, [supabase]);
 
-useEffect(() => {
-  syncBackgroundMusic();
-}, [isBackgroundMusicMuted]);
 
 useEffect(() => {
   playLoadingWaitAnnouncement();
@@ -1570,6 +1231,7 @@ const phaseSoundEvent: SixAnimalSoundEvent | null =
 useEffect(() => {
   return () => {
     diceSoundDirector.stopAll();
+
     if (resultRevealTimerRef.current) {
       window.clearTimeout(resultRevealTimerRef.current);
     }
@@ -1577,41 +1239,6 @@ useEffect(() => {
     if (settlementMomentTimerRef.current) {
       window.clearTimeout(settlementMomentTimerRef.current);
     }
-
-    if (backgroundMusicFadeTimerRef.current) {
-      window.clearInterval(backgroundMusicFadeTimerRef.current);
-      backgroundMusicFadeTimerRef.current = null;
-    }
-
-    if (backgroundMusicAudioRef.current) {
-      backgroundMusicAudioRef.current.pause();
-      backgroundMusicAudioRef.current = null;
-    }
-  };
-}, []);
-
-useEffect(() => {
-  try {
-    const storedValue = window.localStorage.getItem(
-      ROOM_BACKGROUND_MUSIC_MUTED_STORAGE_KEY
-    );
-
-    if (storedValue === "true") {
-      setIsBackgroundMusicMuted(true);
-    }
-  } catch {
-    // Keep preference loading non-blocking.
-  }
-}, []);
-
-useEffect(() => {
-  setCanUseFullscreen(Boolean(document.fullscreenEnabled));
-  syncFullscreenState();
-
-  document.addEventListener("fullscreenchange", syncFullscreenState);
-
-  return () => {
-    document.removeEventListener("fullscreenchange", syncFullscreenState);
   };
 }, []);
 
@@ -2038,19 +1665,7 @@ function handleInvalidBetButtonClick() {
     >
       <RoyalRoomAtmosphere />
 
-      {isQuitting && !showRoomIntro ? (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm">
-          <div className="relative mx-5 w-full max-w-sm rounded-[2rem] border border-amber-300/25 bg-black/70 p-6 text-center shadow-2xl shadow-black/80 backdrop-blur-xl">
-            <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-4 border-amber-300/20 border-t-amber-300" />
-            <p className="text-[10px] font-black uppercase tracking-[0.38em] text-amber-200/70">
-              Leaving Room
-            </p>
-            <p className="mt-3 text-sm font-bold leading-relaxed text-white/65">
-              Waiting for the current round to settle to safely return you to the lobby.
-            </p>
-          </div>
-        </div>
-      ) : null}
+{isQuitting && !showRoomIntro ? <SixAnimalLeavingRoomOverlay /> : null}
 
 {showRoomIntro ? (
 <RoomIntroOverlay
@@ -2071,55 +1686,11 @@ function handleInvalidBetButtonClick() {
 ) : null}
 
 {showExitConfirm ? (
-  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/72 px-5 backdrop-blur-sm">
-    <div className="relative w-full max-w-[340px] overflow-hidden rounded-[1.75rem] border border-amber-300/28 bg-[linear-gradient(145deg,rgba(45,7,3,0.96),rgba(8,1,1,0.94),rgba(54,12,5,0.9))] p-5 text-center shadow-2xl shadow-black/80">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.18),transparent_62%)]" />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/80 to-transparent" />
-
-      <div className="relative z-10">
-<div className="mx-auto -mb-1 -mt-2 flex h-[86px] w-[104px] items-center justify-center overflow-visible">
-  <img
-    src={ROYAL_EXIT_DOOR_BUTTON}
-    alt=""
-    className="h-[92px] w-[92px] max-w-none object-contain drop-shadow-[0_0_18px_rgba(251,191,36,0.45)]"
+  <SixAnimalExitConfirm
+    exitDoorAsset={ROYAL_EXIT_DOOR_BUTTON}
+    onStayClick={handleStayInRoomClick}
+    onLeaveClick={handleLobbyClick}
   />
-</div>
-
-        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-amber-200/65">
-          Leave Room
-        </p>
-
-        <p className="mt-2 text-lg font-black text-white">
-          Return to Lobby?
-        </p>
-
-        <p className="mt-2 text-xs font-bold leading-5 text-white/55">
-         Your placed bets stay active. You can return to the lobby now.
-        </p>
-
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => {
-  playRoomSound("ui-click");
-  setShowExitConfirm(false);
-}}
-            className="rounded-xl border border-amber-300/18 bg-black/35 px-4 py-3 text-sm font-black text-amber-100 transition active:scale-[0.96]"
-          >
-            Stay
-          </button>
-
-          <button
-            type="button"
-            onClick={handleLobbyClick}
-            className="rounded-xl border border-amber-100/55 bg-[linear-gradient(135deg,#facc15,#d6a937,#8a5b12)] px-4 py-3 text-sm font-black text-black shadow-[0_0_16px_rgba(251,191,36,0.16)] transition active:scale-[0.96]"
-          >
-            Leave
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 ) : null}
 
       <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden px-2 py-2 sm:px-4">
@@ -2137,314 +1708,89 @@ function handleInvalidBetButtonClick() {
 
         <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.65rem] border border-amber-300/12 bg-[linear-gradient(145deg,rgba(45,7,3,0.62),rgba(10,1,1,0.52),rgba(65,18,5,0.34))] p-2 shadow-[0_18px_58px_rgba(0,0,0,0.52),inset_0_0_42px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(251,191,36,0.08)] backdrop-blur-[2px]">
           {showTopPanel ? (
-            <div className={`shrink-0 rounded-[1.15rem] border p-1.5 shadow-xl shadow-black/35 backdrop-blur-md ${commandBarClass}`}>
-              {showResultBoardPanel ? (
-                <div
-                  className={`rounded-2xl border p-2.5 shadow-xl shadow-black/35 ${
-                    showFinalResultPanel && isResultWin
-                      ? "border-emerald-300/30 bg-emerald-400/10"
-                      : "border-amber-300/25 bg-black/38"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.28em] text-amber-200/60">
-                        Royal Result Board
-                      </p>
-                      <p className="mt-1 text-base font-black text-white">
-                        {showFinalResultPanel ? "Royal Table Result" : "Dice Revealing"}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
-                        showFinalResultPanel && isResultWin
-                          ? "border-emerald-200/35 bg-emerald-300/18 text-emerald-100"
-                          : "border-amber-200/25 bg-amber-300/10 text-amber-100"
-                      }`}
-                    >
-                      {showFinalResultPanel ? resultStatusLabel : `${diceResult.length}/3`}
-                    </div>
-                  </div>
-
-                  <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-                    {[0, 1, 2].map((index) => {
-                      const nameMm = diceResult[index];
-                      const animal = nameMm ? getAnimalByNameMm(nameMm) : null;
-                      const isMatched = Boolean(
-                        showFinalResultPanel &&
-                          activeBet &&
-                          nameMm &&
-                          activeBet.animalNameMm === nameMm
-                      );
-const isCurrent =
-  (phase === "rolling" || isResultPhaseVisualGuard) &&
-  index === diceResult.length &&
-  diceResult.length < SIX_ANIMAL_RULES.diceCount;
-
-                      return (
-                        <div
-                          key={`stable-result-slot-${index}`}
-                          className={`relative flex min-h-[62px] items-center justify-center rounded-2xl border ${
-                            isMatched
-                              ? "border-emerald-200/45 bg-emerald-300/14"
-                              : animal
-                                ? "border-amber-200/25 bg-amber-300/10"
-                                : isCurrent
-                                  ? "border-emerald-300/35 bg-emerald-400/12"
-                                  : "border-white/10 bg-white/[0.03]"
-                          }`}
-                        >
-                          {isMatched ? (
-                            <div className="absolute right-1.5 top-1.5 rounded-full bg-emerald-300 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-black">
-                              Match
-                            </div>
-                          ) : null}
-
-                          {animal ? (
-                            <div className="text-center">
-                              <img
-                                src={ANIMAL_ASSETS[animal.key]}
-                                alt={animal.name}
-                                className="mx-auto h-10 w-10 object-contain drop-shadow-[0_0_14px_rgba(251,191,36,0.45)]"
-                              />
-                              <p className="mt-0.5 text-[10px] font-black text-white">
-                                {animal.name}
-                              </p>
-                            </div>
-                          ) : (
-                            <div
-                              className={`h-9 w-9 rounded-xl border shadow-inner shadow-black/50 ${
-                                isCurrent
-                                  ? "animate-pulse border-emerald-200/50 bg-emerald-300/25 shadow-emerald-500/20"
-                                  : "border-amber-200/10 bg-black/35"
-                              }`}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {showFinalResultPanel && activeBet ? (
-                    <>
-                      <div className="mt-2 grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-2xl border border-white/10 bg-black/38 p-2">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/10">
-                          {activeBetAnimal ? (
-                            <img
-                              src={ANIMAL_ASSETS[activeBetAnimal.key]}
-                              alt={activeBetAnimal.name}
-                              className="h-9 w-9 object-contain drop-shadow-[0_0_12px_rgba(251,191,36,0.45)]"
-                            />
-                          ) : (
-                            <span className="text-sm font-black text-amber-100">
-                              {activeBetDisplayName}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-200/55">
-                            Your Bet
-                          </p>
-                          <p className="truncate text-sm font-black text-white">
-                            {activeBetDisplayName} · {formatMMK(activeBet.amount)} MMK
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl border border-amber-300/15 bg-white/[0.04] px-3 py-1.5 text-center">
-                          <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/45">
-                            Match
-                          </p>
-                          <p className="text-sm font-black text-amber-100">
-                            {matchCount}/3
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-2 grid grid-cols-3 gap-1.5">
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-2 text-center">
-                          <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/45">
-                            Bet
-                          </p>
-                          <p className="mt-1 text-xs font-black text-white">
-                            {formatMMK(activeBet.amount)} MMK
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-2 text-center">
-                          <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/45">
-                            Return
-                          </p>
-                          <p className="mt-1 text-xs font-black text-amber-100">
-                            {formatMMK(displayPayoutAmount)} MMK
-                          </p>
-                        </div>
-
-                        <div
-                          className={`rounded-2xl border p-2 text-center ${
-                            isResultWin
-                              ? "border-emerald-300/25 bg-emerald-400/10"
-                              : "border-red-300/20 bg-red-500/10"
-                          }`}
-                        >
-                          <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/45">
-                            Net
-                          </p>
-                          <p
-                            className={`mt-1 text-xs font-black ${
-                              isResultWin ? "text-emerald-100" : "text-red-100"
-                            }`}
-                          >
-                            {netResultLabel}
-                          </p>
-                        </div>
-                      </div>
-
-                    </>
-                  ) : null}
-                </div>
-              ) : (
-<div className="grid grid-cols-[0.92fr_1.08fr] gap-2">
-  <div className="flex min-h-[68px] flex-col items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-center">
-    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-amber-200/60">
-      Timer
-    </p>
-    <p className="mt-0.5 text-2xl font-black leading-none text-white">
-      {timerLabel}
-    </p>
-  </div>
-
-  <div className="flex min-h-[68px] flex-col items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-center">
-    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-100/55">
-      Balance
-    </p>
-    <p className="mt-0.5 text-lg font-black leading-none text-emerald-100">
-      {formatMMK(walletBalance)} MMK
-    </p>
-  </div>
-</div>
-              )}
-            </div>
+            <SixAnimalBettingCommandPanel
+              commandBarClass={commandBarClass}
+              timerLabel={timerLabel}
+              walletBalanceLabel={`${formatMMK(walletBalance)} MMK`}
+            />
           ) : null}
 
-<div
-  className="relative mt-2 min-h-0 flex-1 overflow-visible rounded-[1.55rem] border border-amber-300/10 bg-black/46 shadow-[inset_0_0_48px_rgba(0,0,0,0.62),inset_0_0_34px_rgba(251,191,36,0.035),0_18px_46px_rgba(0,0,0,0.35)]"
-  style={{
-    backgroundImage: `linear-gradient(to bottom, rgba(5,1,1,0.34), rgba(18,2,2,0.3), rgba(0,0,0,0.68)), url(${ROOM_BACKGROUND})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center 38%",
-  }}
->
+          <div
+            className="relative mt-2 min-h-0 flex-1 overflow-visible rounded-[1.55rem] border border-amber-300/10 bg-black/46 shadow-[inset_0_0_48px_rgba(0,0,0,0.62),inset_0_0_34px_rgba(251,191,36,0.035),0_18px_46px_rgba(0,0,0,0.35)]"
+            style={{
+              backgroundImage: `linear-gradient(to bottom, rgba(5,1,1,0.34), rgba(18,2,2,0.3), rgba(0,0,0,0.68)), url(${ROOM_BACKGROUND})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center 38%",
+            }}
+          >
             <RoyalTableChamberBackdrop />
 
-            {showFloatingClosedPanel ? (
-              <div className="pointer-events-none absolute left-1/2 top-3 z-40 -translate-x-1/2 rounded-full border border-red-300/25 bg-red-950/75 px-4 py-2 text-center shadow-2xl shadow-black/60 backdrop-blur-md">
-                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-red-100/65">
-                  Bets Closed
-                </p>
-                <p className="mt-0.5 text-xs font-black text-white">
-                  Dice starting · {displayCountdown}s
-                </p>
-              </div>
+            {showFloatingResultBoard ? (
+              <FloatingResultBoard
+                diceResult={diceResult}
+                activeBets={activeBets}
+                showFinalResultPanel={showFinalResultPanel}
+                isResultPhaseVisualGuard={isResultPhaseVisualGuard}
+                isRollingPhase={phase === "closed" || phase === "rolling"}
+                isResultWin={isResultWin}
+                animalAssets={ANIMAL_ASSETS}
+              />
             ) : null}
 
-{showFloatingResultBoard ? (
-<FloatingResultBoard
-  diceResult={diceResult}
-  activeBets={activeBets}
-  showFinalResultPanel={showFinalResultPanel}
-  isResultPhaseVisualGuard={isResultPhaseVisualGuard}
-  isRollingPhase={phase === "closed" || phase === "rolling"}
-  isResultWin={isResultWin}
-  animalAssets={ANIMAL_ASSETS}
-/>
-) : null}
-
-{isRollingReconnectView ? (
-  <div className="pointer-events-none absolute left-1/2 top-[88px] z-40 -translate-x-1/2 rounded-full border border-amber-300/20 bg-black/55 px-3 py-1.5 text-center shadow-xl shadow-black/50 backdrop-blur-md">
-    <p className="text-[8px] font-black uppercase tracking-[0.18em] text-amber-100/70">
-      Rejoined Table
-    </p>
-    <p className="mt-0.5 text-[10px] font-bold text-white/55">
-      Restoring current live dice state
-    </p>
-  </div>
-) : null}
-
-{showSettlementSheet ? (
-  <SettlementPopup
-    settlementBets={activeBetResults.map((item) => ({
-      betType: item.bet.betType,
-      animalKey: item.bet.animalKey,
-      animalKey2: item.bet.animalKey2 ?? null,
-      amount: item.bet.amount,
-      matchCount: item.matchCount,
-      payout: item.payout,
-    }))}
-    totalBetAmount={totalActiveBetAmount}
-    displayPayoutAmount={displayPayoutAmount}
-    netResultLabel={netResultLabel}
-    resultStatusLabel={resultStatusLabel}
-    isResultWin={isResultWin}
-    animalAssets={ANIMAL_ASSETS}
-  />
-) : null}
-
-                        {showNextRoundPause ? (
-              <div className="pointer-events-none absolute inset-x-4 bottom-4 z-50 mx-auto max-w-[360px] overflow-hidden rounded-[1.1rem] border border-amber-300/24 bg-[linear-gradient(145deg,rgba(45,7,3,0.78),rgba(5,1,1,0.82),rgba(52,12,5,0.58))] p-3 text-center shadow-2xl shadow-black/70 backdrop-blur-xl">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.14),transparent_66%)]" />
-
-                <div className="relative z-10">
-                  <p className="text-[8px] font-black uppercase tracking-[0.28em] text-amber-200/65">
-                    Live Table Pause
-                  </p>
-                  <p className="mt-1 text-sm font-black text-white">
-                    Next round opening{displayCountdown > 0 ? ` · ${displayCountdown}s` : " soon"}
-                  </p>
-                  <p className="mt-1 text-[10px] font-bold text-white/52">
-                    Final dice and result stay on the table until betting opens.
-                  </p>
-                </div>
-              </div>
+            {showSettlementSheet ? (
+              <SettlementPopup
+                settlementBets={activeBetResults.map((item) => ({
+                  betType: item.bet.betType,
+                  animalKey: item.bet.animalKey,
+                  animalKey2: item.bet.animalKey2 ?? null,
+                  amount: item.bet.amount,
+                  matchCount: item.matchCount,
+                  payout: item.payout,
+                }))}
+                totalBetAmount={totalActiveBetAmount}
+                displayPayoutAmount={displayPayoutAmount}
+                netResultLabel={netResultLabel}
+                resultStatusLabel={resultStatusLabel}
+                isResultWin={isResultWin}
+                animalAssets={ANIMAL_ASSETS}
+              />
             ) : null}
 
             <div className="relative z-10 flex h-full min-h-0 items-center justify-center p-2">
               <div className="relative h-full w-full max-w-[980px]">
-<ThreeDiceSequenceController
-  enabled={shouldEnableDiceController}
-  runKey={threeDiceRunKey}
-  onComplete={handleThreeDiceComplete}
-  onProgress={handleThreeDiceProgress}
-  onDiceDrop={handleDiceDrop}
-  className="h-full min-h-[430px] w-full"
-  showInternalResultStrip={false}
-  mountedDiceRackMode={effectiveMountedDiceRackMode}
-  serverRngResults={serverRngResults}
-  visualRoundId={heldVisualRoundId}
-/>
+                <ThreeDiceSequenceController
+                  enabled={shouldEnableDiceController}
+                  runKey={threeDiceRunKey}
+                  onComplete={handleThreeDiceComplete}
+                  onProgress={handleThreeDiceProgress}
+                  onDiceDrop={handleDiceDrop}
+                  className="h-full min-h-[430px] w-full"
+                  showInternalResultStrip={false}
+                  mountedDiceRackMode={effectiveMountedDiceRackMode}
+                  serverRngResults={serverRngResults}
+                  visualRoundId={heldVisualRoundId}
+                />
               </div>
             </div>
 
-<SixAnimalBettingSheet
-  isOpen={phase === "betting"}
-  betMode={betMode}
-  selectedAnimal={selectedAnimal}
-  selectedPairAnimals={selectedPairAnimals}
-  activeBets={activeBets}
-  canEditBet={canEditBet}
-  canPlaceBet={isBetValid}
-  numericBetAmount={numericBetAmount}
-  animalAssets={ANIMAL_ASSETS}
-  onBetModeChange={handleBetModeChange}
-  onSelectAnimal={handleSelectAnimal}
-  onQuickAmountSelect={handleQuickAmountSelect}
-  onIncreaseAmount={handleIncreaseBetAmount}
-  onDecreaseAmount={handleDecreaseBetAmount}
-  onPlaceBet={handlePlaceBet}
-  onInvalidBetClick={handleInvalidBetButtonClick}
-/>
-
+            <SixAnimalBettingSheet
+              isOpen={phase === "betting"}
+              betMode={betMode}
+              selectedAnimal={selectedAnimal}
+              selectedPairAnimals={selectedPairAnimals}
+              activeBets={activeBets}
+              canEditBet={canEditBet}
+              canPlaceBet={isBetValid}
+              numericBetAmount={numericBetAmount}
+              animalAssets={ANIMAL_ASSETS}
+              onBetModeChange={handleBetModeChange}
+              onSelectAnimal={handleSelectAnimal}
+              onQuickAmountSelect={handleQuickAmountSelect}
+              onIncreaseAmount={handleIncreaseBetAmount}
+              onDecreaseAmount={handleDecreaseBetAmount}
+              onPlaceBet={handlePlaceBet}
+              onInvalidBetClick={handleInvalidBetButtonClick}
+            />
           </div>
         </section>
       </div>

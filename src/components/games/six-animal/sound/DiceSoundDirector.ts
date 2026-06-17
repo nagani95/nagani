@@ -48,7 +48,7 @@ const DICE_SOUND_VARIANTS: DiceSoundVariant[] = [
   {
     key: "rollLoop",
     src: "/assets/nagani/sounds/six-animal/dice/roll-loop-soft.wav",
-    volume: 0.62,
+    volume: 0.6,
   },
   {
     key: "tap",
@@ -158,32 +158,46 @@ class DiceSoundDirector {
       this.stopAll();
     }
   }
-
   startDie(dieNumber: number) {
     if (!this.isEnabled) return;
 
     void this.unlock();
 
-    const timingOffset = Math.max(0, dieNumber - 1) * 80;
+    const timingOffset = Math.max(0, dieNumber - 1) * 90;
     const forceBoost = dieNumber === 3 ? 1.08 : dieNumber === 2 ? 0.96 : 1;
 
-    this.schedule(() => this.playOneShot("release", 0.95), timingOffset);
-    this.schedule(() => this.playOneShot("deflectorHit", forceBoost), 360 + timingOffset);
-    this.schedule(() => this.playOneShot("trayImpact", forceBoost), 720 + timingOffset);
+    // 0ms = holder door opens / dice release begins.
+    this.schedule(() => this.playOneShot("release", 0.9), timingOffset);
 
+    // The dice is still near the wall after release.
+    // Deflector sound must wait until the visual die reaches the bar.
+    this.schedule(
+      () => this.playOneShot("deflectorHit", 0.95 * forceBoost),
+      1050 + timingOffset
+    );
+
+    // Tray impact comes shortly after deflector hit.
+    this.schedule(
+      () => this.playOneShot("trayImpact", 1.05 * forceBoost),
+      1380 + timingOffset
+    );
+
+    // Rolling must start only after tray impact, not during wall drop.
     this.schedule(() => {
-      this.startRollLoop(0.82 * forceBoost);
-    }, 860 + timingOffset);
+      this.startRollLoop(0.62 * forceBoost);
+    }, 1520 + timingOffset);
 
-this.schedule(() => this.playOneShot("tap", 0.95), 1180 + timingOffset);
-this.schedule(() => this.playOneShot("tap", 0.78), 1740 + timingOffset);
-this.schedule(() => this.playOneShot("tap", 0.62), 2480 + timingOffset);
-this.schedule(() => this.playOneShot("tap", 0.46), 3380 + timingOffset);
+    // Small bounces after the die has landed.
+    this.schedule(() => this.playOneShot("tap", 0.82), 1880 + timingOffset);
+    this.schedule(() => this.playOneShot("tap", 0.66), 2460 + timingOffset);
+    this.schedule(() => this.playOneShot("tap", 0.5), 3260 + timingOffset);
+    this.schedule(() => this.playOneShot("tap", 0.34), 4080 + timingOffset);
 
-this.schedule(() => {
-  this.fadeOutRollLoops(620);
-  this.playOneShot("settle", 1.0);
-}, 4400 + timingOffset);
+    // Final settle near the end of visible dice motion.
+    this.schedule(() => {
+      this.fadeOutRollLoops(760);
+      this.playOneShot("settle", 0.9);
+    }, 5200 + timingOffset);
   }
 
   stopAll() {
