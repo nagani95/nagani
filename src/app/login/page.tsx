@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 
-import AppShell from "@/components/layout/AppShell";
+import {
+  NaganiPageShell,
+  NaganiRoyalButton,
+  NaganiRoyalInput,
+} from "@/components/nagani-v2";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { loginWithEmail } from "@/lib/supabase/auth";
 
@@ -17,88 +21,73 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const errorMessage = params?.error;
 
   return (
-    <AppShell>
-      <section className="flex min-h-[calc(100vh-12rem)] items-center justify-center px-2 py-8">
-        <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-amber-400/20 bg-[#140604]/90 shadow-2xl shadow-black/40">
-          <div className="border-b border-amber-400/10 bg-gradient-to-b from-amber-300/10 to-transparent px-6 py-6 text-center">
+    <NaganiPageShell>
+      <section className="flex min-h-screen items-center justify-center px-5 py-8">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 text-center">
             <div
-              className="mx-auto h-20 w-20 bg-contain bg-center bg-no-repeat"
+              className="mx-auto h-24 w-24 bg-contain bg-center bg-no-repeat drop-shadow-[0_8px_22px_rgba(0,0,0,0.65)]"
               style={{
                 backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
               }}
-              aria-label="Nagani dragon mark"
+              aria-label="နဂါးနီ"
             />
 
-            <p className="mt-3 text-xs font-black uppercase tracking-[0.35em] text-amber-300/70">
-              Nagani
-            </p>
-
-            <h1 className="mt-2 text-2xl font-black text-amber-100">
-              Player Login
+            <h1 className="mt-4 text-3xl font-black tracking-[0.12em] text-[#ffd77a]">
+              နဂါးနီ
             </h1>
 
-            <p className="mt-2 text-sm font-semibold leading-6 text-amber-100/60">
-              Sign in to your player account and return to the lobby.
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#fff3d0]/70">
+              မြန်မာ့ရိုးရာ တော်ဝင်ပွဲခန်းမသို့ ဝင်ရောက်ပါ
             </p>
           </div>
 
-          <form action={loginWithEmail} className="space-y-4 px-6 py-6">
-            {errorMessage ? (
-              <div className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
-                {errorMessage}
-              </div>
-            ) : null}
+          <div className="rounded-[2rem] border border-[#d6a84f]/25 bg-[#090202]/58 p-5 shadow-2xl shadow-black/50 backdrop-blur-md">
+            <form action={loginWithEmail} className="space-y-4">
+              {errorMessage ? (
+                <div className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
+                  ဝင်ရောက်မှု မအောင်မြင်ပါ။ အချက်အလက်များကို ပြန်စစ်ပါ။
+                </div>
+              ) : null}
 
-            <label className="block">
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-amber-300/70">
-                Email
-              </span>
-              <input
+              <NaganiRoyalInput
+                label="အကောင့်"
                 name="email"
                 type="email"
                 required
                 autoComplete="email"
-                className="mt-2 w-full rounded-2xl border border-amber-400/20 bg-black/30 px-4 py-4 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/25 focus:border-amber-300/60"
-                placeholder="Email address"
+                placeholder="အီးမေးလ်လိပ်စာ"
               />
-            </label>
 
-            <label className="block">
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-amber-300/70">
-                Password
-              </span>
-              <input
+              <NaganiRoyalInput
+                label="စကားဝှက်"
                 name="password"
                 type="password"
                 required
                 autoComplete="current-password"
-                className="mt-2 w-full rounded-2xl border border-amber-400/20 bg-black/30 px-4 py-4 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/25 focus:border-amber-300/60"
-                placeholder="Your password"
+                placeholder="စကားဝှက်"
               />
-            </label>
 
-            <button
-              type="submit"
-              className="w-full rounded-full border border-amber-300/40 bg-amber-300 px-5 py-4 text-sm font-black uppercase tracking-[0.18em] text-[#210807] shadow-lg shadow-amber-950/30 transition hover:bg-amber-200"
-            >
-              Login
-            </button>
+              <NaganiRoyalButton type="submit" className="w-full">
+                ဝင်ရောက်မည်
+              </NaganiRoyalButton>
 
-            <div className="flex items-center justify-between gap-4 pt-2 text-sm font-bold">
-              <Link href="/" className="text-amber-200/70 hover:text-amber-100">
-                ← Back to Lobby
-              </Link>
+              <div className="flex items-center justify-between gap-4 pt-2 text-sm font-semibold">
+                <Link href="/" className="text-[#f7dfaa]/70 hover:text-[#fff3d0]">
+                  မူလသို့
+                </Link>
 
-              <Link
-                href="/register"
-                className="text-amber-200/70 hover:text-amber-100"
-              >
-                Create account
-              </Link>
-            </div>
-          </form>
+                <Link
+                  href="/register"
+                  className="text-[#ffd77a]/85 hover:text-[#ffd77a]"
+                >
+                  အကောင့်အသစ်ဖွင့်မည်
+                </Link>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
-    </AppShell>
+    </NaganiPageShell>
   );
 }
