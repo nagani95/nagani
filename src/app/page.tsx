@@ -67,30 +67,42 @@ const playHref = !user ? "/login" : canEnterSixAnimal ? "/six-animal" : "/cashie
   contentClassName="relative z-10 h-[100svh] overflow-hidden"
 >
 <section className="relative h-[100svh] overflow-hidden">
-  <div className="absolute left-[1.8%] top-[3.2%] z-30 min-w-[6.9rem] rounded-[1.15rem] border border-[#ffd77a]/32 bg-[#090202]/42 px-2.5 py-2.5 text-left shadow-lg shadow-black/45 backdrop-blur-md">
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#f7dfaa]/62">
-        ID
-      </span>
-      <span className="text-[0.86rem] font-black tracking-[0.12em] text-[#ffd77a]">
-        {memberIdLabel}
-      </span>
-    </div>
+  <div className="absolute left-[1.4%] top-[2.7%] z-30 h-[7.25rem] w-[7.35rem]">
+    <img
+      src="/assets/nagani/v2/home-id-balance-card.png"
+      alt=""
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full select-none object-fill drop-shadow-[0_12px_22px_rgba(0,0,0,0.55)]"
+      draggable={false}
+    />
 
-    <div className="mt-2 border-t border-[#d6a84f]/18 pt-2">
-      <p className="text-[0.62rem] font-bold text-[#f7dfaa]/62">
-        လက်ကျန်
-      </p>
-      <p className="mt-0.5 text-[0.74rem] font-black leading-none text-[#ffd77a]">
-        {formatMMK(walletBalance)} ကျပ်
-      </p>
+    <div className="relative z-10 flex h-full flex-col items-center justify-center px-3 pb-2.5 pt-3 text-center">
+      <div className="w-full">
+        <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-[#f7dfaa]/70">
+          ID
+        </p>
+        <p className="mt-0.5 text-[0.88rem] font-black leading-none tracking-[0.1em] text-[#ffd77a] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+          {memberIdLabel}
+        </p>
+      </div>
+
+      <div className="my-2 h-px w-[72%] bg-gradient-to-r from-transparent via-[#ffd77a]/55 to-transparent" />
+
+      <div className="w-full">
+        <p className="text-[0.58rem] font-bold leading-none text-[#f7dfaa]/70">
+          လက်ကျန်
+        </p>
+        <p className="mt-1 text-[0.72rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+          {formatMMK(walletBalance)} ကျပ်
+        </p>
+      </div>
     </div>
   </div>
 
   <NaganiHomeTopControls />
-<div className="absolute left-1/2 top-[3.6%] z-20 flex -translate-x-1/2 flex-col items-center">
+<div className="absolute left-1/2 top-[5.2%] z-20 flex -translate-x-1/2 flex-col items-center">
   <div
-    className="h-40 w-40 bg-contain bg-center bg-no-repeat drop-shadow-[0_14px_34px_rgba(0,0,0,0.88)]"
+    className="h-44 w-44 bg-contain bg-center bg-no-repeat drop-shadow-[0_14px_34px_rgba(0,0,0,0.88)]"
       style={{
         backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
       }}
