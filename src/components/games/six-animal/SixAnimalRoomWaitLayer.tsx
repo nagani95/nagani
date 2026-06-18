@@ -10,7 +10,8 @@ type SixAnimalRoomWaitLayerProps = {
   phase: RoomWaitPhase;
   countdown: number;
   announcementKey?: string;
-  onAnnounce?: () => void;
+  isAudioUnlocked?: boolean;
+  onAnnounce?: (announcementKey: string) => boolean;
 };
 
 function getWaitTitle(phase: RoomWaitPhase) {
@@ -41,18 +42,23 @@ export default function SixAnimalRoomWaitLayer({
   phase,
   countdown,
   announcementKey,
+  isAudioUnlocked = false,
   onAnnounce,
 }: SixAnimalRoomWaitLayerProps) {
   const lastAnnouncementKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!announcementKey) return;
+    if (!isAudioUnlocked) return;
     if (!onAnnounce) return;
     if (lastAnnouncementKeyRef.current === announcementKey) return;
 
-    lastAnnouncementKeyRef.current = announcementKey;
-    onAnnounce();
-  }, [announcementKey, onAnnounce]);
+    const didAnnounce = onAnnounce(announcementKey);
+
+    if (didAnnounce) {
+      lastAnnouncementKeyRef.current = announcementKey;
+    }
+  }, [announcementKey, isAudioUnlocked, onAnnounce]);
 
   const safeCountdown = Math.max(0, Math.ceil(countdown));
   const countdownLabel =
