@@ -1830,15 +1830,16 @@ style={{
             <RoyalTableChamberBackdrop />
 
             {showFloatingResultBoard ? (
-              <FloatingResultBoard
-                diceResult={diceResult}
-                activeBets={activeBets}
-                showFinalResultPanel={showFinalResultPanel}
-                isResultPhaseVisualGuard={isResultPhaseVisualGuard}
-                isRollingPhase={phase === "closed" || phase === "rolling"}
-                isResultWin={isResultWin}
-                animalAssets={ANIMAL_ASSETS}
-              />
+<FloatingResultBoard
+  diceResult={diceResult}
+  activeBets={activeBets}
+  showFinalResultPanel={showFinalResultPanel}
+  isResultPhaseVisualGuard={isResultPhaseVisualGuard}
+  isRollingPhase={phase === "closed" || phase === "rolling"}
+  isResultWin={isResultWin}
+  isSettlementStage={showSettlementSheet}
+  animalAssets={ANIMAL_ASSETS}
+/>
             ) : null}
 
 {isWaitingForNextRound && !showRoomIntro ? (
@@ -1873,9 +1874,10 @@ style={{
             <div className="relative z-10 flex h-full min-h-0 items-center justify-center px-0 pb-0 pt-1">
   <div className="relative h-full w-full">
                 <ThreeDiceSequenceController
-                  enabled={shouldEnableDiceController}
-                  runKey={threeDiceRunKey}
-                  onComplete={handleThreeDiceComplete}
+  key={roundId || "six-animal-dice-stage"}
+  enabled={shouldEnableDiceController}
+  runKey={threeDiceRunKey}
+  onComplete={handleThreeDiceComplete}
                   onProgress={handleThreeDiceProgress}
                   onDiceDrop={handleDiceDrop}
                   className="h-full min-h-[500px] w-full"

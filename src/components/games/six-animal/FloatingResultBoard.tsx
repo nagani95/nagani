@@ -25,6 +25,7 @@ type FloatingResultBoardProps = {
   isResultPhaseVisualGuard: boolean;
   isRollingPhase: boolean;
   isResultWin: boolean;
+  isSettlementStage?: boolean;
   animalAssets: Record<SixAnimalKey, string>;
 };
 
@@ -63,6 +64,7 @@ export default function FloatingResultBoard({
   isResultPhaseVisualGuard,
   isRollingPhase,
   isResultWin,
+  isSettlementStage = false,
   animalAssets,
 }: FloatingResultBoardProps) {
   const isRevealing = isRollingPhase || isResultPhaseVisualGuard;
@@ -147,11 +149,16 @@ return (
         })}
       </div>
 
-      <ActiveBetsSummaryPanel
-        activeBets={activeBets}
-        compact
-        className="pointer-events-auto mx-auto mt-2 w-full max-w-[170px]"
-      />
+<ActiveBetsSummaryPanel
+  activeBets={activeBets}
+  compact
+  settlementExpanded={isSettlementStage}
+  className={
+    isSettlementStage
+      ? "pointer-events-auto mx-auto mt-2 w-full max-w-[292px]"
+      : "pointer-events-auto mx-auto mt-2 w-full max-w-[170px]"
+  }
+/>
 
       <style jsx>{`
         @keyframes resultAnimalPop {
