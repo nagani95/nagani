@@ -1884,9 +1884,12 @@ return (
   gl={{
     antialias: true,
     powerPreference: "high-performance",
-    alpha: false,
+    alpha: true,
   }}
-  style={{ touchAction: variant === "room" ? "none" : "auto" }}
+  style={{
+    touchAction: variant === "room" ? "none" : "auto",
+    background: "transparent",
+  }}
 >
 <DicePhysicsScene
   resetKey={resetKey}

@@ -168,7 +168,7 @@ trapdoorOpen: {
     roughness: 0.78,
     metalness: 0.03,
     transparent: true,
-    opacity: 0.36,
+    opacity: 0.24,
   },
 backboardLacquerSheen: {
   color: TABLE_SIDE_INNER_GLOW_COLOR,
@@ -884,11 +884,11 @@ function FrontLipLacquerDepth({ table }: { table: TableMeasurements }) {
       >
         <boxGeometry args={[table.floorWidth - 0.36, 0.13, 0.032]} />
 <meshStandardMaterial
-  color="#1c0703"
-  roughness={0.78}
-  metalness={0.05}
+  color="#2a0a05"
+  roughness={0.66}
+  metalness={0.08}
   transparent
-  opacity={0.34}
+  opacity={0.28}
   depthWrite={false}
 />
       </mesh>
@@ -917,6 +917,24 @@ function FrontLipKanoteStrip({ table }: { table: TableMeasurements }) {
         <boxGeometry args={[table.floorWidth - 0.62, 0.035, 0.012]} />
         <meshStandardMaterial
           {...TABLE_MATERIALS.kanoteSoftShadow}
+          depthWrite={false}
+        />
+      </mesh>
+
+            {/* visual-only upper gold hairline for royal front-lip trim; no collider */}
+      <mesh position={[0, 0.092, -0.002]} receiveShadow>
+        <boxGeometry args={[table.floorWidth - 0.48, 0.016, 0.014]} />
+        <meshStandardMaterial
+          {...TABLE_MATERIALS.goldTrim}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* visual-only lower gold hairline for royal front-lip trim; no collider */}
+      <mesh position={[0, -0.128, -0.002]} receiveShadow>
+        <boxGeometry args={[table.floorWidth - 0.54, 0.014, 0.014]} />
+        <meshStandardMaterial
+          {...TABLE_MATERIALS.goldTrim}
           depthWrite={false}
         />
       </mesh>
@@ -970,7 +988,11 @@ function FrontLip({ table }: { table: TableMeasurements }) {
   receiveShadow
   castShadow
 >
-  <meshStandardMaterial {...TABLE_MATERIALS.darkBorder} />
+ <meshStandardMaterial
+  color="#2a0a05"
+  roughness={0.48}
+  metalness={0.12}
+/>
 </RoundedBox>
 
 <RoundedBox

@@ -13,7 +13,6 @@ import type {
 } from "@/components/games/six-animal/ThreeDicePhysicsStage";
 import SettlementPopup from "@/components/games/six-animal/SettlementPopup";
 import FloatingResultBoard from "@/components/games/six-animal/FloatingResultBoard";
-import { RoyalRoomAtmosphere } from "@/components/games/six-animal/RoyalRoomAtmosphere";
 import RoyalTableChamberBackdrop from "@/components/games/six-animal/RoyalTableChamberBackdrop";
 import RoyalRoomTopBar from "@/components/games/six-animal/RoyalRoomTopBar";
 import RoomIntroOverlay from "@/components/games/six-animal/RoomIntroOverlay";
@@ -1757,14 +1756,12 @@ const waitLayerAnnouncementKey =
     <main
       onPointerDownCapture={unlockRoomAudio}
       className="relative isolate h-[100dvh] overflow-hidden bg-[#090202] text-[#fff3d0]"
-      style={{
-        backgroundImage: `radial-gradient(circle at 50% 0%, rgba(255,215,122,0.16), transparent 32%), radial-gradient(circle at 18% 82%, rgba(127,17,17,0.28), transparent 34%), linear-gradient(135deg, rgba(9,2,2,0.28), rgba(75,8,8,0.22), rgba(0,0,0,0.72)), url(${ROYAL_CHAMBER_WALLPAPER_SRC})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center top",
-      }}
+style={{
+  backgroundColor: "#090202",
+}}
 >
       <video
-        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-[0.46]"
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
         src={ROYAL_CHAMBER_VIDEO_SRC}
         poster={ROYAL_CHAMBER_WALLPAPER_SRC}
         autoPlay
@@ -1775,9 +1772,6 @@ const waitLayerAnnouncementKey =
         aria-hidden="true"
       />
 
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_50%_12%,rgba(255,215,122,0.10),transparent_34%),linear-gradient(180deg,rgba(5,1,1,0.08),rgba(8,2,2,0.24)_52%,rgba(0,0,0,0.66))]" />
-
-      <RoyalRoomAtmosphere />
 
 {isQuitting && !showRoomIntro ? <SixAnimalLeavingRoomOverlay /> : null}
 
@@ -1829,14 +1823,7 @@ const waitLayerAnnouncementKey =
             />
           ) : null}
 
-          <div
-            className="relative mt-1 min-h-0 flex-1 overflow-visible rounded-none border-0 bg-transparent shadow-none"
-            style={{
-              backgroundImage: `linear-gradient(to bottom, rgba(9,2,2,0.10), rgba(42,18,9,0.16), rgba(0,0,0,0.54)), url(${ROYAL_CHAMBER_WALLPAPER_SRC})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center 38%",
-            }}
-          >
+          <div className="relative mt-1 min-h-0 flex-1 overflow-visible rounded-none border-0 bg-transparent shadow-none">
             <RoyalTableChamberBackdrop />
 
             {showFloatingResultBoard ? (
