@@ -92,7 +92,7 @@ export default function FloatingResultBoard({
 return (
   <div
     key={`royal-result-box-${index}`}
-    className={`relative flex h-[78px] w-[78px] shrink-0 items-center justify-center overflow-visible ${
+    className={`relative flex h-[78px] w-[78px] shrink-0 items-center justify-center overflow-visible rounded-[1.25rem] bg-[#1a0503] ${
       isMatched
         ? "drop-shadow-[0_0_18px_rgba(16,185,129,0.42)]"
         : animal
@@ -107,11 +107,11 @@ return (
       className="pointer-events-none absolute inset-0 h-full w-full object-contain"
     />
 
-    <div className="pointer-events-none absolute inset-[15px] rounded-[0.72rem] bg-[radial-gradient(circle_at_50%_38%,rgba(255,215,122,0.16),rgba(55,10,6,0.58)_52%,rgba(10,1,1,0.88)_100%)] shadow-[inset_0_2px_7px_rgba(0,0,0,0.62)]" />
+    <div className="pointer-events-none absolute inset-[15px] rounded-[0.72rem] bg-[radial-gradient(circle_at_50%_32%,#4a1a0d_0%,#2a0905_48%,#0b0101_100%)] shadow-[inset_0_2px_7px_rgba(0,0,0,0.72),inset_0_0_0_1px_rgba(255,215,122,0.18)]" />
 
     {animal ? (
       <div className="relative z-10 flex h-full w-full items-center justify-center overflow-visible">
-        <div className="pointer-events-none absolute inset-[13px] animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] rounded-[0.82rem] bg-[radial-gradient(circle_at_50%_40%,rgba(255,243,208,0.30),rgba(255,215,122,0.14)_34%,transparent_72%)]" />
+        <div className="pointer-events-none absolute inset-[13px] animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] rounded-[0.82rem] bg-[radial-gradient(circle_at_50%_40%,rgba(255,243,208,0.22),rgba(255,215,122,0.08)_34%,transparent_72%)]" />
 
         <div className="pointer-events-none absolute inset-y-[-20%] left-[-48%] w-[42%] rotate-12 animate-[resultLightSweep_1.45s_ease-out_1] bg-gradient-to-r from-transparent via-[#fff3d0]/34 to-transparent" />
 
@@ -136,7 +136,7 @@ return (
     )}
 
     {isCurrent && !animal ? (
-      <div className="pointer-events-none absolute inset-[12px] animate-pulse rounded-[0.9rem] bg-white/[0.045]" />
+      <div className="pointer-events-none absolute inset-[12px] animate-pulse rounded-[0.9rem] bg-[#ffd77a]/[0.035]" />
     ) : null}
 
     {showFinalResultPanel && isResultWin && isMatched ? (

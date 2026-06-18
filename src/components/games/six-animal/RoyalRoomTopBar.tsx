@@ -34,16 +34,16 @@ export default function RoyalRoomTopBar({
 }: RoyalRoomTopBarProps) {
   return (
     <header
-      className={`relative z-20 min-h-[74px] shrink-0 overflow-visible ${className}`}
+      className={`relative z-20 min-h-[74px] shrink-0 overflow-hidden rounded-[22px] border border-[#d6a84f]/24 bg-[linear-gradient(180deg,rgba(84,28,10,0.98),rgba(51,12,6,0.98),rgba(18,3,2,0.98))] shadow-[0_12px_26px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,215,122,0.18)] ${className}`}
     >
       <img
         src={ROYAL_TOP_BAR_BOARD}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[74px] w-full object-fill opacity-[0.72] drop-shadow-[0_10px_24px_rgba(0,0,0,0.45)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[74px] w-full object-fill opacity-100 drop-shadow-[0_10px_24px_rgba(0,0,0,0.55)]"
       />
 
-      <div className="pointer-events-none absolute inset-x-2 top-1 h-[68px] rounded-[20px] bg-[linear-gradient(180deg,rgba(255,215,122,0.035),rgba(0,0,0,0.05))]" />
+      <div className="pointer-events-none absolute inset-x-2 top-1 h-[68px] rounded-[20px] bg-[linear-gradient(180deg,rgba(255,215,122,0.06),rgba(0,0,0,0.16))]" />
 
       <div className="relative z-10 flex min-h-[74px] items-center justify-between px-3 py-1">
         <button

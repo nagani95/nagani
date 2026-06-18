@@ -121,6 +121,7 @@ const lastDiceSoundCountRef = useRef(0);
 const roomAudioUnlockedRef = useRef(false);
 const [isRoomAudioUnlocked, setIsRoomAudioUnlocked] = useState(false);
 const lastInRoomWaitAnnouncementKeyRef = useRef<string | null>(null);
+const hasPlayedLoadingAnnouncementRef = useRef(false);
 const roomAudioPoolRef = useRef<
   Partial<Record<SixAnimalSoundEvent, HTMLAudioElement>>
 >({});
@@ -906,6 +907,7 @@ function playInRoomWaitAnnouncement(announcementKey?: string) {
   if (!roomAudioUnlockedRef.current) return false;
   if (showRoomIntroRef.current) return false;
   if (!isWaitingForNextRoundRef.current) return false;
+  if (hasPlayedLoadingAnnouncementRef.current) return false;
 
   const safeAnnouncementKey =
     announcementKey ??
@@ -920,6 +922,7 @@ function playInRoomWaitAnnouncement(announcementKey?: string) {
   }
 
   lastInRoomWaitAnnouncementKeyRef.current = safeAnnouncementKey;
+  hasPlayedLoadingAnnouncementRef.current = true;
   playRoomSound("loading");
 
   return true;
