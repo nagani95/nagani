@@ -100,16 +100,16 @@ const playHref = !user ? "/login" : canEnterSixAnimal ? "/six-animal" : "/cashie
   </div>
 
   <NaganiHomeTopControls />
-<div className="absolute left-1/2 top-[5.2%] z-20 flex -translate-x-1/2 flex-col items-center">
+<div className="absolute left-1/2 top-[5.6%] z-20 flex -translate-x-1/2 flex-col items-center">
   <div
-    className="h-44 w-44 bg-contain bg-center bg-no-repeat drop-shadow-[0_14px_34px_rgba(0,0,0,0.88)]"
+    className="h-36 w-36 bg-contain bg-center bg-no-repeat drop-shadow-[0_12px_28px_rgba(0,0,0,0.82)]"
       style={{
         backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
       }}
       aria-label="နဂါးနီ"
     />
 
-<div className="-mt-4 rounded-full border border-[#ffd77a]/30 bg-[#090202]/42 px-5 py-1.5 text-base font-black tracking-[0.12em] text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-[2px]">
+<div className="-mt-3 rounded-full border border-[#ffd77a]/30 bg-[#090202]/42 px-4 py-1 text-sm font-black tracking-[0.12em] text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-[2px]">
   နဂါးနီ
 </div>
   </div>
