@@ -13,6 +13,9 @@ export const NAGANI_LOGO =
 export const RESULT_REVEAL_DELAY_MS = 900;
 export const SETTLEMENT_POPUP_DELAY_MS = 1400;
 
+export const ESTIMATED_SIX_ANIMAL_ROLLING_TO_NEXT_SECONDS = 41;
+export const ESTIMATED_SIX_ANIMAL_RESULT_TO_NEXT_SECONDS = 8;
+
 export const ROOM_SOUND_ENABLED = true;
 export const ROOM_SOUND_VOLUME = 0.72;
 
@@ -166,6 +169,43 @@ export function getRoundPhaseTargetAt(round: LiveSixAnimalRound) {
   if (round.phase === "result") return round.next_round_starts_at;
 
   return null;
+}
+
+function addSecondsToIso(sourceIso: string | null | undefined, seconds: number) {
+  if (!sourceIso) return null;
+
+  const sourceTime = new Date(sourceIso).getTime();
+
+  if (!Number.isFinite(sourceTime)) return null;
+
+  return new Date(sourceTime + seconds * 1000).toISOString();
+}
+
+export function getWaitingForNextBettingTargetAt(round: LiveSixAnimalRound) {
+  if (round.next_round_starts_at) return round.next_round_starts_at;
+
+  if (round.phase === "result") {
+    return addSecondsToIso(
+      round.result_revealed_at,
+      ESTIMATED_SIX_ANIMAL_RESULT_TO_NEXT_SECONDS
+    );
+  }
+
+  if (round.phase === "rolling") {
+    return addSecondsToIso(
+      round.rolling_starts_at,
+      ESTIMATED_SIX_ANIMAL_ROLLING_TO_NEXT_SECONDS
+    );
+  }
+
+  if (round.phase === "closed") {
+    return addSecondsToIso(
+      round.rolling_starts_at,
+      ESTIMATED_SIX_ANIMAL_ROLLING_TO_NEXT_SECONDS
+    );
+  }
+
+  return getRoundPhaseTargetAt(round);
 }
 
 export function getLiveRoundCountdown(round: LiveSixAnimalRound) {

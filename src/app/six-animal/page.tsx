@@ -20,6 +20,7 @@ import RoomIntroOverlay from "@/components/games/six-animal/RoomIntroOverlay";
 import SixAnimalExitConfirm from "@/components/games/six-animal/SixAnimalExitConfirm";
 import SixAnimalLeavingRoomOverlay from "@/components/games/six-animal/SixAnimalLeavingRoomOverlay";
 import SixAnimalBettingCommandPanel from "@/components/games/six-animal/SixAnimalBettingCommandPanel";
+import SixAnimalRoomWaitLayer from "@/components/games/six-animal/SixAnimalRoomWaitLayer";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import { createClient } from "@/lib/supabase/client";
 import type { SixAnimalKey } from "@/types/games";
@@ -49,6 +50,7 @@ import {
   getLiveRoundCountdown,
   getPairKey,
   getRoundPhaseTargetAt,
+  getWaitingForNextBettingTargetAt,
   getVisibleDicePayloadResultNames,
   mapLiveRoundPhase,
   secondsUntil,
@@ -126,7 +128,6 @@ const {
 } = useSixAnimalBackgroundMusic({
   isRoomAudioUnlockedRef: roomAudioUnlockedRef,
 });
-const lastLoadingAnnouncementKeyRef = useRef<string | null>(null);
 
   // Refs for Realtime Websocket closures to prevent stale state
 const phaseRef = useRef(phase);
@@ -145,6 +146,8 @@ const visualActiveRoundIdRef = useRef<string | null>(null);
 const settlementWaitingRoundIdRef = useRef<string | null>(null);
 const showSettlementMomentRef = useRef(false);
 const isSubmittingBetRef = useRef(false);
+const showRoomIntroRef = useRef(true);
+const isWaitingForNextRoundRef = useRef(false);
 
 function clearVisibleDiceRoundState() {
   diceSoundDirector.stopAll();
@@ -255,32 +258,64 @@ setBetMode("single");
 
   roundIdRef.current = round.id;
 
+const hasJoinedCurrentBrowserRound = joinedRoundIdRef.current === round.id;
+const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
+
+if (
+  isJoinableBettingRound &&
+  (phaseRef.current === "loading" ||
+    isWaitingForNextRoundRef.current ||
+    showRoomIntroRef.current)
+) {
+  joinedRoundIdRef.current = round.id;
+  setJoinedRoundId(round.id);
+
+  setIsWaitingForNextRound(false);
+  isWaitingForNextRoundRef.current = false;
+
+  setShowRoomIntro(false);
+  showRoomIntroRef.current = false;
+
+  setRoundId(round.id);
+  setRoundNumber(round.round_number);
+  setPhase("betting");
+  phaseRef.current = "betting";
+  setPhaseTargetAt(nextTargetAt);
+  setCountdown(nextCountdown);
+}
+
 const backendBets = await fetchCurrentUserBetsForRound(round.id);
 const restoredActiveBets = backendBets
   .map((bet) => convertBackendBetToActiveBet(bet, round.round_number))
   .filter((bet): bet is ActiveBet => Boolean(bet));
-
-const hasJoinedCurrentBrowserRound = joinedRoundIdRef.current === round.id;
-const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
 
 const isRefreshOrLateJoinToInProgressRound =
   !isJoinableBettingRound && !hasJoinedCurrentBrowserRound;
 
 if (isRefreshOrLateJoinToInProgressRound) {
   clearVisibleDiceRoundState();
+
   setShouldPlayLiveDiceSequence(false);
+  shouldPlayLiveDiceSequenceRef.current = false;
+
   setRoundId(round.id);
   setRoundNumber(round.round_number);
-const waitingTargetAt =
-  round.next_round_starts_at ?? getRoundPhaseTargetAt(round);
 
-setPhase("loading");
-setPhaseTargetAt(waitingTargetAt);
-setRollingStartedAt(null);
-setCountdown(secondsUntil(waitingTargetAt));
+  const waitingTargetAt = getWaitingForNextBettingTargetAt(round);
+
+  setPhase(nextPhase);
+  phaseRef.current = nextPhase;
+
+  setPhaseTargetAt(waitingTargetAt);
+  setRollingStartedAt(null);
+  setCountdown(secondsUntil(waitingTargetAt));
+
   setIsWaitingForNextRound(true);
+  setShowRoomIntro(false);
+
   setServerRngResults([]);
   setActiveBets([]);
+
   return;
 }
 
@@ -303,6 +338,7 @@ if (restoredActiveBets.length > 0) {
 if (isJoinableBettingRound) {
   joinedRoundIdRef.current = round.id;
   setJoinedRoundId(round.id);
+  setShowRoomIntro(false);
 }
 
 const hasBackendDiceTimeline =
@@ -527,6 +563,8 @@ visualCompleteRoundIdRef.current = visualCompleteRoundId;
 visualActiveRoundIdRef.current = visualActiveRoundId;
 settlementWaitingRoundIdRef.current = settlementWaitingRoundId;
 showSettlementMomentRef.current = showSettlementMoment;
+showRoomIntroRef.current = showRoomIntro;
+isWaitingForNextRoundRef.current = isWaitingForNextRound;
 }, [
   phase,
   roundId,
@@ -535,11 +573,13 @@ showSettlementMomentRef.current = showSettlementMoment;
   shouldPlayLiveDiceSequence,
   diceResult,
   isVisualDiceComplete,
-    visualDiceStatus,
+  visualDiceStatus,
   visualCompleteRoundId,
   visualActiveRoundId,
   settlementWaitingRoundId,
   showSettlementMoment,
+  showRoomIntro,
+  isWaitingForNextRound,
 ]);
 
 const selectedOption = useMemo(() => {
@@ -851,35 +891,17 @@ function handleExitButtonClick() {
   setShowExitConfirm(true);
 }
 
-function playLoadingWaitAnnouncement() {
+function playInRoomWaitAnnouncement() {
   if (!gameSoundEnabled) return;
   if (!roomAudioUnlockedRef.current) return;
-  if (!showRoomIntro) return;
+  if (showRoomIntro) return;
+  if (!isWaitingForNextRound) return;
 
-  const isLoadingOrWaiting =
-    phaseRef.current === "loading" || isWaitingForNextRound;
-
-  if (!isLoadingOrWaiting) return;
-
-  const announcementKey = [
-    roundIdRef.current || "boot",
-    phaseTargetAt ?? "no-target",
-    isWaitingForNextRound ? "waiting-next-round" : "loading-room",
-  ].join(":");
-
-  if (lastLoadingAnnouncementKeyRef.current === announcementKey) return;
-
-  lastLoadingAnnouncementKeyRef.current = announcementKey;
   playRoomSound("loading");
 }
 
 function playCurrentPhaseSound() {
   const currentPhase = phaseRef.current;
-
-if (currentPhase === "loading") {
-  playLoadingWaitAnnouncement();
-  return;
-}
 
   if (currentPhase === "betting") {
     playRoomSound("betting-round");
@@ -1084,36 +1106,59 @@ if (user) {
 
 useEffect(() => {
   let cancelled = false;
+  let pollTimer: number | null = null;
 
   const pollLatestRound = async () => {
     if (cancelled) return;
     await fetchLatestLiveRound();
   };
 
-  pollLatestRound();
+  const scheduleNextPoll = (delayMs: number) => {
+    pollTimer = window.setTimeout(async () => {
+      await pollLatestRound();
 
-  const pollTimer = window.setInterval(pollLatestRound, 2000);
+      if (cancelled) return;
+
+      const shouldFastPoll =
+        showRoomIntroRef.current ||
+        phaseRef.current === "loading" ||
+        isWaitingForNextRoundRef.current;
+
+      scheduleNextPoll(shouldFastPoll ? 650 : 2000);
+    }, delayMs);
+  };
+
+  void pollLatestRound();
+  scheduleNextPoll(650);
 
   return () => {
     cancelled = true;
-    window.clearInterval(pollTimer);
+
+    if (pollTimer) {
+      window.clearTimeout(pollTimer);
+    }
   };
 }, [supabase]);
 
-
 useEffect(() => {
-  playLoadingWaitAnnouncement();
-}, [showRoomIntro, phase, isWaitingForNextRound, phaseTargetAt, roundId]);
-
-useEffect(() => {
-  if (phase === "loading" || isWaitingForNextRound) {
+  if (phase === "loading") {
     setShowRoomIntro(true);
+    return;
+  }
+
+  if (isWaitingForNextRound) {
+    setShowRoomIntro(false);
+    return;
+  }
+
+  if (phase === "betting") {
+    setShowRoomIntro(false);
     return;
   }
 
   const introTimer = window.setTimeout(() => {
     setShowRoomIntro(false);
-  }, 800);
+  }, 300);
 
   return () => window.clearTimeout(introTimer);
 }, [phase, isWaitingForNextRound]);
@@ -1653,6 +1698,11 @@ function handleInvalidBetButtonClick() {
   playRoomSound("bet-invalid");
 }
 
+const waitLayerAnnouncementKey =
+  isWaitingForNextRound && !showRoomIntro
+    ? [roundId || "room", phase, phaseTargetAt ?? "no-target"].join(":")
+    : "";
+
   return (
     <main
       onPointerDownCapture={unlockRoomAudio}
@@ -1736,6 +1786,15 @@ function handleInvalidBetButtonClick() {
                 animalAssets={ANIMAL_ASSETS}
               />
             ) : null}
+
+{isWaitingForNextRound && !showRoomIntro ? (
+  <SixAnimalRoomWaitLayer
+    phase={phase}
+    countdown={displayCountdown}
+    announcementKey={waitLayerAnnouncementKey}
+    onAnnounce={playInRoomWaitAnnouncement}
+  />
+) : null}
 
             {showSettlementSheet ? (
               <SettlementPopup
