@@ -85,6 +85,7 @@ export type SixAnimalSoundEvent =
   | "loading"
   | "betting-round"
   | "bets-closed"
+  | "countdown-hit"
   | "dice-drop"
   | "settlement-round"
   | "settlement-win"
@@ -107,6 +108,7 @@ export const SIX_ANIMAL_SOUND_SRC: Record<SixAnimalSoundEvent, string> = {
   loading: "/assets/nagani/sounds/six-animal/loading.mp3",
   "betting-round": "/assets/nagani/sounds/six-animal/betting-round.mp3",
   "bets-closed": "/assets/nagani/sounds/six-animal/bets-closed.mp3",
+  "countdown-hit": "/assets/nagani/sounds/six-animal/countdown-hit.mp3",
   "dice-drop": "/assets/nagani/sounds/six-animal/dice-drop.mp3",
   "settlement-round": "/assets/nagani/sounds/six-animal/settlement-round.mp3",
   "settlement-win": "/assets/nagani/sounds/six-animal/settlement-win.mp3",
@@ -121,6 +123,7 @@ export const SIX_ANIMAL_SOUND_VOLUME: Record<SixAnimalSoundEvent, number> = {
   loading: 0.82,
   "betting-round": 0.76,
   "bets-closed": 0.82,
+  "countdown-hit": 0.88,
   "dice-drop": 0.9,
   "settlement-round": 0.82,
   "settlement-win": 0.9,

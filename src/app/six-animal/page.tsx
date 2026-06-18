@@ -63,6 +63,12 @@ import {
   type VisualDiceStatus,
 } from "@/components/games/six-animal/sixAnimalRoomHelpers";
 
+const ROYAL_CHAMBER_WALLPAPER_SRC =
+  "/assets/nagani/six-animal/room/royal-chamber-wallpaper-v1.jpg";
+
+const ROYAL_CHAMBER_VIDEO_SRC =
+  "/assets/nagani/six-animal/room/royal-chamber-loop-v1.mp4";
+
 export default function SixAnimalPage() {
   const router = useRouter();
   // Centralize the Supabase client to prevent hook errors and memory leaks
@@ -114,6 +120,8 @@ const settlementMomentTimerRef = useRef<number | null>(null);
 const localRollingStartTimerRef = useRef<number | null>(null);
 const lastDiceSoundCountRef = useRef(0);
 const roomAudioUnlockedRef = useRef(false);
+const [isRoomAudioUnlocked, setIsRoomAudioUnlocked] = useState(false);
+const lastInRoomWaitAnnouncementKeyRef = useRef<string | null>(null);
 const roomAudioPoolRef = useRef<
   Partial<Record<SixAnimalSoundEvent, HTMLAudioElement>>
 >({});
@@ -121,6 +129,7 @@ const resultAnimalAudioPoolRef = useRef<
   Partial<Record<SixAnimalKey, HTMLAudioElement>>
 >({});
 const lastPhaseSoundKeyRef = useRef<string | null>(null);
+const lastUrgentCountdownSecondRef = useRef<number | null>(null);
 const {
   isBackgroundMusicMuted,
   handleBackgroundMusicToggle,
@@ -686,6 +695,8 @@ const displayNetAmount =
     : 0;
 
   const displayCountdown = Math.max(0, countdown);
+    const isUrgentBettingCountdown =
+    phase === "betting" && displayCountdown > 0 && displayCountdown <= 4;
 
   const timerLabel =
     phase === "rolling"
@@ -891,13 +902,28 @@ function handleExitButtonClick() {
   setShowExitConfirm(true);
 }
 
-function playInRoomWaitAnnouncement() {
-  if (!gameSoundEnabled) return;
-  if (!roomAudioUnlockedRef.current) return;
-  if (showRoomIntro) return;
-  if (!isWaitingForNextRound) return;
+function playInRoomWaitAnnouncement(announcementKey?: string) {
+  if (!gameSoundEnabled) return false;
+  if (!roomAudioUnlockedRef.current) return false;
+  if (showRoomIntroRef.current) return false;
+  if (!isWaitingForNextRoundRef.current) return false;
 
+  const safeAnnouncementKey =
+    announcementKey ??
+    [
+      roundIdRef.current || "room",
+      phaseRef.current,
+      phaseTargetAt ?? "no-target",
+    ].join(":");
+
+  if (lastInRoomWaitAnnouncementKeyRef.current === safeAnnouncementKey) {
+    return false;
+  }
+
+  lastInRoomWaitAnnouncementKeyRef.current = safeAnnouncementKey;
   playRoomSound("loading");
+
+  return true;
 }
 
 function playCurrentPhaseSound() {
@@ -915,9 +941,14 @@ function playCurrentPhaseSound() {
 
 function unlockRoomAudio() {
   if (!gameSoundEnabled) return;
-  if (roomAudioUnlockedRef.current) return;
+
+  if (roomAudioUnlockedRef.current) {
+    setIsRoomAudioUnlocked(true);
+    return;
+  }
 
   roomAudioUnlockedRef.current = true;
+  setIsRoomAudioUnlocked(true);
   void diceSoundDirector.unlock();
 
   (Object.keys(SIX_ANIMAL_SOUND_SRC) as SixAnimalSoundEvent[]).forEach(
@@ -1247,6 +1278,25 @@ useEffect(() => {
     window.removeEventListener("beforeunload", handleBeforeUnload);
   };
 }, [shouldConfirmBrowserRefresh]);
+
+useEffect(() => {
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+  if (phase !== "betting") {
+    lastUrgentCountdownSecondRef.current = null;
+    return;
+  }
+
+  if (displayCountdown > 4 || displayCountdown <= 0) {
+    lastUrgentCountdownSecondRef.current = null;
+    return;
+  }
+
+  if (lastUrgentCountdownSecondRef.current === displayCountdown) return;
+
+  lastUrgentCountdownSecondRef.current = displayCountdown;
+  playRoomSound("countdown-hit");
+}, [phase, displayCountdown, gameSoundEnabled]);
 
 useEffect(() => {
   if (!gameSoundEnabled) return;
@@ -1708,11 +1758,25 @@ const waitLayerAnnouncementKey =
       onPointerDownCapture={unlockRoomAudio}
       className="relative isolate h-[100dvh] overflow-hidden bg-[#090202] text-[#fff3d0]"
       style={{
-        backgroundImage: `radial-gradient(circle at 50% 0%, rgba(255,215,122,0.16), transparent 32%), radial-gradient(circle at 18% 82%, rgba(127,17,17,0.28), transparent 34%), linear-gradient(135deg, rgba(9,2,2,0.42), rgba(75,8,8,0.28), rgba(0,0,0,0.82)), url(${ROOM_BACKGROUND})`,
+        backgroundImage: `radial-gradient(circle at 50% 0%, rgba(255,215,122,0.16), transparent 32%), radial-gradient(circle at 18% 82%, rgba(127,17,17,0.28), transparent 34%), linear-gradient(135deg, rgba(9,2,2,0.28), rgba(75,8,8,0.22), rgba(0,0,0,0.72)), url(${ROYAL_CHAMBER_WALLPAPER_SRC})`,
         backgroundSize: "cover",
         backgroundPosition: "center top",
       }}
-    >
+>
+      <video
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-[0.46]"
+        src={ROYAL_CHAMBER_VIDEO_SRC}
+        poster={ROYAL_CHAMBER_WALLPAPER_SRC}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-hidden="true"
+      />
+
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_50%_12%,rgba(255,215,122,0.10),transparent_34%),linear-gradient(180deg,rgba(5,1,1,0.08),rgba(8,2,2,0.24)_52%,rgba(0,0,0,0.66))]" />
+
       <RoyalRoomAtmosphere />
 
 {isQuitting && !showRoomIntro ? <SixAnimalLeavingRoomOverlay /> : null}
@@ -1756,7 +1820,7 @@ const waitLayerAnnouncementKey =
   onFullscreenToggle={handleFullscreenToggle}
 />
 
-                <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.85rem] border border-[#d6a84f]/20 bg-[linear-gradient(145deg,rgba(75,8,8,0.62),rgba(9,2,2,0.58),rgba(90,47,24,0.34))] p-2 shadow-[0_22px_64px_rgba(0,0,0,0.58),inset_0_0_48px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,215,122,0.1)] backdrop-blur-[2px]">
+                <section className="mt-1 flex min-h-0 flex-1 flex-col overflow-visible rounded-none border-0 bg-transparent p-0 shadow-none">
           {showTopPanel ? (
             <SixAnimalBettingCommandPanel
               commandBarClass={commandBarClass}
@@ -1766,9 +1830,9 @@ const waitLayerAnnouncementKey =
           ) : null}
 
           <div
-            className="relative mt-2 min-h-0 flex-1 overflow-visible rounded-[1.65rem] border border-[#d6a84f]/16 bg-black/50 shadow-[inset_0_0_54px_rgba(0,0,0,0.68),inset_0_0_38px_rgba(214,168,79,0.045),0_20px_50px_rgba(0,0,0,0.4)]"
+            className="relative mt-1 min-h-0 flex-1 overflow-visible rounded-none border-0 bg-transparent shadow-none"
             style={{
-              backgroundImage: `linear-gradient(to bottom, rgba(9,2,2,0.28), rgba(42,18,9,0.28), rgba(0,0,0,0.72)), url(${ROOM_BACKGROUND})`,
+              backgroundImage: `linear-gradient(to bottom, rgba(9,2,2,0.10), rgba(42,18,9,0.16), rgba(0,0,0,0.54)), url(${ROYAL_CHAMBER_WALLPAPER_SRC})`,
               backgroundSize: "cover",
               backgroundPosition: "center 38%",
             }}
@@ -1788,12 +1852,13 @@ const waitLayerAnnouncementKey =
             ) : null}
 
 {isWaitingForNextRound && !showRoomIntro ? (
-  <SixAnimalRoomWaitLayer
-    phase={phase}
-    countdown={displayCountdown}
-    announcementKey={waitLayerAnnouncementKey}
-    onAnnounce={playInRoomWaitAnnouncement}
-  />
+<SixAnimalRoomWaitLayer
+  phase={phase}
+  countdown={displayCountdown}
+  announcementKey={waitLayerAnnouncementKey}
+  isAudioUnlocked={isRoomAudioUnlocked}
+  onAnnounce={playInRoomWaitAnnouncement}
+/>
 ) : null}
 
             {showSettlementSheet ? (
@@ -1815,15 +1880,15 @@ const waitLayerAnnouncementKey =
               />
             ) : null}
 
-            <div className="relative z-10 flex h-full min-h-0 items-center justify-center p-2">
-              <div className="relative h-full w-full max-w-[980px]">
+            <div className="relative z-10 flex h-full min-h-0 items-center justify-center px-0 pb-0 pt-1">
+  <div className="relative h-full w-full">
                 <ThreeDiceSequenceController
                   enabled={shouldEnableDiceController}
                   runKey={threeDiceRunKey}
                   onComplete={handleThreeDiceComplete}
                   onProgress={handleThreeDiceProgress}
                   onDiceDrop={handleDiceDrop}
-                  className="h-full min-h-[430px] w-full"
+                  className="h-full min-h-[500px] w-full"
                   showInternalResultStrip={false}
                   mountedDiceRackMode={effectiveMountedDiceRackMode}
                   serverRngResults={serverRngResults}
@@ -1834,6 +1899,7 @@ const waitLayerAnnouncementKey =
 
             <SixAnimalBettingSheet
               isOpen={phase === "betting"}
+              isUrgentCountdown={isUrgentBettingCountdown}
               betMode={betMode}
               selectedAnimal={selectedAnimal}
               selectedPairAnimals={selectedPairAnimals}
