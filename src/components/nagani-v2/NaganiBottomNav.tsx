@@ -61,13 +61,12 @@ export default function NaganiBottomNav() {
                 className="group flex items-center justify-center transition active:scale-[0.97]"
               >
                 <span
-                  className={`relative flex h-[6.25rem] w-[6.25rem] items-center justify-center rounded-full transition ${iconTone(
-                    isActive,
-                  )}`}
+className={`relative flex h-[5.45rem] w-[5.45rem] items-center justify-center rounded-full transition ${iconTone(
+  isActive,
+)}`}
                 >
-                  <span className="absolute inset-[0.2rem] rounded-full bg-[#ffd77a]/14 blur-xl" />
-                  <span className="absolute inset-[0.62rem] rounded-full bg-black/18 blur-md" />
-
+<span className="absolute inset-[0.35rem] rounded-full bg-[#ffd77a]/12 blur-xl" />
+<span className="absolute inset-[0.78rem] rounded-full bg-black/16 blur-md" />
                   <img
                     src={item.iconSrc}
                     alt=""
