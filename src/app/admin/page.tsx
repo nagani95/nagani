@@ -154,7 +154,7 @@ export default async function AdminPage() {
     {
       title: "Audit Log",
       description: "View recent operator actions and admin records.",
-      href: "/admin/audit",
+      href: "/admin/audit-log",
       stat: `${auditLogs?.length ?? 0}`,
       label: "Latest",
     },

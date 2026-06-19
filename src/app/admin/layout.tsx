@@ -26,40 +26,44 @@ function AdminBlockedScreen({
 }) {
   return (
     <main className="min-h-screen bg-[#090202] px-5 py-10 text-white">
-      <section className="mx-auto flex min-h-[70vh] w-full max-w-xl items-center justify-center">
-        <div className="w-full rounded-[2rem] border border-red-500/25 bg-gradient-to-br from-red-950 via-[#160303] to-black p-6 shadow-2xl shadow-red-950/30">
-          <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-200/60">
-            Admin Access Control
-          </p>
+      <section className="mx-auto flex min-h-[72vh] w-full max-w-xl items-center justify-center">
+        <div className="relative w-full overflow-hidden rounded-[2rem] border border-[#d6a84f]/25 bg-[linear-gradient(145deg,#3a0707,#120202_52%,#050101)] p-[1px] shadow-2xl shadow-black/70">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.18),transparent_58%)]" />
 
-          <h1 className="mt-3 text-3xl font-black text-amber-100">
-            {title}
-          </h1>
+          <div className="relative rounded-[1.95rem] border border-black/45 bg-black/25 p-6">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-[#ffd77a]/58">
+              Nagani Admin
+            </p>
 
-          <p className="mt-3 text-sm leading-6 text-amber-50/65">
-            {message}
-          </p>
+            <h1 className="mt-3 text-3xl font-black leading-tight text-[#fff3d0]">
+              {title}
+            </h1>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/admin/login"
-              className="rounded-full border border-red-400/25 bg-red-500/10 px-5 py-3 text-center text-sm font-black text-red-100"
-            >
-              Admin Login
-            </Link>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#f7dfaa]/68">
+              {message}
+            </p>
 
-            <Link
-              href="/"
-              className="rounded-full border border-amber-400/20 bg-amber-400/10 px-5 py-3 text-center text-sm font-black text-amber-100"
-            >
-              Open Lobby
-            </Link>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Link
+                href="/admin/login"
+                className="rounded-full border border-[#ffd77a]/35 bg-[#d6a84f]/12 px-5 py-3 text-center text-sm font-black text-[#ffd77a] active:scale-[0.98]"
+              >
+                Admin Login
+              </Link>
+
+              <Link
+                href="/"
+                className="rounded-full border border-[#d6a84f]/20 bg-black/35 px-5 py-3 text-center text-sm font-black text-[#fff3d0] active:scale-[0.98]"
+              >
+                Open Lobby
+              </Link>
+            </div>
+
+            <p className="mt-5 rounded-2xl border border-[#d6a84f]/15 bg-black/35 p-4 text-xs font-semibold leading-5 text-[#f7dfaa]/45">
+              Admin access is checked on the server. Non-admin player accounts
+              cannot open operator pages.
+            </p>
           </div>
-
-          <p className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4 text-xs leading-5 text-white/45">
-            Admin access is checked server-side. Player accounts cannot open
-            operator pages.
-          </p>
         </div>
       </section>
     </main>
