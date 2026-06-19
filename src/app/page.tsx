@@ -8,6 +8,7 @@ import {
   NaganiVideoBackground,
 } from "@/components/nagani-v2";
 import NaganiHomeTopControls from "@/components/nagani-v2/NaganiHomeTopControls";
+import NaganiLobbyBgm from "@/components/nagani-v2/NaganiLobbyBgm";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { createClient } from "@/lib/supabase/server";
 
@@ -68,12 +69,14 @@ export default async function HomePage() {
       : "ငွေဖြည့်ရန်";
 
   return (
-    <NaganiPageShell
-      background={<NaganiVideoBackground />}
-      bottomNav={<NaganiBottomNav />}
-      contentClassName="relative z-10 h-[100svh] overflow-hidden"
-    >
-      <section className="relative h-[100svh] overflow-hidden">
+<NaganiPageShell
+  background={<NaganiVideoBackground />}
+  bottomNav={<NaganiBottomNav />}
+  contentClassName="relative z-10 h-[100svh] overflow-hidden"
+>
+  <NaganiLobbyBgm />
+
+  <section className="relative h-[100svh] overflow-hidden">
         <div className="absolute left-[1.4%] top-[2.7%] z-30 h-[7.25rem] w-[7.35rem]">
           <img
             src="/assets/nagani/v2/home-id-balance-card.png"
