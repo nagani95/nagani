@@ -2,83 +2,100 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const LOBBY_BGM_SRC = "/assets/nagani/sounds/lobby-palace-bgm-v1.mp3";
-const WELCOME_SRC = "/sounds/welcome.mp3";
-const WELCOME_SESSION_KEY = "nagani-home-welcome-played-v1";
+const BGM_MUTED_KEY = "nagani-lobby-bgm-muted-v1";
+const NORMAL_VOLUME = 0.22;
+const DUCKED_VOLUME = 0.08;
 
 export default function NaganiLobbyBgm() {
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
-  const welcomeRef = useRef<HTMLAudioElement | null>(null);
-  const welcomeStartedRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
-    const bgm = bgmRef.current;
-    const welcome = welcomeRef.current;
+    setIsMuted(localStorage.getItem(BGM_MUTED_KEY) === "1");
+  }, []);
 
-    if (!bgm || !welcome) return;
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    bgm.volume = 0.22;
-    welcome.volume = 0.86;
+    audio.loop = true;
+    audio.volume = isMuted ? 0 : NORMAL_VOLUME;
+    audio.muted = isMuted;
+
+    const startBgm = () => {
+      if (localStorage.getItem(BGM_MUTED_KEY) === "1") return;
+      void audio.play().catch(() => {});
+    };
+
+    const duckBgm = () => {
+      if (localStorage.getItem(BGM_MUTED_KEY) === "1") return;
+      audio.volume = DUCKED_VOLUME;
+    };
 
     const restoreBgm = () => {
-      bgm.volume = 0.22;
-      sessionStorage.setItem(WELCOME_SESSION_KEY, "1");
+      if (localStorage.getItem(BGM_MUTED_KEY) === "1") return;
+      audio.volume = NORMAL_VOLUME;
     };
 
-    const startSound = async () => {
-      try {
-        await bgm.play();
-      } catch {
-        return;
-      }
+    window.addEventListener("pointerdown", startBgm);
+    window.addEventListener("touchend", startBgm);
+    window.addEventListener("click", startBgm);
+    window.addEventListener("keydown", startBgm);
 
-      if (welcomeStartedRef.current) return;
-      if (sessionStorage.getItem(WELCOME_SESSION_KEY) === "1") return;
+    window.addEventListener("nagani:lobby-bgm-duck", duckBgm);
+    window.addEventListener("nagani:lobby-bgm-restore", restoreBgm);
 
-      welcomeStartedRef.current = true;
-
-      window.setTimeout(() => {
-        bgm.volume = 0.1;
-        welcome.currentTime = 0;
-
-        void welcome.play().catch(() => {
-          welcomeStartedRef.current = false;
-          bgm.volume = 0.22;
-        });
-      }, 450);
-    };
-
-    welcome.addEventListener("ended", restoreBgm);
-
-    window.addEventListener("pointerdown", startSound);
-    window.addEventListener("touchend", startSound);
-    window.addEventListener("click", startSound);
-    window.addEventListener("keydown", startSound);
-
-    void startSound();
+    void audio.play().catch(() => {});
 
     return () => {
-      welcome.removeEventListener("ended", restoreBgm);
+      window.removeEventListener("pointerdown", startBgm);
+      window.removeEventListener("touchend", startBgm);
+      window.removeEventListener("click", startBgm);
+      window.removeEventListener("keydown", startBgm);
 
-      window.removeEventListener("pointerdown", startSound);
-      window.removeEventListener("touchend", startSound);
-      window.removeEventListener("click", startSound);
-      window.removeEventListener("keydown", startSound);
+      window.removeEventListener("nagani:lobby-bgm-duck", duckBgm);
+      window.removeEventListener("nagani:lobby-bgm-restore", restoreBgm);
 
-      bgm.pause();
-      welcome.pause();
-
-      bgm.currentTime = 0;
-      welcome.currentTime = 0;
+      audio.pause();
+      audio.currentTime = 0;
     };
-  }, []);
+  }, [isMuted]);
+
+  function handleToggleBgm() {
+    const audio = audioRef.current;
+    const nextMuted = !isMuted;
+
+    setIsMuted(nextMuted);
+    localStorage.setItem(BGM_MUTED_KEY, nextMuted ? "1" : "0");
+
+    if (!audio) return;
+
+    audio.muted = nextMuted;
+    audio.volume = nextMuted ? 0 : NORMAL_VOLUME;
+
+    if (nextMuted) {
+      audio.pause();
+      return;
+    }
+
+    void audio.play().catch(() => {});
+  }
 
   return (
     <>
-      <audio ref={bgmRef} src={LOBBY_BGM_SRC} loop preload="auto" playsInline />
-      <audio ref={welcomeRef} src={WELCOME_SRC} preload="auto" playsInline />
+      <audio ref={audioRef} src={LOBBY_BGM_SRC} preload="auto" playsInline />
+
+      <button
+        type="button"
+        onClick={handleToggleBgm}
+        aria-label={isMuted ? "နောက်ခံတေးဂီတ ဖွင့်ရန်" : "နောက်ခံတေးဂီတ ပိတ်ရန်"}
+        className="fixed right-5 top-[10.9rem] z-50 flex h-12 w-12 items-center justify-center rounded-full border border-[#ffd77a]/45 bg-[#120706]/72 text-[1.15rem] font-black text-[#ffd77a] shadow-[0_10px_24px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,243,208,0.18)] backdrop-blur-[3px] active:scale-[0.96]"
+      >
+        {isMuted ? "🔇" : "🔊"}
+      </button>
     </>
   );
 }

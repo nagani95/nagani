@@ -9,6 +9,7 @@ import {
 } from "@/components/nagani-v2";
 import NaganiHomeTopControls from "@/components/nagani-v2/NaganiHomeTopControls";
 import NaganiLobbyBgm from "@/components/nagani-v2/NaganiLobbyBgm";
+import NaganiHomeWelcomeAnnouncement from "@/components/nagani-v2/NaganiHomeWelcomeAnnouncement";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { createClient } from "@/lib/supabase/server";
 
@@ -74,9 +75,10 @@ export default async function HomePage() {
   bottomNav={<NaganiBottomNav />}
   contentClassName="relative z-10 h-[100svh] overflow-hidden"
 >
-  <NaganiLobbyBgm />
+<NaganiLobbyBgm />
+<NaganiHomeWelcomeAnnouncement />
 
-  <section className="relative h-[100svh] overflow-hidden">
+<section className="relative h-[100svh] overflow-hidden">
         <div className="absolute left-[1.4%] top-[2.7%] z-30 h-[7.25rem] w-[7.35rem]">
           <img
             src="/assets/nagani/v2/home-id-balance-card.png"
