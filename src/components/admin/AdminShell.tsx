@@ -17,6 +17,7 @@ const adminNavItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/wallet-requests", label: "Balance" },
+  { href: "/admin/wallet-addresses", label: "Wallet Address" },
   { href: "/admin/agents", label: "Agents" },
   { href: "/admin/referrals", label: "Referrals" },
   { href: "/admin/six-animal", label: "6 Animal" },
