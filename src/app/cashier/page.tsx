@@ -43,6 +43,8 @@ type CashierTicket = {
 };
 
 const DEFAULT_MINIMUM_AMOUNT = 3000;
+const TEMP_PALACE_BACKGROUND =
+  "/assets/nagani/six-animal/room/six-animal-palace-room-bg-v1.jpg";
 
 function toSafeAmount(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
@@ -240,13 +242,16 @@ function CashierPageContent() {
 
   return (
     <AppShell>
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#090202]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(214,168,79,0.2),transparent_34%),linear-gradient(180deg,rgba(44,8,4,0.96),rgba(8,1,1,0.98)_55%,rgba(24,3,2,1))]" />
-        <div className="absolute inset-x-[-20%] top-[-10%] h-[44%] rounded-full bg-[#7b1711]/26 blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-[42%] bg-[radial-gradient(circle_at_50%_100%,rgba(214,168,79,0.18),transparent_58%)]" />
-      </div>
+<div className="pointer-events-none fixed inset-0 z-0 mx-auto w-full max-w-md overflow-hidden bg-[#090202]">
+  <div
+    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+    style={{ backgroundImage: `url(${TEMP_PALACE_BACKGROUND})` }}
+  />
+  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.54)_0%,rgba(0,0,0,0.22)_34%,rgba(0,0,0,0.78)_100%)]" />
+  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(255,215,122,0.13),transparent_32%),radial-gradient(circle_at_50%_100%,rgba(86,13,6,0.64),transparent_50%)]" />
+</div>
 
-      <div className="relative z-10 pb-44">
+      <div className="relative z-10 px-1 pb-44">
         <header className="flex items-center justify-between">
           <Link href="/" className="text-sm font-bold text-[#ffd77a]">
             မူလသို့
@@ -271,8 +276,8 @@ function CashierPageContent() {
           </div>
         ) : null}
 
-        <section className="mt-4 overflow-hidden rounded-[1.75rem] border border-[#d6a84f]/18 bg-[linear-gradient(145deg,rgba(48,8,5,0.9),rgba(10,1,1,0.94),rgba(42,6,4,0.88))] shadow-2xl shadow-black/35">
-          <div className="border-b border-[#d6a84f]/10 px-5 py-4">
+        <section className="mt-4 overflow-hidden rounded-[1.85rem] border border-[#d6a84f]/42 bg-[linear-gradient(145deg,rgba(58,10,5,0.97),rgba(10,2,2,0.99),rgba(70,13,6,0.96))] shadow-[0_26px_80px_rgba(0,0,0,0.82),inset_0_1px_0_rgba(255,215,122,0.16)]">
+          <div className="border-b border-[#d6a84f]/18 bg-[#d6a84f]/8 px-5 py-4">
             <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#ffd77a]/50">
               ငွေသွင်းရန်
             </p>
@@ -299,7 +304,7 @@ function CashierPageContent() {
               </div>
 
               <div className="grid gap-3">
-                <div className="rounded-[1.25rem] border border-[#d6a84f]/12 bg-black/30 p-4">
+                <div className="rounded-[1.25rem] border border-[#d6a84f]/20 bg-black/55 p-4">
                   <p className="text-xs font-bold text-[#fff1c2]/38">
                     ဝန်ဆောင်မှု
                   </p>
@@ -308,7 +313,7 @@ function CashierPageContent() {
                   </p>
                 </div>
 
-                <div className="rounded-[1.25rem] border border-[#d6a84f]/12 bg-black/30 p-4">
+                <div className="rounded-[1.25rem] border border-[#d6a84f]/20 bg-black/55 p-4">
                   <p className="text-xs font-bold text-[#fff1c2]/38">
                     အကောင့်အမည်
                   </p>
@@ -317,7 +322,7 @@ function CashierPageContent() {
                   </p>
                 </div>
 
-                <div className="rounded-[1.25rem] border border-emerald-300/15 bg-emerald-400/10 p-4">
+                <div className="rounded-[1.25rem] border border-emerald-300/22 bg-emerald-400/14 p-4 shadow-inner shadow-black/35">
                   <p className="text-xs font-bold text-emerald-100/55">
                     ဖုန်း / အကောင့်နံပါတ်
                   </p>
@@ -363,7 +368,7 @@ function CashierPageContent() {
                   </div>
                 </div>
 
-                <div className="rounded-[1.25rem] border border-[#d6a84f]/16 bg-[#d6a84f]/10 p-4">
+                <div className="rounded-[1.25rem] border border-[#d6a84f]/24 bg-[#d6a84f]/12 p-4 shadow-inner shadow-black/30">
                   <p className="text-xs font-bold text-[#ffd77a]/60">
                     မှတ်ချက်
                   </p>
@@ -388,8 +393,8 @@ function CashierPageContent() {
           )}
         </section>
 
-        <div className="mt-4 rounded-[1.75rem] border border-[#d6a84f]/12 bg-black/25 p-3">
-          <div className="mb-3 rounded-[1.25rem] border border-[#d6a84f]/10 bg-[#d6a84f]/8 px-4 py-3">
+        <div className="mt-4 rounded-[1.75rem] border border-[#d6a84f]/35 bg-[linear-gradient(180deg,rgba(14,3,2,0.97),rgba(34,6,3,0.96))] p-3 shadow-xl shadow-black/60">
+          <div className="mb-3 rounded-[1.25rem] border border-[#d6a84f]/18 bg-[#d6a84f]/10 px-4 py-3">
             <p className="text-xs font-bold text-[#fff1c2]/45">
               {activeTab === "deposit"
                 ? `အနည်းဆုံး ${formatMMK(minimumDeposit)} ကျပ်မှ စတင်နိုင်ပါသည်`

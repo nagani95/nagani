@@ -21,40 +21,34 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const errorMessage = params?.error;
 
   return (
-    <NaganiPageShell>
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#090202]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(214,168,79,0.2),transparent_34%),linear-gradient(180deg,rgba(44,8,4,0.96),rgba(8,1,1,0.98)_58%,rgba(24,3,2,1))]" />
-        <div className="absolute inset-x-[-20%] top-[-8%] h-[42%] rounded-full bg-[#7b1711]/28 blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-[38%] bg-[radial-gradient(circle_at_50%_100%,rgba(214,168,79,0.16),transparent_58%)]" />
-      </div>
-
-      <section className="relative z-10 flex min-h-[100svh] items-center justify-center px-5 pb-12 pt-10">
-        <div className="w-full max-w-sm -translate-y-12">
+    <NaganiPageShell contentClassName="relative z-10 min-h-[100svh]">
+      <section className="relative flex min-h-[100svh] items-center justify-center px-5 pb-8 pt-8">
+        <div className="w-full max-w-[360px]">
           <div className="text-center">
             <div
-              className="mx-auto h-28 w-28 bg-contain bg-center bg-no-repeat drop-shadow-[0_10px_28px_rgba(0,0,0,0.75)]"
+              className="mx-auto h-24 w-24 bg-contain bg-center bg-no-repeat drop-shadow-[0_10px_28px_rgba(0,0,0,0.85)]"
               style={{
                 backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
               }}
               aria-label="နဂါးနီ"
             />
 
-            <h1 className="mt-4 text-4xl font-black tracking-[0.1em] text-[#ffd77a] drop-shadow-[0_3px_14px_rgba(0,0,0,0.85)]">
+            <h1 className="mt-3 text-4xl font-black tracking-[0.1em] text-[#ffd77a] drop-shadow-[0_3px_14px_rgba(0,0,0,0.9)]">
               နဂါးနီ
             </h1>
 
-            <p className="mt-3 text-sm font-bold leading-7 text-[#fff3d0]/75">
+            <p className="mt-2 text-sm font-bold leading-7 text-[#fff3d0]/78 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
               မြန်မာ့ရိုးရာ တော်ဝင်ပွဲခန်းမသို့ ဝင်ရောက်ပါ
             </p>
           </div>
 
-          <div className="relative mt-7 overflow-hidden rounded-[2rem] border border-[#d6a84f]/35 bg-[linear-gradient(145deg,rgba(58,10,5,0.9),rgba(9,2,2,0.96),rgba(85,17,8,0.78))] p-5 shadow-2xl shadow-black/60">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.16),transparent_38%)]" />
+          <div className="relative mt-6 overflow-hidden rounded-[1.75rem] border border-[#d6a84f]/45 bg-[linear-gradient(145deg,rgba(58,10,5,0.97),rgba(10,2,2,0.99),rgba(70,13,6,0.96))] p-5 shadow-[0_26px_80px_rgba(0,0,0,0.82),inset_0_1px_0_rgba(255,215,122,0.16)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.1),transparent_34%)]" />
             <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/70 to-transparent" />
 
             <form action={loginWithEmail} className="relative space-y-5">
               <div>
-                <p className="text-xs font-black tracking-[0.16em] text-[#f7dfaa]/55">
+                <p className="text-xs font-black tracking-[0.16em] text-[#f7dfaa]/60">
                   အကောင့်ဝင်ရန်
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-[#ffd77a]">
@@ -94,7 +88,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <div className="flex items-center justify-between gap-4 border-t border-[#d6a84f]/12 px-1 pt-4 text-[0.85rem] font-black leading-6">
                 <Link
                   href="/"
-                  className="text-[#f7dfaa]/65 active:text-[#fff3d0]"
+                  className="text-[#f7dfaa]/70 active:text-[#fff3d0]"
                 >
                   မူလသို့
                 </Link>
