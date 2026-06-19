@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import AdminShell from "@/components/admin/AdminShell";
 import { createClient } from "@/lib/supabase/server";
 import {
   approveWalletRequest,
@@ -17,7 +18,15 @@ type WalletRequestRow = {
   amount: number | string;
   note: string | null;
   status: "pending" | "approved" | "rejected" | "cancelled";
+  admin_note: string | null;
+  reviewed_at: string | null;
   created_at: string;
+};
+
+type ProfileRow = {
+  id: string;
+  username: string | null;
+  member_code: string | null;
 };
 
 type AdminWalletRequestsPageProps = {
@@ -27,12 +36,13 @@ type AdminWalletRequestsPageProps = {
   }>;
 };
 
-function formatMMK(amount: number) {
-  return new Intl.NumberFormat("en-US").format(amount);
+function formatMMK(amount: number | string | null | undefined) {
+  const safeAmount = Number(amount ?? 0);
+  return `${new Intl.NumberFormat("en-US").format(safeAmount)} MMK`;
 }
 
 function formatRequestType(type: WalletRequestRow["request_type"]) {
-  return type === "deposit" ? "Deposit" : "Withdrawal";
+  return type === "deposit" ? "Deposit" : "Withdraw";
 }
 
 function formatRequestStatus(status: WalletRequestRow["status"]) {
@@ -40,7 +50,7 @@ function formatRequestStatus(status: WalletRequestRow["status"]) {
   if (status === "rejected") return "Rejected";
   if (status === "cancelled") return "Cancelled";
 
-  return "Pending review";
+  return "Pending";
 }
 
 function getStatusClass(status: WalletRequestRow["status"]) {
@@ -55,7 +65,17 @@ function getStatusClass(status: WalletRequestRow["status"]) {
   return "border-amber-400/20 bg-amber-400/10 text-amber-100";
 }
 
-function formatTime(value: string) {
+function getTypeClass(type: WalletRequestRow["request_type"]) {
+  if (type === "deposit") {
+    return "border-emerald-400/20 bg-emerald-400/10 text-emerald-100";
+  }
+
+  return "border-sky-400/20 bg-sky-400/10 text-sky-100";
+}
+
+function formatTime(value: string | null | undefined) {
+  if (!value) return "—";
+
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Yangon",
     month: "short",
@@ -65,8 +85,8 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
-function formatMemberId(profileId: string) {
-  return `NG-${profileId.slice(0, 8).toUpperCase()}`;
+function formatMemberId(profileId: string, memberCode?: string | null) {
+  return memberCode || `NG-${profileId.slice(0, 8).toUpperCase()}`;
 }
 
 export default async function AdminWalletRequestsPage({
@@ -79,152 +99,337 @@ export default async function AdminWalletRequestsPage({
 
   const { data: requests, error } = await supabase
     .from("wallet_requests")
-    .select("id, profile_id, request_type, amount, note, status, created_at")
+    .select(
+      "id, profile_id, request_type, amount, note, status, admin_note, reviewed_at, created_at"
+    )
     .order("created_at", { ascending: false })
     .limit(50)
     .returns<WalletRequestRow[]>();
 
-  const pendingCount = (requests ?? []).filter(
+  const profileIds = Array.from(
+    new Set((requests ?? []).map((request) => request.profile_id))
+  );
+
+  const { data: profiles, error: profilesError } =
+    profileIds.length > 0
+      ? await supabase
+          .from("profiles")
+          .select("id, username, member_code")
+          .in("id", profileIds)
+          .returns<ProfileRow[]>()
+      : { data: [], error: null };
+
+  const profileById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile])
+  );
+
+  const requestList = requests ?? [];
+  const pendingRequests = requestList.filter(
     (request) => request.status === "pending"
-  ).length;
+  );
+  const reviewedRequests = requestList.filter(
+    (request) => request.status !== "pending"
+  );
+
+  const pendingDepositTotal = pendingRequests
+    .filter((request) => request.request_type === "deposit")
+    .reduce((sum, request) => sum + Number(request.amount ?? 0), 0);
+
+  const pendingWithdrawTotal = pendingRequests
+    .filter((request) => request.request_type === "withdraw")
+    .reduce((sum, request) => sum + Number(request.amount ?? 0), 0);
+
+  const errors = [
+    error ? `Wallet requests: ${error.message}` : null,
+    profilesError ? `Profiles: ${profilesError.message}` : null,
+  ].filter((item): item is string => Boolean(item));
 
   return (
-    <main className="min-h-screen bg-[#090202] px-5 py-6 text-white">
-      <section className="mx-auto w-full max-w-6xl">
-        <Link href="/admin" className="text-sm font-bold text-amber-300">
-          ← Admin Home
+    <AdminShell
+      title="Wallet Requests"
+      eyebrow="Balance Operation"
+      description="Review player deposit and withdraw requests. Approval and rejection still use the protected wallet review RPC."
+      action={
+        <Link
+          href="/admin/users"
+          className="rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black text-amber-100/80 transition hover:bg-amber-300 hover:text-black"
+        >
+          Users
         </Link>
+      }
+    >
+      {successMessage ? (
+        <section className="rounded-2xl border border-emerald-400/25 bg-emerald-950/25 p-4">
+          <p className="text-sm font-black text-emerald-100">
+            {successMessage}
+          </p>
+        </section>
+      ) : null}
 
-        <header className="mt-6 rounded-[2rem] border border-red-500/25 bg-gradient-to-br from-red-950 via-[#160303] to-black p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-200/60">
-            Wallet Operation
+      {errorMessage ? (
+        <section className="rounded-2xl border border-red-400/25 bg-red-950/25 p-4">
+          <p className="text-sm font-black text-red-100">{errorMessage}</p>
+        </section>
+      ) : null}
+
+      {errors.length > 0 ? (
+        <section className="mt-3 rounded-2xl border border-red-400/25 bg-red-950/25 p-4">
+          <p className="text-sm font-black text-red-100">
+            Wallet request warning
           </p>
 
-          <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-4xl font-black text-amber-100">
-                Wallet Requests
-              </h1>
-              <p className="mt-3 text-sm leading-6 text-amber-50/65">
-                Review player deposit and withdrawal requests. Approval updates
-                the wallet through the protected server action.
+          <div className="mt-2 space-y-1">
+            {errors.map((item) => (
+              <p key={item} className="text-xs font-semibold text-red-100/70">
+                {item}
               </p>
-            </div>
-
-            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-5 py-4 text-right">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-200/55">
-                Pending
-              </p>
-              <p className="mt-1 text-3xl font-black text-amber-100">
-                {pendingCount}
-              </p>
-            </div>
+            ))}
           </div>
-        </header>
+        </section>
+      ) : null}
 
-        {successMessage ? (
-          <section className="mt-6 rounded-[1.5rem] border border-emerald-400/30 bg-emerald-950/30 p-5">
-            <p className="text-sm font-black text-emerald-100">
-              {successMessage}
+      <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100/55">
+            Pending
+          </p>
+          <p className="mt-2 text-2xl font-black text-amber-100">
+            {pendingRequests.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-100/55">
+            Pending Deposit
+          </p>
+          <p className="mt-2 truncate text-2xl font-black text-emerald-100">
+            {formatMMK(pendingDepositTotal)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-sky-300/15 bg-sky-400/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-100/55">
+            Pending Withdraw
+          </p>
+          <p className="mt-2 truncate text-2xl font-black text-sky-100">
+            {formatMMK(pendingWithdrawTotal)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/40">
+            Loaded Requests
+          </p>
+          <p className="mt-2 text-2xl font-black text-amber-100">
+            {requestList.length}
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-amber-300/12 bg-black/35 p-4">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-amber-200/45">
+              Pending Review
             </p>
-          </section>
-        ) : null}
+            <h2 className="mt-1 text-xl font-black text-amber-100">
+              Action Required
+            </h2>
+          </div>
 
-        {errorMessage ? (
-          <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
-            <p className="text-sm font-black text-red-100">{errorMessage}</p>
-          </section>
-        ) : null}
+          <p className="rounded-full border border-amber-300/15 bg-amber-300/10 px-4 py-2 text-xs font-black text-amber-100/70">
+            {pendingRequests.length} pending
+          </p>
+        </div>
 
-        {error ? (
-          <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
-            <p className="text-sm font-black text-red-100">
-              Wallet request warning
-            </p>
-            <p className="mt-2 text-xs text-red-100/75">{error.message}</p>
-          </section>
-        ) : null}
-
-        <section className="mt-6 grid gap-4">
-          {(requests ?? []).length === 0 ? (
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/40 p-5 text-sm font-bold text-white/45">
-              No wallet requests yet.
+        <div className="mt-4 grid gap-3">
+          {pendingRequests.length === 0 ? (
+            <div className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-bold text-white/45">
+              No pending wallet requests.
             </div>
           ) : null}
 
-          {(requests ?? []).map((request) => (
-            <article
-              key={request.id}
-              className="rounded-[1.5rem] border border-amber-400/15 bg-black/40 p-5"
-            >
-              <div className="grid gap-4 md:grid-cols-[180px_1fr_140px_160px_160px] md:items-center">
-                <div>
-                  <p className="text-xs font-bold text-white/40">
-                    NG-WALLET-{request.id.slice(0, 8).toUpperCase()}
+          {pendingRequests.map((request) => {
+            const profile = profileById.get(request.profile_id);
+
+            return (
+              <article
+                key={request.id}
+                className="rounded-xl border border-amber-300/15 bg-[#120504] p-4"
+              >
+                <div className="grid gap-3 lg:grid-cols-[160px_1fr_120px_160px_120px] lg:items-center">
+                  <div>
+                    <p className="text-xs font-black text-white/35">
+                      NG-WALLET-{request.id.slice(0, 8).toUpperCase()}
+                    </p>
+                    <p className="mt-1 text-[11px] font-bold text-white/30">
+                      {formatTime(request.created_at)}
+                    </p>
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-base font-black text-amber-100">
+                      {formatMemberId(request.profile_id, profile?.member_code)}
+                    </p>
+                    <p className="mt-1 break-all text-xs font-semibold text-white/35">
+                      {request.profile_id}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-white/40">
+                      {profile?.username || "No username"}
+                    </p>
+                  </div>
+
+                  <p
+                    className={`w-fit rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.14em] ${getTypeClass(
+                      request.request_type
+                    )}`}
+                  >
+                    {formatRequestType(request.request_type)}
                   </p>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/30">
+
+                  <p className="text-lg font-black text-emerald-100">
+                    {formatMMK(request.amount)}
+                  </p>
+
+                  <p
+                    className={`w-fit rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.14em] ${getStatusClass(
+                      request.status
+                    )}`}
+                  >
+                    {formatRequestStatus(request.status)}
+                  </p>
+                </div>
+
+                {request.note ? (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/30">
+                      Player Note
+                    </p>
+                    <p className="mt-1 break-words text-sm font-semibold text-white/55">
+                      {request.note}
+                    </p>
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-2">
+                  <form action={approveWalletRequest} className="space-y-3">
+                    <input type="hidden" name="requestId" value={request.id} />
+
+                    <input
+                      name="adminNote"
+                      placeholder="Admin note for approval"
+                      className="w-full rounded-xl border border-emerald-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-emerald-300/40"
+                    />
+
+                    <button
+                      type="submit"
+                      className="w-full rounded-full border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-300 hover:text-black"
+                    >
+                      Approve
+                    </button>
+                  </form>
+
+                  <form action={rejectWalletRequest} className="space-y-3">
+                    <input type="hidden" name="requestId" value={request.id} />
+
+                    <input
+                      name="adminNote"
+                      placeholder="Admin note for rejection"
+                      className="w-full rounded-xl border border-red-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-red-300/40"
+                    />
+
+                    <button
+                      type="submit"
+                      className="w-full rounded-full border border-red-300/30 bg-red-500/15 px-5 py-3 text-sm font-black text-red-100 transition hover:bg-red-300 hover:text-black"
+                    >
+                      Reject
+                    </button>
+                  </form>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-white/35">
+            Reviewed Requests
+          </p>
+          <h2 className="mt-1 text-xl font-black text-amber-100">
+            Recent History
+          </h2>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
+          {reviewedRequests.length === 0 ? (
+            <div className="px-4 py-5 text-sm font-bold text-white/45">
+              No reviewed requests loaded.
+            </div>
+          ) : null}
+
+          {reviewedRequests.map((request) => {
+            const profile = profileById.get(request.profile_id);
+
+            return (
+              <div
+                key={request.id}
+                className="grid gap-3 border-b border-white/10 p-4 last:border-b-0 xl:grid-cols-[150px_1fr_120px_150px_130px_150px] xl:items-center"
+              >
+                <div>
+                  <p className="text-xs font-black text-white/35">
+                    {request.id.slice(0, 8).toUpperCase()}
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-white/30">
                     {formatTime(request.created_at)}
                   </p>
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-lg font-black text-amber-100">
-                    {formatMemberId(request.profile_id)}
+                  <p className="font-black text-amber-100">
+                    {formatMemberId(request.profile_id, profile?.member_code)}
                   </p>
-                  <p className="mt-1 break-all text-xs text-white/35">
+                  <p className="mt-1 break-all text-xs font-semibold text-white/35">
                     {request.profile_id}
                   </p>
-                  {request.note ? (
-                    <p className="mt-2 break-words text-xs font-bold text-white/50">
-                      Note: {request.note}
-                    </p>
-                  ) : null}
                 </div>
 
-                <p className="font-bold text-white/70">
+                <p
+                  className={`w-fit rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.14em] ${getTypeClass(
+                    request.request_type
+                  )}`}
+                >
                   {formatRequestType(request.request_type)}
                 </p>
 
                 <p className="font-black text-emerald-100">
-                  {formatMMK(Number(request.amount))} MMK
+                  {formatMMK(request.amount)}
                 </p>
 
                 <p
-                  className={`rounded-full border px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] ${getStatusClass(
+                  className={`w-fit rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.14em] ${getStatusClass(
                     request.status
                   )}`}
                 >
                   {formatRequestStatus(request.status)}
                 </p>
-              </div>
 
-              {request.status === "pending" ? (
-                <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-2">
-                  <form action={approveWalletRequest}>
-                    <input type="hidden" name="requestId" value={request.id} />
-                    <button
-                      type="submit"
-                      className="w-full rounded-full border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-300 hover:text-black"
-                    >
-                      Approve Request
-                    </button>
-                  </form>
-
-                  <form action={rejectWalletRequest}>
-                    <input type="hidden" name="requestId" value={request.id} />
-                    <button
-                      type="submit"
-                      className="w-full rounded-full border border-red-300/30 bg-red-500/15 px-5 py-3 text-sm font-black text-red-100 transition hover:bg-red-300 hover:text-black"
-                    >
-                      Reject Request
-                    </button>
-                  </form>
+                <div>
+                  <p className="text-xs font-bold text-white/35">
+                    {formatTime(request.reviewed_at)}
+                  </p>
+                  {request.admin_note ? (
+                    <p className="mt-1 break-words text-xs font-semibold text-white/45">
+                      {request.admin_note}
+                    </p>
+                  ) : null}
                 </div>
-              ) : null}
-            </article>
-          ))}
-        </section>
+              </div>
+            );
+          })}
+        </div>
       </section>
-    </main>
+    </AdminShell>
   );
 }

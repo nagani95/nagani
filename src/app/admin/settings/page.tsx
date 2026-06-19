@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import AdminShell from "@/components/admin/AdminShell";
+
 export const dynamic = "force-dynamic";
 
 const sixAnimalSettings = [
@@ -52,98 +54,121 @@ const platformSettings = [
 
 export default function AdminSettingsPage() {
   return (
-    <main className="min-h-screen bg-[#090202] px-5 py-6 text-white">
-      <section className="mx-auto w-full max-w-6xl">
-        <Link href="/admin" className="text-sm font-bold text-amber-300">
-          ← Admin Home
+    <AdminShell
+      title="Settings"
+      eyebrow="Platform Settings"
+      description="Read-only summary of current Nagani MVP operating rules. This page does not change wallets, bets, rounds, results, player access, or backend room behavior."
+      action={
+        <Link
+          href="/admin/backend-health"
+          className="rounded-full border border-sky-300/20 bg-sky-400/10 px-4 py-2 text-xs font-black text-sky-100/85 transition hover:bg-sky-300 hover:text-black"
+        >
+          Backend Health
         </Link>
-
-        <header className="mt-6 rounded-[2rem] border border-red-500/25 bg-gradient-to-br from-red-950 via-[#160303] to-black p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-200/60">
-            Platform Settings
+      }
+    >
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-100/55">
+            Six Animal
           </p>
+          <p className="mt-2 text-2xl font-black text-emerald-100">Open</p>
+        </div>
 
-          <h1 className="mt-3 text-4xl font-black text-amber-100">
-            MVP Settings
-          </h1>
-
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-amber-50/65">
-            Read-only summary of the current Nagani MVP operating rules. This
-            page does not change wallets, bets, rounds, results, player access,
-            or backend room behavior.
+        <div className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100/55">
+            Wallet Flow
           </p>
-        </header>
-
-        <section className="mt-6 rounded-[1.75rem] border border-amber-400/15 bg-black/40 p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-200/50">
-            Six Animal MVP
+          <p className="mt-2 text-2xl font-black text-amber-100">
+            Admin Review
           </p>
+        </div>
 
-          <h2 className="mt-2 text-2xl font-black text-amber-100">
-            Current Game Rules
-          </h2>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {sixAnimalSettings.map((setting) => (
-              <div
-                key={setting.title}
-                className="rounded-[1.5rem] border border-amber-400/15 bg-amber-400/10 p-5"
-              >
-                <p className="text-sm font-bold text-white/45">
-                  {setting.title}
-                </p>
-                <p className="mt-2 text-2xl font-black text-amber-100">
-                  {setting.value}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-white/45">
-                  {setting.note}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-[1.75rem] border border-red-400/15 bg-red-950/10 p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-200/50">
-            Platform Surface
+        <div className="rounded-2xl border border-sky-300/15 bg-sky-400/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-100/55">
+            Room Mode
           </p>
-
-          <h2 className="mt-2 text-2xl font-black text-amber-100">
-            Release Status
-          </h2>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {platformSettings.map((setting) => (
-              <div
-                key={setting.title}
-                className="rounded-[1.5rem] border border-white/10 bg-black/30 p-5"
-              >
-                <p className="text-sm font-bold text-white/45">
-                  {setting.title}
-                </p>
-                <p className="mt-2 text-2xl font-black text-amber-100">
-                  {setting.value}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-white/45">
-                  {setting.note}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-[1.75rem] border border-white/10 bg-black/40 p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/35">
-            Read-only Lock
+          <p className="mt-2 text-2xl font-black text-sky-100">
+            Backend Auto
           </p>
-          <p className="mt-2 text-sm leading-6 text-white/55">
-            Admin setting controls are intentionally disabled for the current
-            MVP. Any future editable setting should be added only after a
-            protected backend setting source, admin audit logging, and production
-            QA are ready.
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/40">
+            Settings Mode
           </p>
-        </section>
+          <p className="mt-2 text-2xl font-black text-white/70">Read Only</p>
+        </div>
       </section>
-    </main>
+
+      <section className="mt-4 rounded-2xl border border-amber-300/12 bg-black/35 p-4">
+        <p className="text-[11px] font-black uppercase tracking-[0.28em] text-amber-200/45">
+          Six Animal MVP
+        </p>
+
+        <h2 className="mt-1 text-xl font-black text-amber-100">
+          Current Game Rules
+        </h2>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {sixAnimalSettings.map((setting) => (
+            <div
+              key={setting.title}
+              className="rounded-xl border border-amber-300/12 bg-amber-300/8 p-4"
+            >
+              <p className="text-sm font-bold text-white/45">
+                {setting.title}
+              </p>
+              <p className="mt-2 text-2xl font-black text-amber-100">
+                {setting.value}
+              </p>
+              <p className="mt-2 text-xs font-semibold leading-5 text-white/42">
+                {setting.note}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-red-300/12 bg-red-950/10 p-4">
+        <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-200/50">
+          Platform Surface
+        </p>
+
+        <h2 className="mt-1 text-xl font-black text-amber-100">
+          Release Status
+        </h2>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {platformSettings.map((setting) => (
+            <div
+              key={setting.title}
+              className="rounded-xl border border-white/10 bg-black/30 p-4"
+            >
+              <p className="text-sm font-bold text-white/45">
+                {setting.title}
+              </p>
+              <p className="mt-2 text-2xl font-black text-amber-100">
+                {setting.value}
+              </p>
+              <p className="mt-2 text-xs font-semibold leading-5 text-white/42">
+                {setting.note}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-white/10 bg-black/35 p-4">
+        <p className="text-[11px] font-black uppercase tracking-[0.28em] text-white/35">
+          Read-only Lock
+        </p>
+        <p className="mt-1 text-sm font-semibold leading-6 text-white/50">
+          Admin setting controls are intentionally disabled for the current MVP.
+          Future editable settings should be added only after a protected backend
+          setting source, admin audit logging, and production QA are ready.
+        </p>
+      </section>
+    </AdminShell>
   );
 }

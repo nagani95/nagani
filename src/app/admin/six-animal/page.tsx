@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import AdminShell from "@/components/admin/AdminShell";
 import SixAnimalAdminRefresh from "@/components/admin/SixAnimalAdminRefresh";
 import { createClient } from "@/lib/supabase/server";
 
@@ -83,13 +84,13 @@ function normalizeResultAnimals(value: unknown) {
     .filter(Boolean);
 }
 
-function getPhaseTone(phase: string) {
+function getPhaseTone(phase: string | null | undefined) {
   if (phase === "betting") return "text-emerald-100";
   if (phase === "closed") return "text-amber-100";
   if (phase === "rolling") return "text-sky-100";
   if (phase === "result") return "text-purple-100";
 
-  return "text-white/70";
+  return "text-white/50";
 }
 
 function getPhaseTarget(round: SixAnimalRound | null) {
@@ -147,7 +148,6 @@ function getBetResultLabel(bet: SixAnimalBet, resultAnimals: string[]) {
 
 function getFestivalBucket(totalBetAmount: number, totalPayoutAmount: number) {
   if (totalBetAmount <= 0) return "No Bets";
-
   if (totalPayoutAmount === 0) return "Admin Keep";
 
   const payoutRatio = totalPayoutAmount / totalBetAmount;
@@ -295,388 +295,370 @@ export default async function AdminSixAnimalPage({
   const errors = [
     currentRoundError ? `Current round: ${currentRoundError.message}` : null,
     currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
-  ].filter(Boolean);
+  ].filter((error): error is string => Boolean(error));
 
   return (
-    <main className="min-h-screen bg-[#090202] px-5 py-6 text-white">
-      <section className="mx-auto w-full max-w-6xl">
-        <Link href="/admin" className="text-sm font-bold text-amber-300">
-          ← Admin Home
+    <AdminShell
+      title="6 Animal Monitor"
+      eyebrow="Live Room Monitor"
+      description="Read-only Six Animal room monitor for round state, bet exposure, result visibility, payout pressure, and settlement watch."
+      action={
+        <Link
+          href="/admin/backend-health"
+          className="rounded-full border border-sky-300/20 bg-sky-400/10 px-4 py-2 text-xs font-black text-sky-100/85 transition hover:bg-sky-300 hover:text-black"
+        >
+          Backend Health
         </Link>
+      }
+    >
+      {successMessage ? (
+        <section className="rounded-2xl border border-emerald-400/25 bg-emerald-950/25 p-4">
+          <p className="text-sm font-black text-emerald-100">
+            {successMessage}
+          </p>
+        </section>
+      ) : null}
 
-        <header className="mt-6 rounded-[2rem] border border-red-500/25 bg-gradient-to-br from-red-950 via-[#160303] to-black p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-200/60">
-            Live Room Monitor
+      {errorMessage ? (
+        <section className="rounded-2xl border border-red-400/25 bg-red-950/25 p-4">
+          <p className="text-sm font-black text-red-100">{errorMessage}</p>
+        </section>
+      ) : null}
+
+      {errors.length > 0 ? (
+        <section className="mt-3 rounded-2xl border border-red-400/25 bg-red-950/25 p-4">
+          <p className="text-sm font-black text-red-100">
+            Admin monitor warning
           </p>
 
-          <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-4xl font-black text-amber-100">
-                ၆ ကောင်ဂျင် Monitor
-              </h1>
-              <p className="mt-3 text-sm leading-6 text-amber-50/65">
-                Read-only monitoring for the main Six Animal live room. This
-                page does not change dice, results, wallets, settlements, or
-                room timing.
+          <div className="mt-2 space-y-1">
+            {errors.map((error) => (
+              <p key={error} className="text-xs font-semibold text-red-100/70">
+                {error}
               </p>
-            </div>
-
-            <div className="rounded-2xl border border-amber-400/15 bg-black/35 px-5 py-4">
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/35">
-                Main Room
-              </p>
-              <p className="mt-2 break-all text-sm font-black text-amber-100">
-                {MAIN_ROOM_ID}
-              </p>
-            </div>
+            ))}
           </div>
-        </header>
+        </section>
+      ) : null}
 
-        {successMessage ? (
-          <section className="mt-6 rounded-[1.5rem] border border-emerald-400/30 bg-emerald-950/30 p-5">
-            <p className="text-sm font-black text-emerald-100">
-              {successMessage}
-            </p>
-          </section>
-        ) : null}
+      {hasSettlementWatch ? (
+        <section className="mt-3 rounded-2xl border border-amber-400/25 bg-amber-950/25 p-4">
+          <p className="text-sm font-black text-amber-100">
+            Settlement watch
+          </p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/60">
+            Current round is in result phase and still has {unsettledCount}{" "}
+            unsettled bet{unsettledCount === 1 ? "" : "s"}. This panel is only
+            a monitor. It does not settle, retry, credit, debit, or change
+            backend state.
+          </p>
+        </section>
+      ) : null}
 
-        {errorMessage ? (
-          <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
-            <p className="text-sm font-black text-red-100">{errorMessage}</p>
-          </section>
-        ) : null}
-
-        {errors.length > 0 ? (
-          <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
-            <p className="text-sm font-black text-red-100">
-              Admin monitor warning
-            </p>
-            <div className="mt-3 space-y-2">
-              {errors.map((error) => (
-                <p key={error} className="text-xs text-red-100/75">
-                  {error}
-                </p>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {hasSettlementWatch ? (
-          <section className="mt-6 rounded-[1.5rem] border border-amber-400/30 bg-amber-950/25 p-5">
-            <p className="text-sm font-black text-amber-100">
-              Settlement watch
-            </p>
-            <p className="mt-2 text-xs leading-5 text-amber-50/60">
-              Current round is in result phase and still has {unsettledCount}{" "}
-              unsettled bet{unsettledCount === 1 ? "" : "s"}. This panel is
-              only a monitor. It does not settle, retry, credit, debit, or
-              change backend state.
-            </p>
-          </section>
-        ) : null}
-
+      <div className="mt-4">
         <SixAnimalAdminRefresh
           phase={currentRound?.phase ?? null}
           targetTime={phaseTarget}
           generatedAt={snapshotGeneratedAt}
         />
+      </div>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-4">
-          <div className="rounded-[1.5rem] border border-amber-400/20 bg-amber-400/10 p-5">
-            <p className="text-xs text-amber-200/60">Current Round</p>
-            <p className="mt-2 text-3xl font-black text-amber-100">
-              {currentRound ? `#${currentRound.round_number}` : "—"}
+      <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100/55">
+            Current Round
+          </p>
+          <p className="mt-2 text-2xl font-black text-amber-100">
+            {currentRound ? `#${currentRound.round_number}` : "—"}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-100/55">
+            Phase
+          </p>
+          <p
+            className={`mt-2 text-2xl font-black capitalize ${getPhaseTone(
+              currentRound?.phase
+            )}`}
+          >
+            {currentRound?.phase ?? "—"}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-red-300/15 bg-red-500/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-red-100/55">
+            Current Bets
+          </p>
+          <p className="mt-2 text-2xl font-black text-red-100">
+            {currentBetsList.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-sky-300/15 bg-sky-400/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-100/55">
+            Bet Amount
+          </p>
+          <p className="mt-2 truncate text-2xl font-black text-sky-100">
+            {formatAmount(totalBetAmount)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/40">
+            Main Room
+          </p>
+          <p className="mt-2 truncate text-sm font-black text-amber-100">
+            {MAIN_ROOM_ID}
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-purple-300/15 bg-purple-950/10 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-purple-200/50">
+              Festival Result Engine
+            </p>
+            <h2 className="mt-1 text-xl font-black text-amber-100">
+              Admin-Safe Room Monitor
+            </h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-white/45">
+              Backend result mode is Festival Balance v2. Admin can monitor
+              risk, payout pressure, and room result health, but cannot force a
+              specific winning animal from this page.
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-400/10 p-5">
-            <p className="text-xs text-emerald-200/60">Phase</p>
-            <p
-              className={`mt-2 text-3xl font-black capitalize ${
-                currentRound ? getPhaseTone(currentRound.phase) : "text-white/40"
-              }`}
-            >
-              {currentRound?.phase ?? "—"}
+          <div
+            className={`w-fit rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.16em] ${getFestivalBucketTone(
+              festivalBucket
+            )}`}
+          >
+            {festivalBucket}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-4">
+          <div className="rounded-xl border border-purple-400/15 bg-purple-400/10 p-3">
+            <p className="text-xs text-purple-100/55">Result Mode</p>
+            <p className="mt-1 text-sm font-black text-purple-100">
+              festival_balance_v2
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] border border-red-400/20 bg-red-400/10 p-5">
-            <p className="text-xs text-red-200/60">Current Bets</p>
-            <p className="mt-2 text-3xl font-black text-red-100">
-              {currentBetsList.length}
+          <div className="rounded-xl border border-sky-400/15 bg-sky-400/10 p-3">
+            <p className="text-xs text-sky-100/55">Projected Payout</p>
+            <p className="mt-1 text-lg font-black text-sky-100">
+              {resultIsPreloaded ? formatAmount(totalPayoutAmount) : "—"}
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-xs text-white/40">Total Bet Amount</p>
-            <p className="mt-2 text-2xl font-black text-amber-100">
-              {formatAmount(totalBetAmount)}
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-white/40">Payout Pressure</p>
+            <p className="mt-1 text-lg font-black text-white/80">
+              {formatPercent(payoutPercent)}
             </p>
           </div>
-        </section>
 
-        <section className="mt-6 rounded-[1.75rem] border border-purple-400/20 bg-gradient-to-br from-purple-950/25 via-black/50 to-red-950/20 p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-purple-200/55">
-                Festival Result Engine
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-amber-100">
-                Admin-Safe Room Monitor
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-white/55">
-                Backend result mode is Festival Balance v2. Admin can monitor
-                risk, payout pressure, and room result health, but cannot force
-                a specific winning animal from this page.
-              </p>
-            </div>
+          <div className="rounded-xl border border-white/10 bg-black/35 p-3">
+            <p className="text-xs text-white/40">Admin Net</p>
+            <p className={`mt-1 text-lg font-black ${getAdminNetTone(adminNet)}`}>
+              {adminNet === null ? "—" : formatAmount(adminNet)}
+            </p>
+          </div>
+        </div>
 
+        <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {betDistribution.map((item) => (
             <div
-              className={`rounded-2xl border px-4 py-3 text-center ${getFestivalBucketTone(
-                festivalBucket
-              )}`}
+              key={item.animal}
+              className="rounded-xl border border-white/10 bg-black/30 p-3"
             >
-              <p className="text-xs font-bold uppercase tracking-[0.22em] opacity-60">
-                Bucket
-              </p>
-              <p className="mt-1 text-lg font-black">{festivalBucket}</p>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-4">
-            <div className="rounded-[1.5rem] border border-purple-400/15 bg-purple-400/10 p-4">
-              <p className="text-xs text-purple-100/60">Result Mode</p>
-              <p className="mt-2 text-lg font-black text-purple-100">
-                festival_balance_v2
-              </p>
-            </div>
-
-            <div className="rounded-[1.5rem] border border-sky-400/15 bg-sky-400/10 p-4">
-              <p className="text-xs text-sky-100/60">Projected Payout</p>
-              <p className="mt-2 text-xl font-black text-sky-100">
-                {resultIsPreloaded ? formatAmount(totalPayoutAmount) : "—"}
-              </p>
-            </div>
-
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-xs text-white/40">Payout Pressure</p>
-              <p className="mt-2 text-xl font-black text-white/80">
-                {formatPercent(payoutPercent)}
-              </p>
-            </div>
-
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
-              <p className="text-xs text-white/40">Admin Net This Round</p>
-              <p className={`mt-2 text-xl font-black ${getAdminNetTone(adminNet)}`}>
-                {adminNet === null ? "—" : formatAmount(adminNet)}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-6">
-            {betDistribution.map((item) => (
-              <div
-                key={item.animal}
-                className="rounded-2xl border border-white/10 bg-black/30 p-4"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-black capitalize text-amber-100">
-                    {item.animal}
-                  </p>
-                  <p className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-black text-white/45">
-                    {item.resultHits === null ? "—" : `${item.resultHits}x`}
-                  </p>
-                </div>
-
-                <p className="mt-3 text-xs text-white/35">Single</p>
-                <p className="mt-1 text-sm font-black text-white/75">
-                  {formatAmount(item.singleAmount)}
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-black capitalize text-amber-100">
+                  {item.animal}
                 </p>
+                <p className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-black text-white/45">
+                  {item.resultHits === null ? "—" : `${item.resultHits}x`}
+                </p>
+              </div>
 
-                <p className="mt-2 text-xs text-white/35">Pair Exposure</p>
-                <p className="mt-1 text-sm font-black text-white/55">
-                  {formatAmount(item.pairAmount)}
+              <p className="mt-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/30">
+                Single
+              </p>
+              <p className="mt-1 text-sm font-black text-white/75">
+                {formatAmount(item.singleAmount)}
+              </p>
+
+              <p className="mt-2 text-[11px] font-black uppercase tracking-[0.14em] text-white/30">
+                Pair Exposure
+              </p>
+              <p className="mt-1 text-sm font-black text-white/55">
+                {formatAmount(item.pairAmount)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <article className="rounded-2xl border border-amber-300/12 bg-black/35 p-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-amber-200/45">
+                Backend Round State
+              </p>
+              <h2 className="mt-1 text-xl font-black text-amber-100">
+                Current Live Round
+              </h2>
+            </div>
+
+            <p className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black text-white/55">
+              Status: {currentRound?.status ?? "—"}
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {[
+              ["Betting Starts", currentRound?.betting_starts_at ?? null],
+              ["Betting Ends", currentRound?.betting_ends_at ?? null],
+              ["Rolling Starts", currentRound?.rolling_starts_at ?? null],
+              ["Result Revealed", currentRound?.result_revealed_at ?? null],
+              ["Next Round Starts", currentRound?.next_round_starts_at ?? null],
+              ["Current Phase Target", phaseTarget],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+              >
+                <p className="text-xs text-white/40">{label}</p>
+                <p className="mt-1 text-sm font-bold text-white/80">
+                  {formatTime(value)}
                 </p>
               </div>
             ))}
           </div>
-        </section>
+        </article>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-          <article className="rounded-[1.75rem] border border-amber-400/15 bg-black/40 p-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-200/50">
-                  Backend Round State
-                </p>
-                <h2 className="mt-2 text-2xl font-black text-amber-100">
-                  Current Live Round
-                </h2>
-              </div>
-
-              <p className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black text-white/55">
-                Status: {currentRound?.status ?? "—"}
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs text-white/40">Betting Starts</p>
-                <p className="mt-2 text-sm font-bold text-white/80">
-                  {formatTime(currentRound?.betting_starts_at ?? null)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs text-white/40">Betting Ends</p>
-                <p className="mt-2 text-sm font-bold text-white/80">
-                  {formatTime(currentRound?.betting_ends_at ?? null)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs text-white/40">Rolling Starts</p>
-                <p className="mt-2 text-sm font-bold text-white/80">
-                  {formatTime(currentRound?.rolling_starts_at ?? null)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs text-white/40">Result Revealed</p>
-                <p className="mt-2 text-sm font-bold text-white/80">
-                  {formatTime(currentRound?.result_revealed_at ?? null)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs text-white/40">Next Round Starts</p>
-                <p className="mt-2 text-sm font-bold text-white/80">
-                  {formatTime(currentRound?.next_round_starts_at ?? null)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-amber-400/15 bg-amber-400/10 p-4">
-                <p className="text-xs text-amber-200/60">
-                  Current Phase Target
-                </p>
-                <p className="mt-2 text-sm font-bold text-amber-100">
-                  {formatTime(phaseTarget)}
-                </p>
-              </div>
-            </div>
-          </article>
-
-          <article className="rounded-[1.75rem] border border-emerald-400/15 bg-emerald-950/10 p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-200/50">
-              Result Visibility
-            </p>
-            <h2 className="mt-2 text-2xl font-black text-amber-100">
-              Backend Result
-            </h2>
-
-            <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-black/35 p-5">
-              {currentResultAnimals.length > 0 ? (
-                <div className="space-y-3">
-                  {currentResultAnimals.map((animal, index) => (
-                    <div
-                      key={`${animal}-${index}`}
-                      className="flex items-center justify-between rounded-2xl border border-amber-400/15 bg-amber-400/10 px-4 py-3"
-                    >
-                      <p className="text-xs font-bold text-white/35">
-                        Dice {index + 1}
-                      </p>
-                      <p className="text-xl font-black capitalize text-amber-100">
-                        {animal}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm font-bold text-white/45">
-                  No backend result visible yet. Festival result will preload
-                  when betting closes.
-                </p>
-              )}
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 p-4">
-                <p className="text-xs text-emerald-200/55">Settled</p>
-                <p className="mt-2 text-2xl font-black text-emerald-100">
-                  {settledCount}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-red-400/15 bg-red-400/10 p-4">
-                <p className="text-xs text-red-200/55">Unsettled</p>
-                <p className="mt-2 text-2xl font-black text-red-100">
-                  {unsettledCount}
-                </p>
-              </div>
-            </div>
-          </article>
-        </section>
-
-        <section className="mt-6 rounded-[1.75rem] border border-red-400/15 bg-red-950/10 p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-200/60">
-            Current Round Bets
+        <article className="rounded-2xl border border-emerald-300/12 bg-emerald-950/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-emerald-200/50">
+            Result Visibility
           </p>
-          <h2 className="mt-2 text-2xl font-black text-amber-100">
-            Latest Bets
+          <h2 className="mt-1 text-xl font-black text-amber-100">
+            Backend Result
           </h2>
 
-          <div className="mt-5 space-y-3">
-            {currentBetsWithPayout.slice(0, 10).map((bet) => (
-              <div
-                key={bet.id}
-                className="grid gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[1fr_110px_170px_140px_130px_130px]"
-              >
-                <p className="truncate text-xs font-bold text-white/35">
-                  {bet.profile_id}
-                </p>
+          <div className="mt-4 rounded-xl border border-white/10 bg-black/35 p-4">
+            {currentResultAnimals.length > 0 ? (
+              <div className="space-y-2">
+                {currentResultAnimals.map((animal, index) => (
+                  <div
+                    key={`${animal}-${index}`}
+                    className="flex items-center justify-between rounded-xl border border-amber-400/15 bg-amber-400/10 px-4 py-3"
+                  >
+                    <p className="text-xs font-bold text-white/35">
+                      Dice {index + 1}
+                    </p>
+                    <p className="text-lg font-black capitalize text-amber-100">
+                      {animal}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm font-bold text-white/45">
+                No backend result visible yet. Festival result will preload
+                when betting closes.
+              </p>
+            )}
+          </div>
 
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/10 p-3">
+              <p className="text-xs text-emerald-200/55">Settled</p>
+              <p className="mt-1 text-xl font-black text-emerald-100">
+                {settledCount}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-red-400/15 bg-red-400/10 p-3">
+              <p className="text-xs text-red-200/55">Unsettled</p>
+              <p className="mt-1 text-xl font-black text-red-100">
+                {unsettledCount}
+              </p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-red-300/12 bg-red-950/10 p-4">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-200/55">
+              Current Round Bets
+            </p>
+            <h2 className="mt-1 text-xl font-black text-amber-100">
+              Latest Bets
+            </h2>
+          </div>
+
+          <p className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-black text-white/45">
+            Showing latest {Math.min(currentBetsWithPayout.length, 10)}
+          </p>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
+          {currentBetsWithPayout.slice(0, 10).map((bet) => (
+            <div
+              key={bet.id}
+              className="grid gap-3 border-b border-white/10 bg-black/25 p-3 last:border-b-0 xl:grid-cols-[1fr_100px_170px_140px_130px_120px] xl:items-center"
+            >
+              <p className="break-all text-xs font-bold text-white/35">
+                {bet.profile_id}
+              </p>
+
+              <p className="text-sm font-black capitalize text-amber-100">
+                {bet.bet_type}
+              </p>
+
+              <div>
                 <p className="text-sm font-black capitalize text-amber-100">
-                  {bet.bet_type}
+                  {bet.animal}
+                  {bet.bet_type === "pair" && bet.animal_2
+                    ? ` + ${bet.animal_2}`
+                    : ""}
                 </p>
-
-                <div>
-                  <p className="text-sm font-black capitalize text-amber-100">
-                    {bet.animal}
-                    {bet.bet_type === "pair" && bet.animal_2
-                      ? ` + ${bet.animal_2}`
-                      : ""}
-                  </p>
-                  <p className="mt-1 text-xs font-bold text-white/35">
-                    {bet.resultLabel}
-                  </p>
-                </div>
-
-                <p className="text-sm font-black text-white/75">
-                  {formatAmount(Number(bet.amount ?? 0))}
-                </p>
-
-                <p className="text-sm font-black text-sky-100">
-                  {resultIsPreloaded ? formatAmount(bet.expectedPayout) : "—"}
-                </p>
-
-                <p
-                  className={`text-left text-xs font-black md:text-right ${
-                    bet.settled ? "text-emerald-100" : "text-red-100"
-                  }`}
-                >
-                  {bet.settled ? "Settled" : "Unsettled"}
+                <p className="mt-1 text-xs font-bold text-white/35">
+                  {bet.resultLabel}
                 </p>
               </div>
-            ))}
 
-            {currentBetsWithPayout.length === 0 ? (
-              <p className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm font-bold text-white/40">
-                No bets in current round.
+              <p className="text-sm font-black text-white/75">
+                {formatAmount(Number(bet.amount ?? 0))}
               </p>
-            ) : null}
-          </div>
-        </section>
+
+              <p className="text-sm font-black text-sky-100">
+                {resultIsPreloaded ? formatAmount(bet.expectedPayout) : "—"}
+              </p>
+
+              <p
+                className={`text-left text-xs font-black xl:text-right ${
+                  bet.settled ? "text-emerald-100" : "text-red-100"
+                }`}
+              >
+                {bet.settled ? "Settled" : "Unsettled"}
+              </p>
+            </div>
+          ))}
+
+          {currentBetsWithPayout.length === 0 ? (
+            <p className="bg-black/25 p-4 text-sm font-bold text-white/40">
+              No bets in current round.
+            </p>
+          ) : null}
+        </div>
       </section>
-    </main>
+    </AdminShell>
   );
 }

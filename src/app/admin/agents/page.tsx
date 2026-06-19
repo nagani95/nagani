@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+import AdminShell from "@/components/admin/AdminShell";
 import { createClient } from "@/lib/supabase/server";
 import {
   activateAgentAction,
@@ -35,7 +37,16 @@ function formatPercent(rate: number) {
 }
 
 function formatMMK(amount: number) {
-  return new Intl.NumberFormat("en-US").format(Number(amount || 0));
+  return `${new Intl.NumberFormat("en-US").format(Number(amount || 0))} MMK`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Yangon",
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function getStatusClass(status: AgentProfile["status"]) {
@@ -66,354 +77,384 @@ export default async function AdminAgentsPage({
   const { data, error } = await supabase
     .from("agent_profiles")
     .select(
-      "id, agent_code, display_name, commission_rate, status, negative_carry, notes, created_at",
+      "id, agent_code, display_name, commission_rate, status, negative_carry, notes, created_at"
     )
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .returns<AgentProfile[]>();
 
-  const agents = (data ?? []) as AgentProfile[];
+  const agents = data ?? [];
 
   const totalAgents = agents.length;
   const activeAgents = agents.filter((agent) => agent.status === "active").length;
   const pausedAgents = agents.filter((agent) => agent.status === "paused").length;
   const disabledAgents = agents.filter(
-    (agent) => agent.status === "disabled",
+    (agent) => agent.status === "disabled"
   ).length;
+  const totalNegativeCarry = agents.reduce(
+    (sum, agent) => sum + Number(agent.negative_carry || 0),
+    0
+  );
 
   return (
-    <main className="min-h-screen bg-[#130804] px-4 py-6 text-amber-50">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-amber-300/60">
-              Nagani Admin
-            </p>
-            <h1 className="mt-2 text-3xl font-black text-amber-100">
-              Agent Referral
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-              Create agents, set custom commission percentages, pause partners,
-              and prepare monthly net settlement. Agents earn only from true
-              invited-player monthly net loss.
-            </p>
-          </div>
+    <AdminShell
+      title="Agents"
+      eyebrow="Referral Partners"
+      description="Create agents, set monthly commission rate, pause partners, and prepare future agent settlement control."
+      action={
+        <Link
+          href="/admin/referrals"
+          className="rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black text-amber-100/80 transition hover:bg-amber-300 hover:text-black"
+        >
+          Referrals
+        </Link>
+      }
+    >
+      {params.success ? (
+        <section className="rounded-2xl border border-emerald-400/25 bg-emerald-950/25 p-4">
+          <p className="text-sm font-black text-emerald-100">
+            {params.success}
+          </p>
+        </section>
+      ) : null}
 
-          <Link
-            href="/admin"
-            className="rounded-2xl border border-amber-300/20 bg-black/20 px-4 py-3 text-center text-sm font-black text-amber-100 hover:bg-amber-300/10"
-          >
-            Back to Admin
-          </Link>
+      {params.error ? (
+        <section className="rounded-2xl border border-red-400/25 bg-red-950/25 p-4">
+          <p className="text-sm font-black text-red-100">{params.error}</p>
+        </section>
+      ) : null}
+
+      {error ? (
+        <section className="mt-3 rounded-2xl border border-red-400/25 bg-red-950/25 p-4">
+          <p className="text-sm font-black text-red-100">
+            Failed to load agents
+          </p>
+          <p className="mt-1 text-xs font-semibold text-red-100/70">
+            {error.message}
+          </p>
+        </section>
+      ) : null}
+
+      <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100/55">
+            Total Agents
+          </p>
+          <p className="mt-2 text-2xl font-black text-amber-100">
+            {totalAgents}
+          </p>
         </div>
 
-        {params.success ? (
-          <div className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-100">
-            {params.success}
-          </div>
-        ) : null}
+        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-100/55">
+            Active
+          </p>
+          <p className="mt-2 text-2xl font-black text-emerald-100">
+            {activeAgents}
+          </p>
+        </div>
 
-        {params.error ? (
-          <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-100">
-            {params.error}
-          </div>
-        ) : null}
+        <div className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100/55">
+            Paused
+          </p>
+          <p className="mt-2 text-2xl font-black text-amber-100">
+            {pausedAgents}
+          </p>
+        </div>
 
-        {error ? (
-          <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-100">
-            Failed to load agents: {error.message}
-          </div>
-        ) : null}
+        <div className="rounded-2xl border border-red-300/15 bg-red-400/10 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-red-100/55">
+            Disabled
+          </p>
+          <p className="mt-2 text-2xl font-black text-red-100">
+            {disabledAgents}
+          </p>
+        </div>
 
-        <section className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-3xl border border-amber-300/15 bg-black/25 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">
-              Total
-            </p>
-            <p className="mt-2 text-2xl font-black text-amber-100">
-              {totalAgents}
-            </p>
-          </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/40">
+            Negative Carry
+          </p>
+          <p className="mt-2 truncate text-2xl font-black text-red-100">
+            {formatMMK(totalNegativeCarry)}
+          </p>
+        </div>
+      </section>
 
-          <div className="rounded-3xl border border-emerald-300/15 bg-black/25 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">
-              Active
-            </p>
-            <p className="mt-2 text-2xl font-black text-emerald-100">
-              {activeAgents}
-            </p>
-          </div>
+      <section className="mt-4 rounded-2xl border border-amber-300/12 bg-black/35 p-4">
+        <div className="mb-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-amber-200/45">
+            Create Agent
+          </p>
+          <h2 className="mt-1 text-xl font-black text-amber-100">
+            New Referral Partner
+          </h2>
+        </div>
 
-          <div className="rounded-3xl border border-amber-300/15 bg-black/25 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">
-              Paused
-            </p>
-            <p className="mt-2 text-2xl font-black text-amber-100">
-              {pausedAgents}
-            </p>
-          </div>
+        <form action={createAgentAction} className="grid gap-3 lg:grid-cols-5">
+          <label>
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
+              Agent Code
+            </span>
+            <input
+              name="agent_code"
+              required
+              placeholder="agent001"
+              className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+            />
+          </label>
 
-          <div className="rounded-3xl border border-red-300/15 bg-black/25 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">
-              Disabled
-            </p>
-            <p className="mt-2 text-2xl font-black text-red-100">
-              {disabledAgents}
-            </p>
-          </div>
-        </section>
+          <label>
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
+              Display Name
+            </span>
+            <input
+              name="display_name"
+              required
+              placeholder="Agent A"
+              className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+            />
+          </label>
 
-        <section className="mt-6 rounded-[2rem] border border-amber-300/15 bg-[#1b0d07]/85 p-5 shadow-2xl shadow-black/30">
-          <div className="mb-5">
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-amber-300/55">
+          <label>
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
+              Commission %
+            </span>
+            <input
+              name="commission_rate_percent"
+              required
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              defaultValue="35"
+              className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
+            />
+          </label>
+
+          <label>
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
+              Notes
+            </span>
+            <input
+              name="notes"
+              placeholder="Optional"
+              className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+            />
+          </label>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className="w-full rounded-xl border border-amber-300/30 bg-amber-300 px-4 py-3 text-sm font-black text-black shadow-lg shadow-amber-950/30 transition hover:bg-amber-200"
+            >
               Create Agent
+            </button>
+          </div>
+        </form>
+
+        <p className="mt-3 rounded-xl border border-amber-300/10 bg-black/25 px-4 py-3 text-xs font-semibold leading-5 text-white/42">
+          Agent commission is monthly only. No instant commission. Future agent
+          portal will use separate login and only show assigned referral data.
+        </p>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-amber-300/12 bg-black/35 p-4">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-amber-200/45">
+              Agent List
             </p>
-            <h2 className="mt-2 text-xl font-black text-amber-100">
-              New referral partner
+            <h2 className="mt-1 text-xl font-black text-amber-100">
+              Manage Partners
             </h2>
           </div>
 
-          <form action={createAgentAction} className="grid gap-4 lg:grid-cols-5">
-            <label className="lg:col-span-1">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-white/45">
-                Agent Code
-              </span>
-              <input
-                name="agent_code"
-                required
-                placeholder="agent001"
-                className="mt-2 w-full rounded-2xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
-              />
-            </label>
+          <p className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-black text-white/45">
+            {agents.length} loaded
+          </p>
+        </div>
 
-            <label className="lg:col-span-1">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-white/45">
-                Display Name
-              </span>
-              <input
-                name="display_name"
-                required
-                placeholder="Agent A"
-                className="mt-2 w-full rounded-2xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
-              />
-            </label>
+        {agents.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-5 text-center">
+            <p className="text-lg font-black text-amber-100">No agents yet</p>
+            <p className="mt-1 text-sm font-semibold text-white/45">
+              Create your first referral partner above.
+            </p>
+          </div>
+        ) : null}
 
-            <label className="lg:col-span-1">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-white/45">
-                Commission %
-              </span>
-              <input
-                name="commission_rate_percent"
-                required
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                defaultValue="35"
-                className="mt-2 w-full rounded-2xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
-              />
-            </label>
+        <div className="mt-4 grid gap-3">
+          {agents.map((agent) => (
+            <article
+              key={agent.id}
+              className="rounded-xl border border-white/10 bg-[#120504] p-4"
+            >
+              <div className="grid gap-3 lg:grid-cols-[1fr_120px_150px_150px_130px] lg:items-center">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-black text-amber-100">
+                      {agent.display_name}
+                    </h3>
 
-            <label className="lg:col-span-1">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-white/45">
-                Notes
-              </span>
-              <input
-                name="notes"
-                placeholder="Optional"
-                className="mt-2 w-full rounded-2xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
-              />
-            </label>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] ${getStatusClass(
+                        agent.status
+                      )}`}
+                    >
+                      {agent.status}
+                    </span>
+                  </div>
 
-            <div className="flex items-end lg:col-span-1">
-              <button
-                type="submit"
-                className="w-full rounded-2xl border border-amber-300/30 bg-amber-300 px-4 py-3 text-sm font-black text-black shadow-lg shadow-amber-950/30 hover:bg-amber-200"
+                  <p className="mt-1 text-sm font-bold text-white/45">
+                    Code:{" "}
+                    <span className="font-black text-amber-200">
+                      {agent.agent_code}
+                    </span>
+                  </p>
+
+                  {agent.notes ? (
+                    <p className="mt-1 break-words text-xs font-semibold text-white/38">
+                      {agent.notes}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/30">
+                    Rate
+                  </p>
+                  <p className="mt-1 text-lg font-black text-amber-100">
+                    {formatPercent(agent.commission_rate)}%
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/30">
+                    Negative Carry
+                  </p>
+                  <p className="mt-1 text-sm font-black text-red-100">
+                    {formatMMK(agent.negative_carry)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/30">
+                    Created
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-white/50">
+                    {formatDate(agent.created_at)}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <Link
+                    href="/admin/referrals"
+                    className="rounded-full border border-amber-300/15 bg-amber-300/10 px-3 py-2 text-xs font-black text-amber-100/80 transition hover:bg-amber-300 hover:text-black"
+                  >
+                    Referrals
+                  </Link>
+                </div>
+              </div>
+
+              <form
+                action={updateAgentAction}
+                className="mt-4 grid gap-3 border-t border-white/10 pt-4 lg:grid-cols-12"
               >
-                Create Agent
-              </button>
-            </div>
-          </form>
+                <input type="hidden" name="agent_id" value={agent.id} />
 
-          <div className="mt-4 rounded-2xl border border-amber-300/10 bg-black/20 px-4 py-3 text-xs leading-5 text-white/45">
-            Code format: lowercase letters, numbers, underscore or dash. Example:
-            <span className="font-bold text-amber-100"> agent001</span>. Rate
-            format: <span className="font-bold text-amber-100">35</span> means
-            35%.
-          </div>
-        </section>
+                <label className="lg:col-span-3">
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">
+                    Display Name
+                  </span>
+                  <input
+                    name="display_name"
+                    required
+                    defaultValue={agent.display_name}
+                    className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
+                  />
+                </label>
 
-        <section className="mt-6">
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.24em] text-amber-300/55">
-                Agent List
-              </p>
-              <h2 className="mt-2 text-xl font-black text-amber-100">
-                Manage partners
-              </h2>
-            </div>
-          </div>
+                <label className="lg:col-span-2">
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">
+                    Commission %
+                  </span>
+                  <input
+                    name="commission_rate_percent"
+                    required
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    defaultValue={formatPercent(agent.commission_rate)}
+                    className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
+                  />
+                </label>
 
-          {agents.length === 0 ? (
-            <div className="rounded-[2rem] border border-white/10 bg-black/25 p-8 text-center">
-              <p className="text-lg font-black text-amber-100">
-                No agents yet
-              </p>
-              <p className="mt-2 text-sm text-white/45">
-                Create your first referral partner above.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {agents.map((agent) => (
-                <article
-                  key={agent.id}
-                  className="rounded-[2rem] border border-amber-300/15 bg-[#1b0d07]/85 p-5 shadow-xl shadow-black/20"
-                >
-                  <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-xl font-black text-amber-100">
-                          {agent.display_name}
-                        </h3>
-                        <span
-                          className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${getStatusClass(
-                            agent.status,
-                          )}`}
-                        >
-                          {agent.status}
-                        </span>
-                      </div>
+                <label className="lg:col-span-2">
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">
+                    Status
+                  </span>
+                  <select
+                    name="status"
+                    defaultValue={agent.status}
+                    className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
+                  >
+                    <option value="active">Active</option>
+                    <option value="paused">Paused</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </label>
 
-                      <p className="mt-2 text-sm font-bold text-white/45">
-                        Code:{" "}
-                        <span className="font-black text-amber-200">
-                          {agent.agent_code}
-                        </span>
-                      </p>
-                    </div>
+                <label className="lg:col-span-3">
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">
+                    Notes
+                  </span>
+                  <input
+                    name="notes"
+                    defaultValue={agent.notes ?? ""}
+                    placeholder="Optional"
+                    className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+                  />
+                </label>
 
-                    <div className="grid grid-cols-2 gap-2 text-right">
-                      <div className="rounded-2xl border border-amber-300/10 bg-black/25 px-4 py-3">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-                          Rate
-                        </p>
-                        <p className="mt-1 text-lg font-black text-amber-100">
-                          {formatPercent(agent.commission_rate)}%
-                        </p>
-                      </div>
+                <div className="flex items-end lg:col-span-2">
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl border border-amber-300/25 bg-amber-300/15 px-4 py-3 text-sm font-black text-amber-100 transition hover:bg-amber-300 hover:text-black"
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
 
-                      <div className="rounded-2xl border border-red-300/10 bg-black/25 px-4 py-3">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-                          Carry
-                        </p>
-                        <p className="mt-1 text-lg font-black text-red-100">
-                          {formatMMK(agent.negative_carry)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <form action={updateAgentAction} className="grid gap-3 lg:grid-cols-12">
+              <div className="mt-3 flex flex-wrap gap-2">
+                {agent.status === "active" ? (
+                  <form action={pauseAgentAction}>
                     <input type="hidden" name="agent_id" value={agent.id} />
-
-                    <label className="lg:col-span-3">
-                      <span className="text-xs font-black uppercase tracking-[0.18em] text-white/40">
-                        Display Name
-                      </span>
-                      <input
-                        name="display_name"
-                        required
-                        defaultValue={agent.display_name}
-                        className="mt-2 w-full rounded-2xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
-                      />
-                    </label>
-
-                    <label className="lg:col-span-2">
-                      <span className="text-xs font-black uppercase tracking-[0.18em] text-white/40">
-                        Commission %
-                      </span>
-                      <input
-                        name="commission_rate_percent"
-                        required
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        defaultValue={formatPercent(agent.commission_rate)}
-                        className="mt-2 w-full rounded-2xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
-                      />
-                    </label>
-
-                    <label className="lg:col-span-2">
-                      <span className="text-xs font-black uppercase tracking-[0.18em] text-white/40">
-                        Status
-                      </span>
-                      <select
-                        name="status"
-                        defaultValue={agent.status}
-                        className="mt-2 w-full rounded-2xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
-                      >
-                        <option value="active">Active</option>
-                        <option value="paused">Paused</option>
-                        <option value="disabled">Disabled</option>
-                      </select>
-                    </label>
-
-                    <label className="lg:col-span-3">
-                      <span className="text-xs font-black uppercase tracking-[0.18em] text-white/40">
-                        Notes
-                      </span>
-                      <input
-                        name="notes"
-                        defaultValue={agent.notes ?? ""}
-                        placeholder="Optional"
-                        className="mt-2 w-full rounded-2xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
-                      />
-                    </label>
-
-                    <div className="flex items-end lg:col-span-2">
-                      <button
-                        type="submit"
-                        className="w-full rounded-2xl border border-amber-300/25 bg-amber-300/15 px-4 py-3 text-sm font-black text-amber-100 hover:bg-amber-300/25"
-                      >
-                        Save
-                      </button>
-                    </div>
+                    <button
+                      type="submit"
+                      className="rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-amber-100 transition hover:bg-amber-300/20"
+                    >
+                      Pause Agent
+                    </button>
                   </form>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {agent.status === "active" ? (
-                      <form action={pauseAgentAction}>
-                        <input type="hidden" name="agent_id" value={agent.id} />
-                        <button
-                          type="submit"
-                          className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-amber-100 hover:bg-amber-300/20"
-                        >
-                          Pause Agent
-                        </button>
-                      </form>
-                    ) : (
-                      <form action={activateAgentAction}>
-                        <input type="hidden" name="agent_id" value={agent.id} />
-                        <button
-                          type="submit"
-                          className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-100 hover:bg-emerald-300/20"
-                        >
-                          Activate Agent
-                        </button>
-                      </form>
-                    )}
-
-                    <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-2 text-xs font-bold text-white/40">
-                      Created: {new Date(agent.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
+                ) : (
+                  <form action={activateAgentAction}>
+                    <input type="hidden" name="agent_id" value={agent.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/20"
+                    >
+                      Activate Agent
+                    </button>
+                  </form>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </AdminShell>
   );
 }

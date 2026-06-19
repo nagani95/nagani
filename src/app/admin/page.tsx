@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { logout } from "@/lib/supabase/auth";
+import AdminShell from "@/components/admin/AdminShell";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -106,12 +106,12 @@ export default async function AdminPage() {
     .from("admin_audit_logs")
     .select("id, action, target_id, created_at")
     .order("created_at", { ascending: false })
-    .limit(3)
+    .limit(5)
     .returns<AdminAuditLog[]>();
 
   const currentBetCount = currentBets?.length ?? 0;
   const currentBetTotal = (currentBets ?? []).reduce(
-    (sum, bet) => sum + bet.amount,
+    (sum, bet) => sum + Number(bet.amount ?? 0),
     0
   );
   const currentSettledCount = (currentBets ?? []).filter(
@@ -120,67 +120,100 @@ export default async function AdminPage() {
   const currentUnsettledCount = currentBetCount - currentSettledCount;
   const phaseTarget = getPhaseTarget(currentRound);
 
-  const adminCards = [
+  const errors: string[] = [
+    currentRoundError ? `Current round: ${currentRoundError.message}` : null,
+    currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
+    pendingWalletRequestError
+      ? `Wallet requests: ${pendingWalletRequestError.message}`
+      : null,
+    auditLogsError ? `Audit logs: ${auditLogsError.message}` : null,
+  ].filter((error): error is string => Boolean(error));
+
+  const quickStats = [
+    {
+      label: "Six Animal Round",
+      value: currentRound ? `#${currentRound.round_number}` : "—",
+      tone: "border-amber-300/15 bg-amber-300/10 text-amber-100",
+    },
+    {
+      label: "Live Phase",
+      value: currentRound?.phase ?? "—",
+      tone: "border-emerald-300/15 bg-emerald-300/10",
+      valueClassName: `capitalize ${getPhaseTone(currentRound?.phase ?? null)}`,
+    },
+    {
+      label: "Pending Wallet",
+      value: String(pendingWalletRequestCount ?? 0),
+      tone: "border-red-300/15 bg-red-500/10 text-red-100",
+    },
+    {
+      label: "Current Bets",
+      value: String(currentBetCount),
+      tone: "border-sky-300/15 bg-sky-400/10 text-sky-100",
+    },
+    {
+      label: "Bet Total",
+      value: formatAmount(currentBetTotal),
+      tone: "border-white/10 bg-white/[0.03] text-amber-100",
+    },
+  ];
+
+  const controlSections = [
     {
       title: "Users",
-      description: "View members, wallet balances, and access status.",
       href: "/admin/users",
-      stat: "Open",
       label: "Members",
+      detail: "Member records, wallet balance, referral status, and controls.",
+      stat: "Open",
     },
     {
       title: "Wallet Requests",
-      description: "Review pending deposit and withdraw requests.",
       href: "/admin/wallet-requests",
+      label: "Balance",
+      detail: "Deposit and withdraw request review.",
       stat: `${pendingWalletRequestCount ?? 0}`,
-      label: "Pending",
     },
     {
-      title: "Agent Referral",
-      description:
-        "Create agents, set custom commission percentages, pause partners, and manage referral partner status.",
+      title: "Agents",
       href: "/admin/agents",
+      label: "Referral",
+      detail: "Create agents, commission rate, pause/activate partners.",
       stat: "Open",
-      label: "Agents",
     },
     {
-      title: "Referral Assignment",
-      description:
-        "Assign registered players to active agents for monthly net settlement. No instant commission.",
+      title: "Referrals",
       href: "/admin/referrals",
+      label: "Assign",
+      detail: "Assign players to active agents for monthly net settlement.",
       stat: "Open",
-      label: "Players",
     },
     {
-      title: "Audit Log",
-      description: "View recent operator actions and admin records.",
-      href: "/admin/audit-log",
-      stat: `${auditLogs?.length ?? 0}`,
-      label: "Latest",
-    },
-    {
-      title: "Backend Health",
-      description:
-        "Monitor cron runner status, backend round age, failed runs, and old unsettled bet warnings.",
-      href: "/admin/backend-health",
-      stat: "Live",
-      label: "Cron",
+      title: "Six Animal",
+      href: "/admin/six-animal",
+      label: currentRound?.phase ?? "Room",
+      detail: "Read-only live room risk, payout, result, and bet monitor.",
+      stat: currentRound ? `#${currentRound.round_number}` : "—",
     },
     {
       title: "Financial Integrity",
-      description:
-        "Monitor wallet safety, duplicate bets, unsettled bets, and Six Animal debit/payout flow.",
       href: "/admin/financial-integrity",
+      label: "Safety",
+      detail: "Wallet safety, duplicate bet, unsettled bet, payout flow checks.",
       stat: "Safe",
-      label: "Wallet",
     },
     {
-      title: "၆ ကောင်ဂျင်",
-      description:
-        "Monitor the live Six Animal round, current bets, and settlement status.",
-      href: "/admin/six-animal",
-      stat: currentRound ? `#${currentRound.round_number}` : "—",
-      label: currentRound?.phase ?? "No round",
+      title: "Backend Health",
+      href: "/admin/backend-health",
+      label: "Cron",
+      detail: "Round runner status, backend age, failed runs, and warnings.",
+      stat: "Live",
+    },
+    {
+      title: "Audit Log",
+      href: "/admin/audit-log",
+      label: "Latest",
+      detail: "Recent operator actions and admin records.",
+      stat: `${auditLogs?.length ?? 0}`,
     },
   ];
 
@@ -188,8 +221,8 @@ export default async function AdminPage() {
     {
       id: currentRound ? `SIX-${currentRound.round_number}` : "SIX-ROOM",
       title: currentRound
-        ? `၆ ကောင်ဂျင် live round is ${currentRound.phase}`
-        : "၆ ကောင်ဂျင် live round not found",
+        ? `Six Animal live round is ${currentRound.phase}`
+        : "Six Animal live round not found",
       detail: currentRound
         ? `${currentBetCount} bet${
             currentBetCount === 1 ? "" : "s"
@@ -210,246 +243,195 @@ export default async function AdminPage() {
       id: "BACKEND",
       title: "Backend room authority",
       detail:
-        "Admin home reads backend state only. It does not advance rounds, change results, or settle bets.",
+        "Admin dashboard reads backend state only. It does not advance rounds, change results, or settle bets.",
       status: "Read-only",
     },
     ...(auditLogs ?? []).map((log) => ({
-      id: `AUDIT-${log.id}`,
+      id: `AUDIT-${log.id.slice(0, 8).toUpperCase()}`,
       title: log.action,
       detail: log.target_id ? `Target: ${log.target_id}` : "No target recorded",
       status: "Audit",
     })),
   ];
 
-  const errors = [
-    currentRoundError ? `Current round: ${currentRoundError.message}` : null,
-    currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
-    pendingWalletRequestError
-      ? `Wallet requests: ${pendingWalletRequestError.message}`
-      : null,
-    auditLogsError ? `Audit logs: ${auditLogsError.message}` : null,
-  ].filter(Boolean);
-
   return (
-    <main className="min-h-screen bg-[#090202] px-5 py-6 text-white">
-      <section className="mx-auto w-full max-w-6xl">
-        <header className="flex flex-col gap-4 rounded-[2rem] border border-red-500/25 bg-gradient-to-br from-red-950 via-[#160303] to-black p-6 shadow-2xl shadow-red-950/30 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-200/60">
-              Nagani Operator
-            </p>
+    <AdminShell
+      title="Control Center"
+      description="Compact operator overview for users, balance requests, agents, referrals, live room health, and audit activity."
+      action={
+        <Link
+          href="/admin/six-animal"
+          className="rounded-full border border-sky-300/20 bg-sky-400/10 px-4 py-2 text-xs font-black text-sky-100/85 transition hover:bg-sky-300 hover:text-black"
+        >
+          Six Animal Monitor
+        </Link>
+      }
+    >
+      {errors.length > 0 ? (
+        <section className="rounded-2xl border border-red-400/25 bg-red-950/25 p-4">
+          <p className="text-sm font-black text-red-100">Admin warning</p>
 
-            <h1 className="mt-3 text-4xl font-black text-amber-100">
-              Control Center
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-amber-50/65">
-              Monitor live room health, wallet activity, admin records, and MVP
-              operation status.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/"
-              className="w-fit rounded-full border border-amber-400/20 bg-amber-400/10 px-5 py-3 text-center text-sm font-black text-amber-100"
-            >
-              Open Lobby
-            </Link>
-
-            <form action={logout}>
-              <button
-                type="submit"
-                className="w-fit rounded-full border border-red-400/25 bg-red-500/10 px-5 py-3 text-sm font-black text-red-100 transition hover:bg-red-400 hover:text-black"
-              >
-                Logout
-              </button>
-            </form>
-          </div>
-        </header>
-
-        {errors.length > 0 ? (
-          <section className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-red-950/30 p-5">
-            <p className="text-sm font-black text-red-100">
-              Admin home warning
-            </p>
-
-            <div className="mt-3 space-y-2">
-              {errors.map((error) => (
-                <p key={error} className="text-xs text-red-100/75">
-                  {error}
-                </p>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        <section className="mt-6 grid gap-4 md:grid-cols-4">
-          <div className="rounded-[1.5rem] border border-amber-400/20 bg-amber-400/10 p-5">
-            <p className="text-xs text-amber-200/60">Six Animal Round</p>
-            <p className="mt-2 text-3xl font-black text-amber-100">
-              {currentRound ? `#${currentRound.round_number}` : "—"}
-            </p>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-400/10 p-5">
-            <p className="text-xs text-emerald-200/60">Live Phase</p>
-            <p
-              className={`mt-2 text-3xl font-black capitalize ${getPhaseTone(
-                currentRound?.phase ?? null
-              )}`}
-            >
-              {currentRound?.phase ?? "—"}
-            </p>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-red-400/20 bg-red-400/10 p-5">
-            <p className="text-xs text-red-200/60">Current Bets</p>
-            <p className="mt-2 text-3xl font-black text-red-100">
-              {currentBetCount}
-            </p>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-xs text-white/40">Current Bet Total</p>
-            <p className="mt-2 text-2xl font-black text-amber-100">
-              {formatAmount(currentBetTotal)}
-            </p>
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-[1.75rem] border border-sky-400/15 bg-sky-950/10 p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-sky-200/55">
-                Main Live Room
+          <div className="mt-2 space-y-1">
+            {errors.map((error) => (
+              <p key={error} className="text-xs font-semibold text-red-100/70">
+                {error}
               </p>
-              <h2 className="mt-2 text-2xl font-black text-amber-100">
-                Backend Snapshot
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-white/50">
-                This panel reads the global backend room only. It does not
-                control timing, results, wallet debit, payout, or settlement.
-              </p>
-            </div>
-
-            <Link
-              href="/admin/six-animal"
-              className="w-fit rounded-full border border-sky-300/25 bg-sky-300/10 px-5 py-3 text-sm font-black text-sky-100 transition hover:bg-sky-300 hover:text-black"
-            >
-              Open Six Animal Monitor
-            </Link>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <p className="text-xs text-white/40">Room Status</p>
-              <p className="mt-2 text-sm font-black text-white/75">
-                {currentRound?.status ?? "—"}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <p className="text-xs text-white/40">Phase Target</p>
-              <p className="mt-2 text-sm font-black text-white/75">
-                {formatTime(phaseTarget)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 p-4">
-              <p className="text-xs text-emerald-200/55">Settled Bets</p>
-              <p className="mt-2 text-2xl font-black text-emerald-100">
-                {currentSettledCount}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-red-400/15 bg-red-400/10 p-4">
-              <p className="text-xs text-red-200/55">Unsettled Bets</p>
-              <p className="mt-2 text-2xl font-black text-red-100">
-                {currentUnsettledCount}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-6 grid gap-4 md:grid-cols-2">
-          {adminCards.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="group rounded-[1.75rem] border border-amber-400/15 bg-black/40 p-5 transition hover:border-amber-300/50"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-black text-amber-100">
-                    {card.title}
-                  </h2>
-                  <p className="mt-3 text-sm leading-6 text-white/55">
-                    {card.description}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-3xl font-black text-amber-100">
-                    {card.stat}
-                  </p>
-                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-white/35">
-                    {card.label}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 rounded-full border border-amber-400/15 bg-amber-400/10 px-4 py-3 text-center text-sm font-black text-amber-100 transition group-hover:bg-amber-300 group-hover:text-black">
-                Open Section
-              </div>
-            </Link>
-          ))}
-        </section>
-
-        <section className="mt-6 rounded-[1.75rem] border border-red-400/15 bg-red-950/10 p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-200/60">
-                Operation Log
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-amber-100">
-                Recent Activity
-              </h2>
-            </div>
-
-            <Link
-              href="/admin/settings"
-              className="shrink-0 rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-xs font-black text-amber-100"
-            >
-              Settings
-            </Link>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {recentActivity.map((item) => (
-              <div
-                key={item.id}
-                className="grid gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[160px_1fr_160px]"
-              >
-                <p className="text-xs font-bold text-white/35">{item.id}</p>
-
-                <div>
-                  <p className="text-sm font-black text-amber-100">
-                    {item.title}
-                  </p>
-                  <p className="mt-1 break-words text-xs text-white/45">
-                    {item.detail}
-                  </p>
-                </div>
-
-                <p className="text-left text-xs font-black text-emerald-100 md:text-right">
-                  {item.status}
-                </p>
-              </div>
             ))}
           </div>
         </section>
+      ) : null}
+
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {quickStats.map((stat) => (
+          <div
+            key={stat.label}
+            className={`rounded-2xl border p-4 ${stat.tone}`}
+          >
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-55">
+              {stat.label}
+            </p>
+            <p
+              className={`mt-2 truncate text-2xl font-black ${
+                stat.valueClassName ?? ""
+              }`}
+            >
+              {stat.value}
+            </p>
+          </div>
+        ))}
       </section>
-    </main>
+
+      <section className="mt-4 rounded-2xl border border-sky-300/15 bg-sky-950/10 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-sky-200/50">
+              Main Live Room
+            </p>
+            <h2 className="mt-1 text-xl font-black text-amber-100">
+              Backend Snapshot
+            </h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-white/45">
+              Read-only room state. No timing, result, wallet, payout, or
+              settlement mutation happens here.
+            </p>
+          </div>
+
+          <Link
+            href="/admin/six-animal"
+            className="w-fit rounded-full border border-sky-300/20 bg-sky-300/10 px-4 py-2 text-xs font-black text-sky-100 transition hover:bg-sky-300 hover:text-black"
+          >
+            Open Monitor
+          </Link>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+            <p className="text-xs text-white/35">Room Status</p>
+            <p className="mt-1 text-sm font-black text-white/75">
+              {currentRound?.status ?? "—"}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+            <p className="text-xs text-white/35">Phase Target</p>
+            <p className="mt-1 text-sm font-black text-white/75">
+              {formatTime(phaseTarget)}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/10 p-3">
+            <p className="text-xs text-emerald-200/55">Settled Bets</p>
+            <p className="mt-1 text-xl font-black text-emerald-100">
+              {currentSettledCount}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-red-400/15 bg-red-400/10 p-3">
+            <p className="text-xs text-red-200/55">Unsettled Bets</p>
+            <p className="mt-1 text-xl font-black text-red-100">
+              {currentUnsettledCount}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {controlSections.map((section) => (
+          <Link
+            key={section.href}
+            href={section.href}
+            className="group rounded-2xl border border-amber-300/12 bg-black/35 p-4 transition hover:border-amber-300/40 hover:bg-amber-300/8"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-lg font-black text-amber-100">
+                  {section.title}
+                </p>
+                <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-white/45">
+                  {section.detail}
+                </p>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <p className="text-xl font-black text-amber-100">
+                  {section.stat}
+                </p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/30">
+                  {section.label}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 rounded-full border border-amber-300/12 bg-amber-300/8 px-3 py-2 text-center text-xs font-black text-amber-100/70 transition group-hover:bg-amber-300 group-hover:text-black">
+              Open
+            </p>
+          </Link>
+        ))}
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-red-300/12 bg-red-950/10 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-200/55">
+              Operation Log
+            </p>
+            <h2 className="mt-1 text-xl font-black text-amber-100">
+              Recent Activity
+            </h2>
+          </div>
+
+          <Link
+            href="/admin/audit-log"
+            className="shrink-0 rounded-full border border-amber-300/15 bg-amber-300/10 px-4 py-2 text-xs font-black text-amber-100/75"
+          >
+            Audit
+          </Link>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
+          {recentActivity.map((item) => (
+            <div
+              key={item.id}
+              className="grid gap-2 border-b border-white/10 bg-black/25 p-3 last:border-b-0 md:grid-cols-[150px_1fr_120px] md:items-center"
+            >
+              <p className="text-xs font-black text-white/35">{item.id}</p>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-amber-100">
+                  {item.title}
+                </p>
+                <p className="mt-1 break-words text-xs font-semibold text-white/42">
+                  {item.detail}
+                </p>
+              </div>
+
+              <p className="text-left text-xs font-black text-emerald-100 md:text-right">
+                {item.status}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </AdminShell>
   );
 }
