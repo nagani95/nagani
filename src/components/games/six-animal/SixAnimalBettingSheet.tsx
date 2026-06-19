@@ -23,6 +23,7 @@ type ActiveBet = {
 
 type SixAnimalBettingSheetProps = {
   isOpen: boolean;
+  isUrgentCountdown?: boolean;
   betMode: BetMode;
   selectedAnimal: SixAnimalKey | null;
   selectedPairAnimals: SixAnimalKey[];
@@ -48,7 +49,8 @@ function formatMMK(amount: number) {
 }
 
 export default function SixAnimalBettingSheet({
-  isOpen,
+    isOpen,
+  isUrgentCountdown = false,
   betMode,
   selectedAnimal,
   selectedPairAnimals,
@@ -88,14 +90,17 @@ export default function SixAnimalBettingSheet({
     );
   }, [activeBets]);
 
-  const pairBetAnimals = useMemo(() => {
-    return new Set(
-      activeBets.flatMap((bet) =>
-        bet.betType === "pair" && bet.animalKey2
-          ? [bet.animalKey, bet.animalKey2]
-          : [],
-      ),
-    );
+  const pairBetMap = useMemo(() => {
+    const nextPairBetMap = new Map<SixAnimalKey, ActiveBet>();
+
+    activeBets.forEach((bet) => {
+      if (bet.betType !== "pair" || !bet.animalKey2) return;
+
+      nextPairBetMap.set(bet.animalKey, bet);
+      nextPairBetMap.set(bet.animalKey2, bet);
+    });
+
+    return nextPairBetMap;
   }, [activeBets]);
 
   if (!isOpen) return null;
@@ -126,15 +131,21 @@ export default function SixAnimalBettingSheet({
           <div className="grid grid-cols-3 gap-1.5">
             {SIX_ANIMAL_OPTIONS.map((animal) => {
               const activeAnimalBet = singleBetMap.get(animal.key);
+              const activePairBet = pairBetMap.get(animal.key);
+              const activeCardBet = activeAnimalBet ?? activePairBet;
 
               const isSelected =
                 betMode === "single"
                   ? selectedAnimal === animal.key
                   : selectedPairAnimals.includes(animal.key);
 
-              const isPairBetAnimal = pairBetAnimals.has(animal.key);
-              const isActiveBet = Boolean(activeAnimalBet) || isPairBetAnimal;
+              const isActiveBet = Boolean(activeCardBet);
               const isHighlighted = isSelected || isActiveBet;
+              const activeCardBetTypeLabel = activeAnimalBet
+                ? "မောင်း"
+                : activePairBet
+                  ? "ကြိုး"
+                  : "";
 
               return (
                 <button
@@ -146,6 +157,12 @@ export default function SixAnimalBettingSheet({
                     isHighlighted
                       ? "scale-[1.015] border-[#ffd77a]/90 bg-[linear-gradient(145deg,rgba(127,17,17,0.98),rgba(75,8,8,0.99),rgba(16,2,2,0.99))] shadow-[0_0_24px_rgba(255,215,122,0.22)]"
                       : "border-[#d6a84f]/16 bg-[linear-gradient(145deg,rgba(42,18,9,0.98),rgba(18,2,2,0.99),rgba(10,1,1,0.99))] hover:border-[#d6a84f]/34"
+                  } ${
+                    isUrgentCountdown
+                      ? isHighlighted
+                        ? "animate-[naganiUrgentAnimalStrong_0.92s_ease-in-out_infinite]"
+                        : "animate-[naganiUrgentAnimalSoft_1.08s_ease-in-out_infinite]"
+                      : ""
                   } ${
                     !canEditBet && !isHighlighted ? "opacity-45" : ""
                   } disabled:cursor-not-allowed disabled:opacity-100`}
@@ -160,17 +177,32 @@ export default function SixAnimalBettingSheet({
                   />
 
                   <div className="pointer-events-none absolute inset-x-3 top-1 h-px bg-gradient-to-r from-transparent via-[#fff3d0]/40 to-transparent" />
+                  {isUrgentCountdown ? (
+                    <div className="pointer-events-none absolute inset-0 animate-[naganiUrgentSpotlight_0.92s_ease-in-out_infinite] bg-[radial-gradient(circle_at_50%_30%,rgba(255,215,122,0.22),transparent_62%)]" />
+                  ) : null}
 
                   {isHighlighted ? (
                     <>
                       <div className="pointer-events-none absolute inset-x-4 bottom-2 h-[3px] rounded-full bg-gradient-to-r from-transparent via-[#ffd77a] to-transparent shadow-[0_0_12px_rgba(255,215,122,0.46)]" />
-                      <div className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border border-[#fff3d0]/85 bg-[#ffd77a] shadow-[0_0_14px_rgba(255,215,122,0.55)]" />
+
+                      {!activeCardBet ? (
+                        <div className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border border-[#fff3d0]/85 bg-[#ffd77a] shadow-[0_0_14px_rgba(255,215,122,0.55)]" />
+                      ) : null}
                     </>
                   ) : null}
 
-                  {activeAnimalBet || isPairBetAnimal ? (
-                    <div className="absolute left-1.5 top-1.5 rounded-full border border-[#ffd77a]/35 bg-black/60 px-1.5 py-0.5 text-[8px] font-black text-[#fff3d0] shadow-lg shadow-black/40">
-                      {activeAnimalBet ? formatMMK(activeAnimalBet.amount) : "ကြိုး"}
+                  {activeCardBet ? (
+                     <div className={`absolute right-1 top-1 z-20 flex min-w-[50px] -rotate-3 flex-col items-center justify-center rounded-full border border-[#fff3d0]/70 bg-[linear-gradient(135deg,#fff3d0,#ffd77a,#d6a84f,#8f6422)] px-2 py-1 text-black shadow-[0_5px_14px_rgba(0,0,0,0.58),0_0_16px_rgba(255,215,122,0.34)] ${
+                      isUrgentCountdown
+                        ? "animate-[naganiUrgentCoin_0.82s_ease-in-out_infinite]"
+                        : ""
+                    }`}>
+                      <span className="text-[7px] font-black leading-none opacity-70">
+                        {activeCardBetTypeLabel}
+                      </span>
+                      <span className="mt-0.5 text-[9px] font-black leading-none tabular-nums">
+                        {formatMMK(activeCardBet.amount)}
+                      </span>
                     </div>
                   ) : null}
 
@@ -278,6 +310,10 @@ export default function SixAnimalBettingSheet({
                   canPlaceBet
                     ? "border-[#fff3d0]/75 bg-[linear-gradient(135deg,#ffd77a,#d6a84f,#8f6422)] text-black shadow-[0_0_18px_rgba(255,215,122,0.24)]"
                     : "border-[#d6a84f]/20 bg-[linear-gradient(145deg,rgba(18,2,2,0.99),rgba(75,8,8,0.64))] text-[#fff3d0]/48"
+                } ${
+                  isUrgentCountdown && canPlaceBet
+                    ? "animate-[naganiUrgentBetButton_0.82s_ease-in-out_infinite]"
+                    : ""
                 } disabled:cursor-not-allowed disabled:opacity-35`}
                 aria-label="လောင်းကြေးထိုး"
               >
@@ -308,10 +344,10 @@ export default function SixAnimalBettingSheet({
                     type="button"
                     disabled={!canEditBet}
                     onClick={() => onQuickAmountSelect(amount)}
-                    className={`min-h-[34px] rounded-lg border px-2 py-1.5 text-[11px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
+                    className={`min-h-[36px] rounded-full border px-2 py-1.5 text-[11px] font-black shadow-inner shadow-black/35 transition-all duration-150 active:scale-[0.94] ${
                       isCurrentAmount
-                        ? "border-[#fff3d0]/70 bg-[linear-gradient(135deg,#ffd77a,#d6a84f,#8f6422)] text-black shadow-[0_0_14px_rgba(255,215,122,0.16)]"
-                        : "border-[#d6a84f]/18 bg-[linear-gradient(145deg,rgba(42,18,9,0.99),rgba(75,8,8,0.55))] text-[#fff3d0]"
+                        ? "border-[#fff3d0]/75 bg-[linear-gradient(135deg,#fff3d0,#ffd77a,#d6a84f,#8f6422)] text-black shadow-[0_0_16px_rgba(255,215,122,0.22)]"
+                        : "border-[#d6a84f]/24 bg-[linear-gradient(145deg,rgba(90,47,24,0.9),rgba(42,18,9,0.98),rgba(75,8,8,0.62))] text-[#fff3d0] hover:border-[#ffd77a]/38"
                     } disabled:opacity-35`}
                   >
                     {formatMMK(amount)}
@@ -324,6 +360,73 @@ export default function SixAnimalBettingSheet({
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes naganiUrgentAnimalSoft {
+          0%,
+          100% {
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.34);
+            transform: scale(1);
+          }
+
+          50% {
+            box-shadow:
+              0 10px 18px rgba(0, 0, 0, 0.34),
+              0 0 18px rgba(255, 215, 122, 0.18);
+            transform: scale(1.012);
+          }
+        }
+
+        @keyframes naganiUrgentAnimalStrong {
+          0%,
+          100% {
+            transform: scale(1.015);
+            filter: brightness(1);
+          }
+
+          50% {
+            transform: scale(1.045);
+            filter: brightness(1.14);
+          }
+        }
+
+        @keyframes naganiUrgentSpotlight {
+          0%,
+          100% {
+            opacity: 0.18;
+          }
+
+          50% {
+            opacity: 0.68;
+          }
+        }
+
+        @keyframes naganiUrgentCoin {
+          0%,
+          100% {
+            transform: rotate(-3deg) scale(1);
+            filter: brightness(1);
+          }
+
+          50% {
+            transform: rotate(-3deg) scale(1.1);
+            filter: brightness(1.15);
+          }
+        }
+
+        @keyframes naganiUrgentBetButton {
+          0%,
+          100% {
+            transform: scale(1);
+            filter: brightness(1);
+          }
+
+          50% {
+            transform: scale(1.035);
+            filter: brightness(1.14);
+          }
+        }
+      `}</style>
     </div>
   );
 }

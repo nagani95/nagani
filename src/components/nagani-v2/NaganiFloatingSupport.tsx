@@ -9,7 +9,7 @@ type NaganiFloatingSupportProps = {
 };
 
 export default function NaganiFloatingSupport({
-  href = "/profile",
+  href = "/cashier",
 }: NaganiFloatingSupportProps) {
   return (
     <Link

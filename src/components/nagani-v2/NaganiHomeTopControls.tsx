@@ -1,23 +1,39 @@
-//src/components/nagani-v2/NaganiHomeTopControls.tsx
+// src/components/nagani-v2/NaganiHomeTopControls.tsx
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function NaganiHomeTopControls() {
-  const [soundOn, setSoundOn] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [canUseFullscreen, setCanUseFullscreen] = useState(false);
+
+  useEffect(() => {
+    setCanUseFullscreen(Boolean(document.fullscreenEnabled));
+
+    function syncFullscreenState() {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+
+    syncFullscreenState();
+
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreenState);
+    };
+  }, []);
 
   async function handleFullscreenClick() {
+    if (!canUseFullscreen) return;
+
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
-        setIsFullscreen(true);
         return;
       }
 
       await document.exitFullscreen();
-      setIsFullscreen(false);
     } catch {
       setIsFullscreen(false);
     }
@@ -29,20 +45,7 @@ export default function NaganiHomeTopControls() {
         Live
       </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setSoundOn((value) => !value)}
-          className={`flex h-10 w-10 items-center justify-center rounded-full border text-base font-black shadow-lg shadow-black/45 backdrop-blur-md active:scale-[0.96] ${
-            soundOn
-              ? "border-emerald-200/40 bg-emerald-500/28 text-emerald-50"
-              : "border-[#ffd77a]/35 bg-[#090202]/48 text-[#ffd77a]"
-          }`}
-          aria-label="အသံ"
-        >
-          {soundOn ? "🔊" : "🔇"}
-        </button>
-
+      {canUseFullscreen ? (
         <button
           type="button"
           onClick={handleFullscreenClick}
@@ -51,7 +54,7 @@ export default function NaganiHomeTopControls() {
         >
           {isFullscreen ? "×" : "⛶"}
         </button>
-      </div>
+      ) : null}
     </div>
   );
 }

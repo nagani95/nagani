@@ -29,4 +29,8 @@ export type ThirtySixAnimalOption = {
 
 export type BetStatus = "pending" | "won" | "lost" | "cancelled";
 
-export type WalletRequestStatus = "pending" | "confirmed" | "rejected";
+export type WalletRequestStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "cancelled";

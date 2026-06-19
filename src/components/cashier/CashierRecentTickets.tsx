@@ -19,12 +19,17 @@ function formatMMK(amount: number) {
 }
 
 function getTypeLabel(type: string) {
+  if (type === "ငွေထုတ်") return "ငွေထုတ်";
+  if (type === "ငွေသွင်း") return "ငွေသွင်း";
+
   return type.toLowerCase().includes("withdraw") ? "ငွေထုတ်" : "ငွေသွင်း";
 }
 
 export default function CashierRecentTickets({
   tickets,
 }: CashierRecentTicketsProps) {
+  const visibleTickets = tickets.slice(0, 5);
+
   return (
     <section className="mt-6 rounded-[2rem] border border-[#d6a84f]/20 bg-[#090202]/50 p-4 shadow-xl shadow-black/35 backdrop-blur-md">
       <div className="flex items-center justify-between gap-3">
@@ -38,7 +43,7 @@ export default function CashierRecentTickets({
         </div>
 
         <div className="rounded-full border border-[#d6a84f]/20 bg-[#d6a84f]/10 px-3 py-1 text-[0.68rem] font-bold text-[#ffd77a]">
-          ၅ ခု
+          {visibleTickets.length} ခု
         </div>
       </div>
 
@@ -55,7 +60,7 @@ export default function CashierRecentTickets({
         ) : null}
 
         <div className="divide-y divide-[#d6a84f]/10">
-          {tickets.slice(0, 5).map((ticket) => (
+          {visibleTickets.map((ticket) => (
             <div key={ticket.id} className="py-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">

@@ -13,13 +13,13 @@ import type {
 } from "@/components/games/six-animal/ThreeDicePhysicsStage";
 import SettlementPopup from "@/components/games/six-animal/SettlementPopup";
 import FloatingResultBoard from "@/components/games/six-animal/FloatingResultBoard";
-import { RoyalRoomAtmosphere } from "@/components/games/six-animal/RoyalRoomAtmosphere";
 import RoyalTableChamberBackdrop from "@/components/games/six-animal/RoyalTableChamberBackdrop";
 import RoyalRoomTopBar from "@/components/games/six-animal/RoyalRoomTopBar";
 import RoomIntroOverlay from "@/components/games/six-animal/RoomIntroOverlay";
 import SixAnimalExitConfirm from "@/components/games/six-animal/SixAnimalExitConfirm";
 import SixAnimalLeavingRoomOverlay from "@/components/games/six-animal/SixAnimalLeavingRoomOverlay";
 import SixAnimalBettingCommandPanel from "@/components/games/six-animal/SixAnimalBettingCommandPanel";
+import SixAnimalRoomWaitLayer from "@/components/games/six-animal/SixAnimalRoomWaitLayer";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import { createClient } from "@/lib/supabase/client";
 import type { SixAnimalKey } from "@/types/games";
@@ -49,6 +49,7 @@ import {
   getLiveRoundCountdown,
   getPairKey,
   getRoundPhaseTargetAt,
+  getWaitingForNextBettingTargetAt,
   getVisibleDicePayloadResultNames,
   mapLiveRoundPhase,
   secondsUntil,
@@ -60,6 +61,12 @@ import {
   type SixAnimalSoundEvent,
   type VisualDiceStatus,
 } from "@/components/games/six-animal/sixAnimalRoomHelpers";
+
+const ROYAL_CHAMBER_WALLPAPER_SRC =
+  "/assets/nagani/six-animal/room/royal-chamber-wallpaper-v1.jpg";
+
+const ROYAL_CHAMBER_VIDEO_SRC =
+  "/assets/nagani/six-animal/room/royal-chamber-loop-v1.mp4";
 
 export default function SixAnimalPage() {
   const router = useRouter();
@@ -112,6 +119,9 @@ const settlementMomentTimerRef = useRef<number | null>(null);
 const localRollingStartTimerRef = useRef<number | null>(null);
 const lastDiceSoundCountRef = useRef(0);
 const roomAudioUnlockedRef = useRef(false);
+const [isRoomAudioUnlocked, setIsRoomAudioUnlocked] = useState(false);
+const lastInRoomWaitAnnouncementKeyRef = useRef<string | null>(null);
+const hasPlayedLoadingAnnouncementRef = useRef(false);
 const roomAudioPoolRef = useRef<
   Partial<Record<SixAnimalSoundEvent, HTMLAudioElement>>
 >({});
@@ -119,6 +129,7 @@ const resultAnimalAudioPoolRef = useRef<
   Partial<Record<SixAnimalKey, HTMLAudioElement>>
 >({});
 const lastPhaseSoundKeyRef = useRef<string | null>(null);
+const lastUrgentCountdownSecondRef = useRef<number | null>(null);
 const {
   isBackgroundMusicMuted,
   handleBackgroundMusicToggle,
@@ -126,7 +137,6 @@ const {
 } = useSixAnimalBackgroundMusic({
   isRoomAudioUnlockedRef: roomAudioUnlockedRef,
 });
-const lastLoadingAnnouncementKeyRef = useRef<string | null>(null);
 
   // Refs for Realtime Websocket closures to prevent stale state
 const phaseRef = useRef(phase);
@@ -145,6 +155,8 @@ const visualActiveRoundIdRef = useRef<string | null>(null);
 const settlementWaitingRoundIdRef = useRef<string | null>(null);
 const showSettlementMomentRef = useRef(false);
 const isSubmittingBetRef = useRef(false);
+const showRoomIntroRef = useRef(true);
+const isWaitingForNextRoundRef = useRef(false);
 
 function clearVisibleDiceRoundState() {
   diceSoundDirector.stopAll();
@@ -255,32 +267,64 @@ setBetMode("single");
 
   roundIdRef.current = round.id;
 
+const hasJoinedCurrentBrowserRound = joinedRoundIdRef.current === round.id;
+const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
+
+if (
+  isJoinableBettingRound &&
+  (phaseRef.current === "loading" ||
+    isWaitingForNextRoundRef.current ||
+    showRoomIntroRef.current)
+) {
+  joinedRoundIdRef.current = round.id;
+  setJoinedRoundId(round.id);
+
+  setIsWaitingForNextRound(false);
+  isWaitingForNextRoundRef.current = false;
+
+  setShowRoomIntro(false);
+  showRoomIntroRef.current = false;
+
+  setRoundId(round.id);
+  setRoundNumber(round.round_number);
+  setPhase("betting");
+  phaseRef.current = "betting";
+  setPhaseTargetAt(nextTargetAt);
+  setCountdown(nextCountdown);
+}
+
 const backendBets = await fetchCurrentUserBetsForRound(round.id);
 const restoredActiveBets = backendBets
   .map((bet) => convertBackendBetToActiveBet(bet, round.round_number))
   .filter((bet): bet is ActiveBet => Boolean(bet));
-
-const hasJoinedCurrentBrowserRound = joinedRoundIdRef.current === round.id;
-const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
 
 const isRefreshOrLateJoinToInProgressRound =
   !isJoinableBettingRound && !hasJoinedCurrentBrowserRound;
 
 if (isRefreshOrLateJoinToInProgressRound) {
   clearVisibleDiceRoundState();
+
   setShouldPlayLiveDiceSequence(false);
+  shouldPlayLiveDiceSequenceRef.current = false;
+
   setRoundId(round.id);
   setRoundNumber(round.round_number);
-const waitingTargetAt =
-  round.next_round_starts_at ?? getRoundPhaseTargetAt(round);
 
-setPhase("loading");
-setPhaseTargetAt(waitingTargetAt);
-setRollingStartedAt(null);
-setCountdown(secondsUntil(waitingTargetAt));
+  const waitingTargetAt = getWaitingForNextBettingTargetAt(round);
+
+  setPhase(nextPhase);
+  phaseRef.current = nextPhase;
+
+  setPhaseTargetAt(waitingTargetAt);
+  setRollingStartedAt(null);
+  setCountdown(secondsUntil(waitingTargetAt));
+
   setIsWaitingForNextRound(true);
+  setShowRoomIntro(false);
+
   setServerRngResults([]);
   setActiveBets([]);
+
   return;
 }
 
@@ -303,6 +347,7 @@ if (restoredActiveBets.length > 0) {
 if (isJoinableBettingRound) {
   joinedRoundIdRef.current = round.id;
   setJoinedRoundId(round.id);
+  setShowRoomIntro(false);
 }
 
 const hasBackendDiceTimeline =
@@ -527,6 +572,8 @@ visualCompleteRoundIdRef.current = visualCompleteRoundId;
 visualActiveRoundIdRef.current = visualActiveRoundId;
 settlementWaitingRoundIdRef.current = settlementWaitingRoundId;
 showSettlementMomentRef.current = showSettlementMoment;
+showRoomIntroRef.current = showRoomIntro;
+isWaitingForNextRoundRef.current = isWaitingForNextRound;
 }, [
   phase,
   roundId,
@@ -535,11 +582,13 @@ showSettlementMomentRef.current = showSettlementMoment;
   shouldPlayLiveDiceSequence,
   diceResult,
   isVisualDiceComplete,
-    visualDiceStatus,
+  visualDiceStatus,
   visualCompleteRoundId,
   visualActiveRoundId,
   settlementWaitingRoundId,
   showSettlementMoment,
+  showRoomIntro,
+  isWaitingForNextRound,
 ]);
 
 const selectedOption = useMemo(() => {
@@ -646,12 +695,14 @@ const displayNetAmount =
     : 0;
 
   const displayCountdown = Math.max(0, countdown);
+    const isUrgentBettingCountdown =
+    phase === "betting" && displayCountdown > 0 && displayCountdown <= 4;
 
   const timerLabel =
     phase === "rolling"
-      ? "Rolling"
-      : phase === "closed" && displayCountdown <= 0
-        ? "Starting"
+? "လှိမ့်နေသည်"
+: phase === "closed" && displayCountdown <= 0
+  ? "စတင်နေသည်"
         : `${displayCountdown}s`;
 
   const commandBarClass =
@@ -745,16 +796,16 @@ const isResultWin =
   phase === "result" && hasActiveBets && displayPayoutAmount > 0;
 
   const resultStatusLabel = !hasActiveBets
-    ? "Table Result"
-    : isResultWin
-      ? "You Win"
-      : "No Match";
+? "ပွဲရလဒ်"
+: isResultWin
+  ? "အနိုင်ရပါသည်"
+  : "မကိုက်ပါ";
 
   const netResultLabel =
     hasActiveBets && phase === "result"
       ? `${displayNetAmount > 0 ? "+" : "-"}${formatMMK(
           Math.abs(displayNetAmount)
-        )} MMK`
+        )} ကျပ်`
       : "—";
 
 function getRoomAudio(eventName: SixAnimalSoundEvent) {
@@ -851,35 +902,34 @@ function handleExitButtonClick() {
   setShowExitConfirm(true);
 }
 
-function playLoadingWaitAnnouncement() {
-  if (!gameSoundEnabled) return;
-  if (!roomAudioUnlockedRef.current) return;
-  if (!showRoomIntro) return;
+function playInRoomWaitAnnouncement(announcementKey?: string) {
+  if (!gameSoundEnabled) return false;
+  if (!roomAudioUnlockedRef.current) return false;
+  if (showRoomIntroRef.current) return false;
+  if (!isWaitingForNextRoundRef.current) return false;
+  if (hasPlayedLoadingAnnouncementRef.current) return false;
 
-  const isLoadingOrWaiting =
-    phaseRef.current === "loading" || isWaitingForNextRound;
+  const safeAnnouncementKey =
+    announcementKey ??
+    [
+      roundIdRef.current || "room",
+      phaseRef.current,
+      phaseTargetAt ?? "no-target",
+    ].join(":");
 
-  if (!isLoadingOrWaiting) return;
+  if (lastInRoomWaitAnnouncementKeyRef.current === safeAnnouncementKey) {
+    return false;
+  }
 
-  const announcementKey = [
-    roundIdRef.current || "boot",
-    phaseTargetAt ?? "no-target",
-    isWaitingForNextRound ? "waiting-next-round" : "loading-room",
-  ].join(":");
-
-  if (lastLoadingAnnouncementKeyRef.current === announcementKey) return;
-
-  lastLoadingAnnouncementKeyRef.current = announcementKey;
+  lastInRoomWaitAnnouncementKeyRef.current = safeAnnouncementKey;
+  hasPlayedLoadingAnnouncementRef.current = true;
   playRoomSound("loading");
+
+  return true;
 }
 
 function playCurrentPhaseSound() {
   const currentPhase = phaseRef.current;
-
-if (currentPhase === "loading") {
-  playLoadingWaitAnnouncement();
-  return;
-}
 
   if (currentPhase === "betting") {
     playRoomSound("betting-round");
@@ -893,9 +943,14 @@ if (currentPhase === "loading") {
 
 function unlockRoomAudio() {
   if (!gameSoundEnabled) return;
-  if (roomAudioUnlockedRef.current) return;
+
+  if (roomAudioUnlockedRef.current) {
+    setIsRoomAudioUnlocked(true);
+    return;
+  }
 
   roomAudioUnlockedRef.current = true;
+  setIsRoomAudioUnlocked(true);
   void diceSoundDirector.unlock();
 
   (Object.keys(SIX_ANIMAL_SOUND_SRC) as SixAnimalSoundEvent[]).forEach(
@@ -977,20 +1032,23 @@ async function fetchLatestLiveRound() {
 
   useEffect(() => {
     const fetchInitialRoomData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+const {
+  data: { user },
+} = await supabase.auth.getUser();
 
-let fetchedWalletBalance = 0;
-
-if (user) {
-  const { data: wallet } = await supabase
-    .from("wallets")
-    .select("balance")
-    .eq("profile_id", user.id)
-    .single();
-
-  fetchedWalletBalance = Number(wallet?.balance ?? 0);
-  setWalletBalance(fetchedWalletBalance);
+if (!user) {
+  router.replace("/login");
+  return;
 }
+
+const { data: wallet } = await supabase
+  .from("wallets")
+  .select("balance")
+  .eq("profile_id", user.id)
+  .maybeSingle();
+
+const fetchedWalletBalance = Number(wallet?.balance ?? 0);
+setWalletBalance(fetchedWalletBalance);
 
             const { data: activeRound, error: activeRoundError } = await supabase
         .from("six_animal_rounds")
@@ -1005,13 +1063,13 @@ if (user) {
         console.error("[SixAnimal] active round fetch error:", activeRoundError);
       }
 
-      if (user && fetchedWalletBalance < SIX_ANIMAL_RULES.minBet) {
+if (fetchedWalletBalance < SIX_ANIMAL_RULES.minBet) {
   const existingRoundBets = activeRound
     ? await fetchCurrentUserBetsForRound(activeRound.id)
     : [];
 
   if (existingRoundBets.length === 0) {
-    router.replace("/");
+    router.replace("/cashier");
     return;
   }
 }
@@ -1084,36 +1142,59 @@ if (user) {
 
 useEffect(() => {
   let cancelled = false;
+  let pollTimer: number | null = null;
 
   const pollLatestRound = async () => {
     if (cancelled) return;
     await fetchLatestLiveRound();
   };
 
-  pollLatestRound();
+  const scheduleNextPoll = (delayMs: number) => {
+    pollTimer = window.setTimeout(async () => {
+      await pollLatestRound();
 
-  const pollTimer = window.setInterval(pollLatestRound, 2000);
+      if (cancelled) return;
+
+      const shouldFastPoll =
+        showRoomIntroRef.current ||
+        phaseRef.current === "loading" ||
+        isWaitingForNextRoundRef.current;
+
+      scheduleNextPoll(shouldFastPoll ? 650 : 2000);
+    }, delayMs);
+  };
+
+  void pollLatestRound();
+  scheduleNextPoll(650);
 
   return () => {
     cancelled = true;
-    window.clearInterval(pollTimer);
+
+    if (pollTimer) {
+      window.clearTimeout(pollTimer);
+    }
   };
 }, [supabase]);
 
-
 useEffect(() => {
-  playLoadingWaitAnnouncement();
-}, [showRoomIntro, phase, isWaitingForNextRound, phaseTargetAt, roundId]);
-
-useEffect(() => {
-  if (phase === "loading" || isWaitingForNextRound) {
+  if (phase === "loading") {
     setShowRoomIntro(true);
+    return;
+  }
+
+  if (isWaitingForNextRound) {
+    setShowRoomIntro(false);
+    return;
+  }
+
+  if (phase === "betting") {
+    setShowRoomIntro(false);
     return;
   }
 
   const introTimer = window.setTimeout(() => {
     setShowRoomIntro(false);
-  }, 800);
+  }, 300);
 
   return () => window.clearTimeout(introTimer);
 }, [phase, isWaitingForNextRound]);
@@ -1202,6 +1283,25 @@ useEffect(() => {
     window.removeEventListener("beforeunload", handleBeforeUnload);
   };
 }, [shouldConfirmBrowserRefresh]);
+
+useEffect(() => {
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+  if (phase !== "betting") {
+    lastUrgentCountdownSecondRef.current = null;
+    return;
+  }
+
+  if (displayCountdown > 4 || displayCountdown <= 0) {
+    lastUrgentCountdownSecondRef.current = null;
+    return;
+  }
+
+  if (lastUrgentCountdownSecondRef.current === displayCountdown) return;
+
+  lastUrgentCountdownSecondRef.current = displayCountdown;
+  playRoomSound("countdown-hit");
+}, [phase, displayCountdown, gameSoundEnabled]);
 
 useEffect(() => {
   if (!gameSoundEnabled) return;
@@ -1653,17 +1753,31 @@ function handleInvalidBetButtonClick() {
   playRoomSound("bet-invalid");
 }
 
+const waitLayerAnnouncementKey =
+  isWaitingForNextRound && !showRoomIntro
+    ? [roundId || "room", phase, phaseTargetAt ?? "no-target"].join(":")
+    : "";
+
   return (
     <main
       onPointerDownCapture={unlockRoomAudio}
       className="relative isolate h-[100dvh] overflow-hidden bg-[#090202] text-[#fff3d0]"
-      style={{
-        backgroundImage: `radial-gradient(circle at 50% 0%, rgba(255,215,122,0.16), transparent 32%), radial-gradient(circle at 18% 82%, rgba(127,17,17,0.28), transparent 34%), linear-gradient(135deg, rgba(9,2,2,0.42), rgba(75,8,8,0.28), rgba(0,0,0,0.82)), url(${ROOM_BACKGROUND})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center top",
-      }}
-    >
-      <RoyalRoomAtmosphere />
+style={{
+  backgroundColor: "#090202",
+}}
+>
+      <video
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
+        src={ROYAL_CHAMBER_VIDEO_SRC}
+        poster={ROYAL_CHAMBER_WALLPAPER_SRC}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-hidden="true"
+      />
+
 
 {isQuitting && !showRoomIntro ? <SixAnimalLeavingRoomOverlay /> : null}
 
@@ -1706,36 +1820,40 @@ function handleInvalidBetButtonClick() {
   onFullscreenToggle={handleFullscreenToggle}
 />
 
-                <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.85rem] border border-[#d6a84f]/20 bg-[linear-gradient(145deg,rgba(75,8,8,0.62),rgba(9,2,2,0.58),rgba(90,47,24,0.34))] p-2 shadow-[0_22px_64px_rgba(0,0,0,0.58),inset_0_0_48px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,215,122,0.1)] backdrop-blur-[2px]">
+                <section className="mt-1 flex min-h-0 flex-1 flex-col overflow-visible rounded-none border-0 bg-transparent p-0 shadow-none">
           {showTopPanel ? (
             <SixAnimalBettingCommandPanel
               commandBarClass={commandBarClass}
               timerLabel={timerLabel}
-              walletBalanceLabel={`${formatMMK(walletBalance)} MMK`}
+              walletBalanceLabel={`${formatMMK(walletBalance)} ကျပ်`}
             />
           ) : null}
 
-          <div
-            className="relative mt-2 min-h-0 flex-1 overflow-visible rounded-[1.65rem] border border-[#d6a84f]/16 bg-black/50 shadow-[inset_0_0_54px_rgba(0,0,0,0.68),inset_0_0_38px_rgba(214,168,79,0.045),0_20px_50px_rgba(0,0,0,0.4)]"
-            style={{
-              backgroundImage: `linear-gradient(to bottom, rgba(9,2,2,0.28), rgba(42,18,9,0.28), rgba(0,0,0,0.72)), url(${ROOM_BACKGROUND})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center 38%",
-            }}
-          >
+          <div className="relative mt-1 min-h-0 flex-1 overflow-visible rounded-none border-0 bg-transparent shadow-none">
             <RoyalTableChamberBackdrop />
 
             {showFloatingResultBoard ? (
-              <FloatingResultBoard
-                diceResult={diceResult}
-                activeBets={activeBets}
-                showFinalResultPanel={showFinalResultPanel}
-                isResultPhaseVisualGuard={isResultPhaseVisualGuard}
-                isRollingPhase={phase === "closed" || phase === "rolling"}
-                isResultWin={isResultWin}
-                animalAssets={ANIMAL_ASSETS}
-              />
+<FloatingResultBoard
+  diceResult={diceResult}
+  activeBets={activeBets}
+  showFinalResultPanel={showFinalResultPanel}
+  isResultPhaseVisualGuard={isResultPhaseVisualGuard}
+  isRollingPhase={phase === "closed" || phase === "rolling"}
+  isResultWin={isResultWin}
+  isSettlementStage={showSettlementSheet}
+  animalAssets={ANIMAL_ASSETS}
+/>
             ) : null}
+
+{isWaitingForNextRound && !showRoomIntro ? (
+<SixAnimalRoomWaitLayer
+  phase={phase}
+  countdown={displayCountdown}
+  announcementKey={waitLayerAnnouncementKey}
+  isAudioUnlocked={isRoomAudioUnlocked}
+  onAnnounce={playInRoomWaitAnnouncement}
+/>
+) : null}
 
             {showSettlementSheet ? (
               <SettlementPopup
@@ -1756,15 +1874,16 @@ function handleInvalidBetButtonClick() {
               />
             ) : null}
 
-            <div className="relative z-10 flex h-full min-h-0 items-center justify-center p-2">
-              <div className="relative h-full w-full max-w-[980px]">
+            <div className="relative z-10 flex h-full min-h-0 items-center justify-center px-0 pb-0 pt-1">
+  <div className="relative h-full w-full">
                 <ThreeDiceSequenceController
-                  enabled={shouldEnableDiceController}
-                  runKey={threeDiceRunKey}
-                  onComplete={handleThreeDiceComplete}
+  key={roundId || "six-animal-dice-stage"}
+  enabled={shouldEnableDiceController}
+  runKey={threeDiceRunKey}
+  onComplete={handleThreeDiceComplete}
                   onProgress={handleThreeDiceProgress}
                   onDiceDrop={handleDiceDrop}
-                  className="h-full min-h-[430px] w-full"
+                  className="h-full min-h-[500px] w-full"
                   showInternalResultStrip={false}
                   mountedDiceRackMode={effectiveMountedDiceRackMode}
                   serverRngResults={serverRngResults}
@@ -1775,6 +1894,7 @@ function handleInvalidBetButtonClick() {
 
             <SixAnimalBettingSheet
               isOpen={phase === "betting"}
+              isUrgentCountdown={isUrgentBettingCountdown}
               betMode={betMode}
               selectedAnimal={selectedAnimal}
               selectedPairAnimals={selectedPairAnimals}

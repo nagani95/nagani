@@ -1,4 +1,4 @@
-//src>lib>naganiAssets.ts
+// src/lib/naganiAssets.ts
 
 export const naganiAssets = {
   shared: {
@@ -14,41 +14,47 @@ export const naganiAssets = {
     },
   },
 
-sixAnimal: {
-  ui: {
-    royalExitDoor:
-      "/assets/nagani/six-animal/ui/six-animal-royal-exit-door-button-v1.png",
-    bettingBoardFrame:
-      "/assets/nagani/six-animal/ui/six-animal-betting-board-frame-v1.png",
-  },
+  sixAnimal: {
+    ui: {
+      royalExitDoor:
+        "/assets/nagani/six-animal/ui/six-animal-royal-exit-door-button-v1.png",
+      bettingBoardFrame:
+        "/assets/nagani/six-animal/ui/six-animal-betting-board-frame-v1.png",
+    },
 
-  animals: {
-    tiger: "/assets/nagani/six-animal/animals/six-animal-tiger-sample-01.png",
-    dragon: "/assets/nagani/six-animal/animals/six-animal-dragon-sample-01.png",
-    rooster: "/assets/nagani/six-animal/animals/six-animal-rooster-sample-01.png",
-    fish: "/assets/nagani/six-animal/animals/six-animal-fish-sample-01.png",
-    crab: "/assets/nagani/six-animal/animals/six-animal-crab-sample-01.png",
-    elephant:
-      "/assets/nagani/six-animal/animals/six-animal-elephant-sample-01.png",
-  },
+    animals: {
+      tiger: "/assets/nagani/six-animal/animals/six-animal-tiger-sample-01.png",
+      dragon:
+        "/assets/nagani/six-animal/animals/six-animal-dragon-sample-01.png",
+      rooster:
+        "/assets/nagani/six-animal/animals/six-animal-rooster-sample-01.png",
+      fish: "/assets/nagani/six-animal/animals/six-animal-fish-sample-01.png",
+      crab: "/assets/nagani/six-animal/animals/six-animal-crab-sample-01.png",
+      elephant:
+        "/assets/nagani/six-animal/animals/six-animal-elephant-sample-01.png",
+    },
+
     dice: {
       sample: "/assets/nagani/six-animal/dice/six-animal-dice-sample-01.png",
       faces: {
         base: "/assets/nagani/six-animal/dice/faces",
         tiger: "/assets/nagani/six-animal/dice/faces/dice-face-tiger-v1.png",
         dragon: "/assets/nagani/six-animal/dice/faces/dice-face-dragon-v1.png",
-        rooster: "/assets/nagani/six-animal/dice/faces/dice-face-rooster-v1.png",
+        rooster:
+          "/assets/nagani/six-animal/dice/faces/dice-face-rooster-v1.png",
         fish: "/assets/nagani/six-animal/dice/faces/dice-face-fish-v1.png",
         crab: "/assets/nagani/six-animal/dice/faces/dice-face-crab-v1.png",
-        elephant: "/assets/nagani/six-animal/dice/faces/dice-face-elephant-v1.png",
+        elephant:
+          "/assets/nagani/six-animal/dice/faces/dice-face-elephant-v1.png",
       },
     },
+
     room: {
       palaceBgV1:
         "/assets/nagani/six-animal/room/six-animal-palace-room-bg-v1.jpg",
     },
 
-        sounds: {
+    sounds: {
       base: "/assets/nagani/six-animal/sounds",
       betLocked: "/assets/nagani/six-animal/sounds/bet-locked.mp3",
       betsClosed: "/assets/nagani/six-animal/sounds/bets-closed.mp3",
@@ -73,4 +79,3 @@ sixAnimal: {
     },
   },
 } as const;
-

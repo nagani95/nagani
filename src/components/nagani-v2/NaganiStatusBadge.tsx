@@ -36,7 +36,7 @@ export default function NaganiStatusBadge({ status }: NaganiStatusBadgeProps) {
   return (
     <span
       className={`inline-flex min-h-7 items-center rounded-full border px-3 text-[0.68rem] font-semibold ${getStatusClass(
-        status,
+        status
       )}`}
     >
       {getStatusLabel(status)}

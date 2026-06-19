@@ -5,6 +5,8 @@
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import ActiveBetsSummaryPanel from "./ActiveBetsSummaryPanel";
 import type { SixAnimalKey } from "@/types/games";
+const WOODEN_RESULT_BOX_ASSET =
+  "/assets/nagani/six-animal/ui/wooden-result-box.png";
 
 type FloatingResultBoardActiveBet = {
   betType: "single" | "pair";
@@ -23,6 +25,7 @@ type FloatingResultBoardProps = {
   isResultPhaseVisualGuard: boolean;
   isRollingPhase: boolean;
   isResultWin: boolean;
+  isSettlementStage?: boolean;
   animalAssets: Record<SixAnimalKey, string>;
 };
 
@@ -61,13 +64,14 @@ export default function FloatingResultBoard({
   isResultPhaseVisualGuard,
   isRollingPhase,
   isResultWin,
+  isSettlementStage = false,
   animalAssets,
 }: FloatingResultBoardProps) {
   const isRevealing = isRollingPhase || isResultPhaseVisualGuard;
 
   return (
     <div className="pointer-events-none absolute left-1/2 top-[-8px] z-50 w-[min(94vw,370px)] -translate-x-1/2">
-      <div className="relative mx-auto flex items-center justify-center gap-3">
+      <div className="relative mx-auto flex items-center justify-center gap-2">
         {Array.from({ length: SIX_ANIMAL_RULES.diceCount }).map((_, index) => {
           const nameMm = diceResult[index];
           const animal = nameMm ? getAnimalByNameMm(nameMm) : null;
@@ -87,76 +91,74 @@ export default function FloatingResultBoard({
               ),
           );
 
-          return (
-            <div
-              key={`royal-result-box-${index}`}
-              className={`relative flex h-[70px] w-[70px] shrink-0 items-center justify-center overflow-hidden rounded-[1.18rem] border shadow-[0_18px_30px_rgba(0,0,0,0.62),inset_0_2px_0_rgba(255,243,208,0.18),inset_0_-16px_22px_rgba(0,0,0,0.42)] ${
-                isMatched
-                  ? "border-emerald-200/70 bg-[linear-gradient(135deg,#064e3b,#4b0808,#120101)] shadow-[0_0_24px_rgba(16,185,129,0.26),0_18px_30px_rgba(0,0,0,0.62)]"
-                  : animal
-                    ? "border-[#ffd77a]/75 bg-[linear-gradient(135deg,#7f1111,#4b0808,#140101)] shadow-[0_0_24px_rgba(255,215,122,0.22),0_18px_30px_rgba(0,0,0,0.62)]"
-                    : "border-[#d6a84f]/46 bg-[linear-gradient(145deg,#7f1111,#4b0808,#240204)]"
-              }`}
-            >
-              <div className="pointer-events-none absolute inset-[5px] rounded-[0.9rem] border border-[#fff3d0]/16" />
-              <div className="pointer-events-none absolute inset-[9px] rounded-[0.64rem] border border-black/24" />
-              <div className="pointer-events-none absolute inset-[10px] rounded-[0.6rem] bg-[linear-gradient(145deg,#4a190d_0%,#2a0e09_42%,#140707_100%)] shadow-[inset_0_1px_0_rgba(255,243,208,0.14),inset_0_-10px_18px_rgba(0,0,0,0.55)]" />
-              <div className="pointer-events-none absolute inset-[10px] rounded-[0.6rem] bg-[repeating-linear-gradient(90deg,rgba(255,243,208,0.08)_0px,rgba(255,243,208,0.08)_1px,transparent_1px,transparent_8px)] opacity-[0.18]" />
+return (
+  <div
+    key={`royal-result-box-${index}`}
+    className={`relative flex h-[78px] w-[78px] shrink-0 items-center justify-center overflow-visible rounded-[1.25rem] bg-[#1a0503] ${
+      isMatched
+        ? "drop-shadow-[0_0_18px_rgba(16,185,129,0.42)]"
+        : animal
+          ? "drop-shadow-[0_0_16px_rgba(255,215,122,0.30)]"
+          : "drop-shadow-[0_12px_18px_rgba(0,0,0,0.58)]"
+    }`}
+  >
+    <img
+      src={WOODEN_RESULT_BOX_ASSET}
+      alt=""
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+    />
 
-              {animal ? (
-                <div className="pointer-events-none absolute inset-[10px] rounded-[0.6rem] bg-[linear-gradient(145deg,#1a0303,#2b0504,#090101)] shadow-[inset_0_1px_0_rgba(255,215,122,0.16),inset_0_-10px_16px_rgba(0,0,0,0.62)]" />
-              ) : null}
+    <div className="pointer-events-none absolute inset-[15px] rounded-[0.72rem] bg-[radial-gradient(circle_at_50%_32%,#4a1a0d_0%,#2a0905_48%,#0b0101_100%)] shadow-[inset_0_2px_7px_rgba(0,0,0,0.72),inset_0_0_0_1px_rgba(255,215,122,0.18)]" />
 
-              <div className="pointer-events-none absolute inset-[10px] rounded-[0.6rem] bg-[linear-gradient(145deg,rgba(18,3,3,0.92),rgba(75,8,8,0.72),rgba(8,1,1,0.96))] shadow-[inset_0_1px_0_rgba(255,215,122,0.12),inset_0_-10px_16px_rgba(0,0,0,0.44)]" />
+    {animal ? (
+      <div className="relative z-10 flex h-full w-full items-center justify-center overflow-visible">
+        <div className="pointer-events-none absolute inset-[13px] animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] rounded-[0.82rem] bg-[radial-gradient(circle_at_50%_40%,rgba(255,243,208,0.22),rgba(255,215,122,0.08)_34%,transparent_72%)]" />
 
-              <div className="pointer-events-none absolute inset-x-2 top-1.5 h-px bg-gradient-to-r from-transparent via-[#fff3d0]/55 to-transparent" />
-              <div className="pointer-events-none absolute inset-x-2 bottom-1.5 h-px bg-gradient-to-r from-transparent via-black/50 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-[-20%] left-[-48%] w-[42%] rotate-12 animate-[resultLightSweep_1.45s_ease-out_1] bg-gradient-to-r from-transparent via-[#fff3d0]/34 to-transparent" />
 
-              {animal ? (
-                <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden">
-                  <div className="pointer-events-none absolute inset-0 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] bg-[radial-gradient(circle_at_50%_38%,rgba(255,243,208,0.34),rgba(255,215,122,0.2)_26%,rgba(90,47,24,0.09)_48%,transparent_74%)]" />
+        <img
+          src={animalAssets[animal.key]}
+          alt=""
+          className="relative z-10 h-[54px] w-[54px] scale-[1.04] animate-[resultAnimalPop_520ms_cubic-bezier(0.2,1.2,0.25,1)_1] object-contain brightness-125 contrast-115 drop-shadow-[0_0_12px_rgba(255,215,122,0.72)]"
+        />
 
-                  <div className="pointer-events-none absolute left-1/2 top-[9px] h-[18px] w-[40px] -translate-x-1/2 rounded-full bg-[#fff3d0]/18 blur-[8px]" />
+        <div className="pointer-events-none absolute bottom-[14px] h-[4px] w-9 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] rounded-full bg-[#fff3d0]/55 blur-[4px]" />
+      </div>
+    ) : (
+      <span
+        className={`relative z-10 text-[31px] font-black leading-none ${
+          isCurrent
+            ? "text-[#fff3d0] drop-shadow-[0_0_12px_rgba(255,243,208,0.38)]"
+            : "text-[#ffd77a] drop-shadow-[0_0_10px_rgba(255,215,122,0.42)]"
+        }`}
+      >
+        ?
+      </span>
+    )}
 
-                  <div className="pointer-events-none absolute inset-y-[-25%] left-[-48%] w-[42%] rotate-12 animate-[resultLightSweep_1.45s_ease-out_1] bg-gradient-to-r from-transparent via-[#fff3d0]/40 to-transparent" />
+    {isCurrent && !animal ? (
+      <div className="pointer-events-none absolute inset-[12px] animate-pulse rounded-[0.9rem] bg-[#ffd77a]/[0.035]" />
+    ) : null}
 
-                  <img
-                    src={animalAssets[animal.key]}
-                    alt=""
-                    className="relative z-10 h-[64px] w-[64px] scale-[1.08] animate-[resultAnimalPop_520ms_cubic-bezier(0.2,1.2,0.25,1)_1] object-contain brightness-125 contrast-115 drop-shadow-[0_0_18px_rgba(255,215,122,0.72)]"
-                  />
-
-                  <div className="pointer-events-none absolute bottom-[7px] h-[5px] w-11 animate-[resultSpotlightPulse_1.8s_ease-in-out_infinite] rounded-full bg-[#fff3d0]/70 blur-[4px]" />
-                </div>
-              ) : (
-                <span
-                  className={`relative z-10 text-[34px] font-black leading-none ${
-                    isCurrent
-                      ? "text-[#fff3d0] drop-shadow-[0_0_12px_rgba(255,243,208,0.32)]"
-                      : "text-[#ffd77a] drop-shadow-[0_0_10px_rgba(255,215,122,0.34)]"
-                  }`}
-                >
-                  ?
-                </span>
-              )}
-
-              {isCurrent && !animal ? (
-                <div className="pointer-events-none absolute inset-0 animate-pulse bg-white/[0.035]" />
-              ) : null}
-
-              {showFinalResultPanel && isResultWin && isMatched ? (
-                <div className="pointer-events-none absolute inset-x-4 bottom-2 h-[3px] rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.58)]" />
-              ) : null}
-            </div>
-          );
+    {showFinalResultPanel && isResultWin && isMatched ? (
+      <div className="pointer-events-none absolute inset-x-[18px] bottom-[12px] z-20 h-[3px] rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.58)]" />
+    ) : null}
+  </div>
+);
         })}
       </div>
 
-      <ActiveBetsSummaryPanel
-        activeBets={activeBets}
-        compact
-        className="pointer-events-auto mx-auto mt-2 w-full max-w-[170px]"
-      />
+<ActiveBetsSummaryPanel
+  activeBets={activeBets}
+  compact
+  settlementExpanded={isSettlementStage}
+  className={
+    isSettlementStage
+      ? "pointer-events-auto mx-auto mt-2 w-full max-w-[292px]"
+      : "pointer-events-auto mx-auto mt-2 w-full max-w-[170px]"
+  }
+/>
 
       <style jsx>{`
         @keyframes resultAnimalPop {

@@ -50,7 +50,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 </div>
               ) : null}
 
-              <NaganiRoyalInput
+<NaganiRoyalInput
   label="ဖုန်းနံပါတ်"
   name="email"
   type="tel"

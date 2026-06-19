@@ -1,4 +1,5 @@
 // src/app/register/page.tsx
+
 import Link from "next/link";
 
 import {
@@ -25,7 +26,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
     <NaganiPageShell>
       <section className="flex min-h-[100svh] items-start justify-center px-5 pb-8 pt-14 sm:pt-16">
         <div className="w-full max-w-sm">
-         <div className="mb-6 text-center">
+          <div className="mb-6 text-center">
             <div
               className="mx-auto h-24 w-24 bg-contain bg-center bg-no-repeat drop-shadow-[0_8px_22px_rgba(0,0,0,0.65)]"
               style={{
@@ -38,7 +39,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               နဂါးနီ
             </h1>
 
-           <p className="mt-3 text-[0.95rem] font-bold leading-7 text-[#fff3d0]/82">
+            <p className="mt-3 text-[0.95rem] font-bold leading-7 text-[#fff3d0]/82">
               တော်ဝင်ပွဲခန်းမသို့ ဝင်ရန် အကောင့်ဖွင့်ပါ
             </p>
           </div>
@@ -92,7 +93,10 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               </NaganiRoyalButton>
 
               <div className="flex items-center justify-between gap-4 px-1 pt-3 text-[0.85rem] font-bold leading-6">
-                <Link href="/" className="text-[#f7dfaa]/70 hover:text-[#fff3d0]">
+                <Link
+                  href="/"
+                  className="text-[#f7dfaa]/70 hover:text-[#fff3d0]"
+                >
                   မူလသို့
                 </Link>
 

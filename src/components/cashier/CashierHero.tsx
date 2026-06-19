@@ -35,7 +35,7 @@ export default function CashierHero({ balanceLabel }: CashierHeroProps) {
           </p>
 
           <p className="mt-1 text-[1.7rem] font-black leading-tight text-[#ffd77a]">
-            {balanceLabel.replace("MMK", "ကျပ်")}
+            {balanceLabel}
           </p>
         </div>
       </div>

@@ -1,7 +1,5 @@
 // src/components/cashier/CashierRequestForm.tsx
 
-import { submitWalletRequest } from "@/lib/supabase/walletRequests";
-
 type CashierTab = "deposit" | "withdraw";
 
 type CashierRequestFormProps = {
@@ -14,7 +12,7 @@ type CashierRequestFormProps = {
   onTabChange: (tab: CashierTab) => void;
   onAmountChange: (value: string) => void;
   onNoteChange: (value: string) => void;
-  onSubmitRequest: () => void;
+  onSubmitRequest: () => void | Promise<void>;
 };
 
 function formatMMK(amount: number) {
@@ -26,18 +24,23 @@ export default function CashierRequestForm({
   amount,
   note,
   amountLabel,
+  actionLabel,
   isValidAmount,
   onTabChange,
   onAmountChange,
   onNoteChange,
+  onSubmitRequest,
 }: CashierRequestFormProps) {
   const isDeposit = activeTab === "deposit";
 
   return (
-    <form
-      action={submitWalletRequest}
-      className="mt-4 rounded-[1.75rem] border border-[#d6a84f]/25 bg-[#090202]/58 p-3 shadow-2xl shadow-black/45 backdrop-blur-md"
-    >
+<form
+  onSubmit={(event) => {
+    event.preventDefault();
+    void onSubmitRequest();
+  }}
+  className="mt-4 rounded-[1.75rem] border border-[#d6a84f]/25 bg-[#090202]/58 p-3 shadow-2xl shadow-black/45 backdrop-blur-md"
+>
       <input type="hidden" name="requestType" value={activeTab} />
 
       <div className="grid grid-cols-2 gap-2 rounded-full border border-[#d6a84f]/20 bg-black/30 p-1">
@@ -132,7 +135,7 @@ export default function CashierRequestForm({
             : "mt-4 min-h-11 w-full rounded-full border border-[#d6a84f]/15 bg-white/10 px-5 py-3 text-sm font-black text-[#fff3d0]/35"
         }
       >
-        {isDeposit ? "ငွေသွင်း တင်မည်" : "ငွေထုတ် တင်မည်"}
+        {actionLabel}
       </button>
 
       {!isValidAmount ? (

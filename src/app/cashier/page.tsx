@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
 import CashierHero from "@/components/cashier/CashierHero";
@@ -52,19 +52,16 @@ function formatTicketTime(value: string) {
 }
 
 function formatRequestType(type: WalletRequestRow["request_type"]) {
-  return type === "deposit" ? "Deposit" : "Withdrawal";
+  return type === "deposit" ? "ငွေသွင်း" : "ငွေထုတ်";
 }
 
 function formatRequestStatus(status: WalletRequestRow["status"]) {
-  if (status === "approved") return "Approved";
-  if (status === "rejected") return "Rejected";
-  if (status === "cancelled") return "Cancelled";
-
-  return "Pending";
+  return status;
 }
 
 function CashierPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const successMessage = searchParams.get("message");
   const errorMessage = searchParams.get("error");
 
@@ -91,7 +88,10 @@ function CashierPageContent() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
 
       const { data: wallet } = await supabase
         .from("wallets")
@@ -118,7 +118,7 @@ function CashierPageContent() {
           amount: toSafeAmount(request.amount),
           status: formatRequestStatus(request.status),
           time: formatTicketTime(request.created_at),
-        })),
+        }))
       );
     }
 
@@ -127,7 +127,7 @@ function CashierPageContent() {
     return () => {
       isMounted = false;
     };
-  }, [supabase, successMessage]);
+  }, [router, supabase, successMessage]);
 
   function handleTabChange(tab: CashierTab) {
     setActiveTab(tab);
@@ -141,8 +141,35 @@ function CashierPageContent() {
     setNote(value);
   }
 
-  function handleSubmitRequest() {
-    return;
+  async function handleSubmitRequest() {
+    if (!isValidAmount) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    const { error } = await supabase.from("wallet_requests").insert({
+      profile_id: user.id,
+      request_type: activeTab,
+      amount: numericAmount,
+      note: note || null,
+      status: "pending",
+    });
+
+    if (error) {
+      console.error("Wallet request submit error:", error.message);
+      router.replace("/cashier?error=1");
+      return;
+    }
+
+    setAmount("10000");
+    setNote("");
+    router.replace("/cashier?message=1");
   }
 
   return (
@@ -157,7 +184,7 @@ function CashierPageContent() {
         </div>
       </header>
 
-      <CashierHero balanceLabel={`${formatMMK(walletBalance)} MMK`} />
+      <CashierHero balanceLabel={`${formatMMK(walletBalance)} ကျပ်`} />
 
       {successMessage ? (
         <div className="mt-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-100">

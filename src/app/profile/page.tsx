@@ -17,6 +17,18 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
+function getAccountLabel(email: string | null | undefined) {
+  if (!email) {
+    return "ဖုန်းနံပါတ် မရှိသေးပါ";
+  }
+
+  if (email.endsWith("@nagani.local")) {
+    return email.replace("@nagani.local", "");
+  }
+
+  return email;
+}
+
 export default async function ProfilePage() {
   const supabase = await createClient();
 
@@ -28,11 +40,11 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-const { data: profile } = await supabase
-  .from("profiles")
-  .select("username, member_code")
-  .eq("id", user.id)
-  .maybeSingle<{ username: string | null; member_code: string | null }>();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username, member_code")
+    .eq("id", user.id)
+    .maybeSingle<{ username: string | null; member_code: string | null }>();
 
   const { data: wallet } = await supabase
     .from("wallets")
@@ -42,21 +54,21 @@ const { data: profile } = await supabase
 
   const balance = toSafeAmount(wallet?.balance);
   const memberName = profile?.username || "နဂါးနီ မိတ်ဆွေ";
-  const accountLabel = user.email || "ဖုန်းနံပါတ် မရှိသေးပါ";
+  const accountLabel = getAccountLabel(user.email);
   const memberCode = profile?.member_code || user.id.slice(0, 6).toUpperCase();
 
   return (
     <AppShell>
-<header className="flex items-center justify-between px-1 pt-1">
-  <div>
-    <p className="text-xs font-bold text-[#f7dfaa]/55">နဂါးနီ</p>
-    <h1 className="mt-1 text-xl font-black text-[#ffd77a]">ပရိုဖိုင်</h1>
-  </div>
+      <header className="flex items-center justify-between px-1 pt-1">
+        <div>
+          <p className="text-xs font-bold text-[#f7dfaa]/55">နဂါးနီ</p>
+          <h1 className="mt-1 text-xl font-black text-[#ffd77a]">ပရိုဖိုင်</h1>
+        </div>
 
-  <div className="rounded-full border border-[#d6a84f]/25 bg-[#d6a84f]/10 px-3 py-1.5 text-xs font-bold text-[#ffd77a]">
-    အကောင့်
-  </div>
-</header>
+        <div className="rounded-full border border-[#d6a84f]/25 bg-[#d6a84f]/10 px-3 py-1.5 text-xs font-bold text-[#ffd77a]">
+          အကောင့်
+        </div>
+      </header>
 
       <section className="mt-5 overflow-hidden rounded-[2rem] border border-[#d6a84f]/30 bg-[#090202]/68 p-5 shadow-2xl shadow-black/50 backdrop-blur-md">
         <div className="flex items-start justify-between gap-4">
@@ -75,9 +87,7 @@ const { data: profile } = await supabase
         </div>
 
         <div className="mt-5 rounded-[1.5rem] border border-[#d6a84f]/18 bg-black/25 p-4">
-          <p className="text-xs font-semibold text-[#f7dfaa]/60">
-            လက်ကျန်ငွေ
-          </p>
+          <p className="text-xs font-semibold text-[#f7dfaa]/60">လက်ကျန်ငွေ</p>
           <p className="mt-1 text-3xl font-black text-[#ffd77a]">
             {formatMMK(balance)} ကျပ်
           </p>
@@ -85,7 +95,7 @@ const { data: profile } = await supabase
 
         <div className="mt-5 divide-y divide-[#d6a84f]/10 rounded-[1.5rem] border border-[#d6a84f]/15 bg-black/20">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <span className="text-sm text-[#f7dfaa]/60">အကောင့်</span>
+            <span className="text-sm text-[#f7dfaa]/60">ဖုန်းနံပါတ်</span>
             <span className="min-w-0 truncate text-right text-sm font-bold text-[#fff3d0]">
               {accountLabel}
             </span>
@@ -108,7 +118,9 @@ const { data: profile } = await supabase
       </section>
 
       <section className="mt-6 rounded-[2rem] border border-[#d6a84f]/20 bg-black/25 p-4">
-        <h2 className="text-lg font-black text-[#ffd77a]">အကောင့် လုပ်ဆောင်ချက်များ</h2>
+        <h2 className="text-lg font-black text-[#ffd77a]">
+          အကောင့် လုပ်ဆောင်ချက်များ
+        </h2>
 
         <div className="mt-4 grid gap-3">
           <Link
@@ -117,21 +129,6 @@ const { data: profile } = await supabase
           >
             <span>ပိုက်ဆံအိတ်သို့</span>
             <span className="text-[#ffd77a]">›</span>
-          </Link>
-
-          <Link
-            href="/profile"
-            className="flex min-h-14 items-center justify-between rounded-2xl border border-[#d6a84f]/15 bg-black/20 px-4 py-3 text-sm font-bold leading-6 text-[#fff3d0]/90 active:scale-[0.99]"
-          >
-            <span>စကားဝှက်ပြောင်းရန်</span>
-            <span className="text-[#f7dfaa]/50">မကြာမီ</span>
-          </Link>
-
-          <Link
-            href="/profile"
-            className="flex min-h-14 items-center justify-between rounded-2xl border border-[#d6a84f]/15 bg-black/20 px-4 py-3 text-sm font-bold leading-6 text-[#fff3d0]/90 active:scale-[0.99]"          >
-            <span>ကူညီရေး ဆက်သွယ်ရန်</span>
-            <span className="text-[#f7dfaa]/50">ကူညီရေး</span>
           </Link>
         </div>
       </section>

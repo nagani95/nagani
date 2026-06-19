@@ -31,29 +31,36 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   let walletBalance = 0;
-let memberCode: string | null = null;
+  let memberCode: string | null = null;
 
-if (user) {
-  const { data: wallet } = await supabase
-    .from("wallets")
-    .select("balance")
-    .eq("profile_id", user.id)
-    .maybeSingle<{ balance: number | string | null }>();
+  if (user) {
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("profile_id", user.id)
+      .maybeSingle<{ balance: number | string | null }>();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("member_code")
-    .eq("id", user.id)
-    .maybeSingle<{ member_code: string | null }>();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("member_code")
+      .eq("id", user.id)
+      .maybeSingle<{ member_code: string | null }>();
 
-  walletBalance = toSafeBalance(wallet?.balance);
-  memberCode = profile?.member_code ?? null;
-}
+    walletBalance = toSafeBalance(wallet?.balance);
+    memberCode = profile?.member_code ?? null;
+  }
 
-const canEnterSixAnimal = Boolean(user) && walletBalance >= SIX_ANIMAL_MIN_BALANCE;
-const memberIdLabel = user ? memberCode ?? "------" : "ဧည့်သည်";
+  const canEnterSixAnimal =
+    Boolean(user) && walletBalance >= SIX_ANIMAL_MIN_BALANCE;
 
-const playHref = !user ? "/login" : canEnterSixAnimal ? "/six-animal" : "/cashier";
+  const memberIdLabel = user ? memberCode ?? "------" : "ဧည့်သည်";
+
+  const playHref = !user
+    ? "/login"
+    : canEnterSixAnimal
+      ? "/six-animal"
+      : "/cashier";
+
   const playLabel = !user
     ? "ဝင်ရောက်ရန်"
     : canEnterSixAnimal
@@ -61,48 +68,60 @@ const playHref = !user ? "/login" : canEnterSixAnimal ? "/six-animal" : "/cashie
       : "ငွေဖြည့်ရန်";
 
   return (
-<NaganiPageShell
-  background={<NaganiVideoBackground />}
-  bottomNav={<NaganiBottomNav />}
-  contentClassName="relative z-10 h-[100svh] overflow-hidden"
->
-<section className="relative h-[100svh] overflow-hidden">
-  <div className="absolute left-[1.8%] top-[3.2%] z-30 min-w-[6.9rem] rounded-[1.15rem] border border-[#ffd77a]/32 bg-[#090202]/42 px-2.5 py-2.5 text-left shadow-lg shadow-black/45 backdrop-blur-md">
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#f7dfaa]/62">
-        ID
-      </span>
-      <span className="text-[0.86rem] font-black tracking-[0.12em] text-[#ffd77a]">
-        {memberIdLabel}
-      </span>
-    </div>
+    <NaganiPageShell
+      background={<NaganiVideoBackground />}
+      bottomNav={<NaganiBottomNav />}
+      contentClassName="relative z-10 h-[100svh] overflow-hidden"
+    >
+      <section className="relative h-[100svh] overflow-hidden">
+        <div className="absolute left-[1.4%] top-[2.7%] z-30 h-[7.25rem] w-[7.35rem]">
+          <img
+            src="/assets/nagani/v2/home-id-balance-card.png"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full select-none object-fill drop-shadow-[0_12px_22px_rgba(0,0,0,0.55)]"
+            draggable={false}
+          />
 
-    <div className="mt-2 border-t border-[#d6a84f]/18 pt-2">
-      <p className="text-[0.62rem] font-bold text-[#f7dfaa]/62">
-        လက်ကျန်
-      </p>
-      <p className="mt-0.5 text-[0.74rem] font-black leading-none text-[#ffd77a]">
-        {formatMMK(walletBalance)} ကျပ်
-      </p>
-    </div>
-  </div>
+          <div className="relative z-10 flex h-full flex-col items-center justify-center px-3 pb-2.5 pt-3 text-center">
+            <div className="w-full">
+              <p className="text-[0.58rem] font-black tracking-[0.14em] text-[#f7dfaa]/70">
+                အိုင်ဒီ
+              </p>
+              <p className="mt-0.5 text-[0.88rem] font-black leading-none tracking-[0.1em] text-[#ffd77a] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+                {memberIdLabel}
+              </p>
+            </div>
 
-  <NaganiHomeTopControls />
-<div className="absolute left-1/2 top-[3.6%] z-20 flex -translate-x-1/2 flex-col items-center">
-  <div
-    className="h-40 w-40 bg-contain bg-center bg-no-repeat drop-shadow-[0_14px_34px_rgba(0,0,0,0.88)]"
-      style={{
-        backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
-      }}
-      aria-label="နဂါးနီ"
-    />
+            <div className="my-2 h-px w-[72%] bg-gradient-to-r from-transparent via-[#ffd77a]/55 to-transparent" />
 
-<div className="-mt-4 rounded-full border border-[#ffd77a]/30 bg-[#090202]/42 px-5 py-1.5 text-base font-black tracking-[0.12em] text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-[2px]">
-  နဂါးနီ
-</div>
-  </div>
+            <div className="w-full">
+              <p className="text-[0.58rem] font-bold leading-none text-[#f7dfaa]/70">
+                လက်ကျန်
+              </p>
+              <p className="mt-1 text-[0.72rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+                {formatMMK(walletBalance)} ကျပ်
+              </p>
+            </div>
+          </div>
+        </div>
 
-        {/* Premium dice spotlight */}
+        <NaganiHomeTopControls />
+
+        <div className="absolute left-1/2 top-[5.6%] z-20 flex -translate-x-1/2 flex-col items-center">
+          <div
+            className="h-36 w-36 bg-contain bg-center bg-no-repeat drop-shadow-[0_12px_28px_rgba(0,0,0,0.82)]"
+            style={{
+              backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
+            }}
+            aria-label="နဂါးနီ"
+          />
+
+          <div className="-mt-3 rounded-full border border-[#ffd77a]/30 bg-[#090202]/42 px-4 py-1 text-sm font-black tracking-[0.12em] text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-[2px]">
+            နဂါးနီ
+          </div>
+        </div>
+
         <div className="pointer-events-none absolute left-1/2 top-[58.85%] z-10 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,215,122,0.46)_0%,rgba(214,168,79,0.18)_38%,transparent_72%)] blur-xl" />
 
         <div className="pointer-events-none absolute left-1/2 top-[58.85%] z-10 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ffd77a]/25 bg-[#ffd77a]/10 shadow-[0_0_34px_rgba(255,215,122,0.45)]" />

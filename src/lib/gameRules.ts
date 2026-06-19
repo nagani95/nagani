@@ -62,7 +62,9 @@ export const SIX_ANIMAL_RULES = {
   minBet: 1000,
   maxBet: 500000,
   diceCount: 3,
-  maxSelectedAnimals: 1,
+  singleBetMaxSelectedAnimals: 1,
+  pairBetSelectedAnimals: 2,
+  pairPayoutMultiplier: 5,
   matchMultipliers: {
     zeroMatch: 0,
     oneMatch: 1,
@@ -70,7 +72,7 @@ export const SIX_ANIMAL_RULES = {
     threeMatches: 3,
   },
   payoutNote:
-    "Frontend shows match count only. Backend must confirm whether multiplier means profit-only or total return.",
+    "Single bet payout follows matched dice count. Pair bet pays 5x when both selected animals appear in the 3 dice result.",
 };
 
 export const THIRTY_SIX_RULES = {

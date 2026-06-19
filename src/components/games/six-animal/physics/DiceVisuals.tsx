@@ -21,13 +21,13 @@ const DICE_FACE_SURFACE_OFFSET = 0.553;
 const DICE_FACE_PRINT_SIZE = 0.78;
 const DICE_FACE_PRINT_ALPHA_TEST = 0.052;
 const DICE_FACE_PRINT_OPACITY = 0.94;
-const DICE_FACE_PRINT_WARM_TINT = "#f0d9a3";
+const DICE_FACE_PRINT_WARM_TINT = "#f4deb0";
 
-const DICE_BODY_COLOR = "#ead7a3";
-const DICE_BODY_ROUGHNESS = 0.52;
-const DICE_BODY_METALNESS = 0.018;
+const DICE_BODY_COLOR = "#f2e2b6";
+const DICE_BODY_ROUGHNESS = 0.44;
+const DICE_BODY_METALNESS = 0.012;
 
-const DICE_FACE_PLANE_ROUGHNESS = 0.78;
+const DICE_FACE_PLANE_ROUGHNESS = 0.7;
 const DICE_FACE_PLANE_METALNESS = 0;
 
 const HIDDEN_DICE_FACE_SIZE = 0.68;
@@ -48,15 +48,15 @@ type DiceMaterialToken = {
 };
 
 const DICE_MATERIALS = {
-  ivoryBody: {
-    color: DICE_BODY_COLOR,
-    roughness: DICE_BODY_ROUGHNESS,
-    metalness: DICE_BODY_METALNESS,
-    emissive: "#241405",
-    emissiveIntensity: 0.04,
-    clearcoat: 0.28,
-    clearcoatRoughness: 0.64,
-  },
+ivoryBody: {
+  color: DICE_BODY_COLOR,
+  roughness: DICE_BODY_ROUGHNESS,
+  metalness: DICE_BODY_METALNESS,
+  emissive: "#2c1906",
+  emissiveIntensity: 0.055,
+  clearcoat: 0.36,
+  clearcoatRoughness: 0.52,
+},
 } satisfies Record<string, DiceMaterialToken>;
 
 type DiceFaceVisual = {

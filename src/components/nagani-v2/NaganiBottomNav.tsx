@@ -1,4 +1,4 @@
-//src/components/nagani-v2/NaganiBottomNav.tsx
+// src/components/nagani-v2/NaganiBottomNav.tsx
 
 "use client";
 
@@ -6,31 +6,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 type NavItem = {
-  label: string;
   href: string;
-  symbol: string;
-  isCenter?: boolean;
+  label: string;
+  iconSrc: string;
   active: (pathname: string) => boolean;
 };
 
 const navItems: NavItem[] = [
   {
-    label: "ပရိုဖိုင်",
     href: "/profile",
-    symbol: "◜◝",
+    label: "ကိုယ်ရေး",
+    iconSrc: "/assets/nagani/v2/nav-profile.png",
     active: (pathname) => pathname.startsWith("/profile"),
   },
   {
-    label: "မူလ",
     href: "/",
-    symbol: "◆",
-    isCenter: true,
+    label: "မူလ",
+    iconSrc: "/assets/nagani/v2/nav-home.png",
     active: (pathname) => pathname === "/",
   },
   {
-    label: "ပိုက်ဆံအိတ်",
     href: "/cashier",
-    symbol: "◟◞",
+    label: "ပိုက်ဆံအိတ်",
+    iconSrc: "/assets/nagani/v2/nav-wallet.png",
     active: (pathname) => pathname.startsWith("/cashier"),
   },
 ];
@@ -38,49 +36,55 @@ const navItems: NavItem[] = [
 export default function NaganiBottomNav() {
   const pathname = usePathname();
 
+  function iconTone(isActive: boolean) {
+    return isActive
+      ? "scale-105 opacity-100 drop-shadow-[0_0_24px_rgba(255,215,122,0.9)]"
+      : "opacity-96 drop-shadow-[0_9px_18px_rgba(0,0,0,0.78)] group-hover:scale-[1.03] group-hover:opacity-100";
+  }
+
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-      <div className="grid grid-cols-3 items-end rounded-[2rem] border border-[#d6a84f]/30 bg-gradient-to-b from-[#4b0808]/96 via-[#2a0707]/96 to-[#090202]/98 px-2.5 py-2.5 shadow-[0_-18px_42px_rgba(0,0,0,0.58)] backdrop-blur-md">
-        {navItems.map((item) => {
-          const isActive = item.active(pathname);
+    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-2 pb-[calc(0.38rem+env(safe-area-inset-bottom))]">
+      <div className="relative h-[8.25rem] overflow-visible">
+        <img
+          src="/assets/nagani/v2/nav-bar-parabaik-red.png"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-[0.12rem] left-1/2 h-[6.15rem] w-[104%] max-w-none -translate-x-1/2 select-none object-fill drop-shadow-[0_-16px_32px_rgba(0,0,0,0.74)]"
+          draggable={false}
+        />
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              className={`group flex min-h-[3.65rem] flex-col items-center justify-center rounded-[1.5rem] text-center transition active:scale-[0.98] ${
-                item.isCenter ? "-mt-6 min-h-[4.6rem]" : ""
-              } ${
-                isActive
-                  ? "text-[#ffd77a]"
-                  : "text-[#fff3d0]/68 hover:text-[#fff3d0]"
-              }`}
-            >
-              <span
-                className={`flex items-center justify-center rounded-full border text-sm font-black shadow-lg transition ${
-                  item.isCenter
-                    ? "mb-1 h-12 w-12 border-[#ffd77a]/55 bg-gradient-to-b from-[#b21b16] via-[#7f1111] to-[#3a0707] text-[#ffd77a] shadow-black/50"
-                    : "mb-1 h-8 w-8 border-[#d6a84f]/20 bg-black/20 text-[#d6a84f]/85"
-                } ${
-                  isActive
-                    ? "ring-2 ring-[#ffd77a]/25"
-                    : "ring-0 group-hover:border-[#d6a84f]/35"
-                }`}
-              >
-                {item.symbol}
-              </span>
+        <div className="absolute bottom-[0.95rem] left-1/2 z-20 grid w-[104%] -translate-x-1/2 grid-cols-3 items-center px-8">
+          {navItems.map((item) => {
+            const isActive = item.active(pathname);
 
-              <span
-                className={`text-[0.72rem] font-bold leading-none ${
-  item.isCenter ? "text-[0.8rem]" : ""
-}`}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                aria-current={isActive ? "page" : undefined}
+                className="group flex items-center justify-center transition active:scale-[0.97]"
               >
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+                <span
+                  className={`relative flex h-[5.45rem] w-[5.45rem] items-center justify-center rounded-full transition ${iconTone(
+                    isActive
+                  )}`}
+                >
+                  <span className="absolute inset-[0.35rem] rounded-full bg-[#ffd77a]/12 blur-xl" />
+                  <span className="absolute inset-[0.78rem] rounded-full bg-black/16 blur-md" />
+
+                  <img
+                    src={item.iconSrc}
+                    alt=""
+                    aria-hidden="true"
+                    className="relative h-full w-full object-contain"
+                    draggable={false}
+                  />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

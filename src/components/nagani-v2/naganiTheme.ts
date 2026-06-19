@@ -16,8 +16,7 @@ export const naganiTheme = {
   classNames: {
     page:
       "min-h-screen bg-[#090202] text-[#fff3d0] selection:bg-[#d6a84f]/30 selection:text-[#fff3d0]",
-    safe:
-      "mx-auto min-h-screen w-full max-w-md overflow-hidden",
+    safe: "mx-auto min-h-screen w-full max-w-md overflow-hidden",
     glass:
       "border border-[#d6a84f]/20 bg-[#090202]/55 shadow-2xl shadow-black/50 backdrop-blur-md",
     goldText:

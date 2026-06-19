@@ -2,7 +2,7 @@
 
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
+import { RoundedBox, useTexture } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 
 import { DiceVisual } from "./DiceVisuals";
@@ -32,24 +32,28 @@ import {
 
 type TestMode = "trap" | "runway";
 type MountedDiceRackMode = "ready" | "sequence" | "empty";
+const TABLE_RUNWAY_CARPET_TEXTURE =
+  "/assets/nagani/six-animal/table/six-animal-red-carpet-runway-v1.jpg";
+  const TABLE_WALL_GOLD_BORDER_TEXTURE =
+  "/assets/nagani/six-animal/table/six-animal-wall-gold-border-v1.png";
 
-const TABLE_RUNWAY_COLOR = "#5f0612";
-const TABLE_BACKBOARD_COLOR = "#260405";
-const TABLE_INNER_PANEL_COLOR = "#3a0808";
-const TABLE_BORDER_COLOR = "#1d0304";
-const TABLE_TRAPDOOR_CLOSED_COLOR = "#35100d";
-const TABLE_TRAPDOOR_OPEN_COLOR = "#4a1813";
-const TABLE_GOLD_ACCENT_COLOR = "#b9903d";
-const TABLE_WOOD_ACCENT_COLOR = "#2b0806";
-const TABLE_RUNWAY_INSET_COLOR = "#760816";
-const TABLE_RUNWAY_SHADOW_COLOR = "#240205";
-const TABLE_GOLD_TRIM_COLOR = "#c89f47";
+const TABLE_RUNWAY_COLOR = "#6d0715";
+const TABLE_BACKBOARD_COLOR = "#2b0704";
+const TABLE_INNER_PANEL_COLOR = "#43100a";
+const TABLE_BORDER_COLOR = "#281006";
+const TABLE_TRAPDOOR_CLOSED_COLOR = "#3d170c";
+const TABLE_TRAPDOOR_OPEN_COLOR = "#552313";
+const TABLE_GOLD_ACCENT_COLOR = "#c8a14b";
+const TABLE_WOOD_ACCENT_COLOR = "#4a210d";
+const TABLE_RUNWAY_INSET_COLOR = "#8a0a1b";
+const TABLE_RUNWAY_SHADOW_COLOR = "#2a0206";
+const TABLE_GOLD_TRIM_COLOR = "#d7b45a";
 
-const TABLE_LACQUER_OUTER_COLOR = "#190203";
-const TABLE_SIDE_INNER_GLOW_COLOR = "#45100f";
-const TABLE_VELVET_HIGHLIGHT_COLOR = "#9c1120";
-const TABLE_SHADOW_GLASS_COLOR = "#120102";
-const TABLE_BRASS_SHADOW_COLOR = "#6e4a1e";
+const TABLE_LACQUER_OUTER_COLOR = "#1b0503";
+const TABLE_SIDE_INNER_GLOW_COLOR = "#5a1a0f";
+const TABLE_VELVET_HIGHLIGHT_COLOR = "#b51425";
+const TABLE_SHADOW_GLASS_COLOR = "#100102";
+const TABLE_BRASS_SHADOW_COLOR = "#7b521f";
 
 type TableMaterialToken = {
   color: string;
@@ -93,31 +97,31 @@ const TABLE_MATERIALS = {
     transparent: true,
     opacity: 0.12,
   },
-  backboardLacquer: {
-    color: TABLE_BACKBOARD_COLOR,
-    roughness: 0.48,
-    metalness: 0.08,
-  },
-  innerLacquerPanel: {
-    color: TABLE_INNER_PANEL_COLOR,
-    roughness: 0.56,
-    metalness: 0.06,
-  },
-  holderWood: {
-    color: TABLE_WOOD_ACCENT_COLOR,
-    roughness: 0.62,
-    metalness: 0.04,
-  },
-  trapdoorClosed: {
-    color: TABLE_TRAPDOOR_CLOSED_COLOR,
-    roughness: 0.68,
-    metalness: 0.025,
-  },
-  trapdoorOpen: {
-    color: TABLE_TRAPDOOR_OPEN_COLOR,
-    roughness: 0.7,
-    metalness: 0.025,
-  },
+backboardLacquer: {
+  color: TABLE_BACKBOARD_COLOR,
+  roughness: 0.42,
+  metalness: 0.1,
+},
+innerLacquerPanel: {
+  color: TABLE_INNER_PANEL_COLOR,
+  roughness: 0.5,
+  metalness: 0.08,
+},
+holderWood: {
+  color: TABLE_WOOD_ACCENT_COLOR,
+  roughness: 0.54,
+  metalness: 0.06,
+},
+trapdoorClosed: {
+  color: TABLE_TRAPDOOR_CLOSED_COLOR,
+  roughness: 0.58,
+  metalness: 0.045,
+},
+trapdoorOpen: {
+  color: TABLE_TRAPDOOR_OPEN_COLOR,
+  roughness: 0.6,
+  metalness: 0.045,
+},
   goldAccent: {
     color: TABLE_GOLD_ACCENT_COLOR,
     roughness: 0.42,
@@ -164,15 +168,15 @@ const TABLE_MATERIALS = {
     roughness: 0.78,
     metalness: 0.03,
     transparent: true,
-    opacity: 0.36,
+    opacity: 0.24,
   },
-  backboardLacquerSheen: {
-    color: TABLE_SIDE_INNER_GLOW_COLOR,
-    roughness: 0.48,
-    metalness: 0.08,
-    transparent: true,
-    opacity: 0.16,
-  },
+backboardLacquerSheen: {
+  color: TABLE_SIDE_INNER_GLOW_COLOR,
+  roughness: 0.42,
+  metalness: 0.1,
+  transparent: true,
+  opacity: 0.22,
+},
   backboardLowerShadow: {
     color: TABLE_SHADOW_GLASS_COLOR,
     roughness: 0.82,
@@ -204,13 +208,13 @@ const TABLE_MATERIALS = {
     transparent: true,
     opacity: 0.34,
   },
-  kanoteBackboardGhost: {
-    color: TABLE_GOLD_ACCENT_COLOR,
-    roughness: 0.58,
-    metalness: 0.26,
-    transparent: true,
-    opacity: 0.12,
-  },
+kanoteBackboardGhost: {
+  color: TABLE_GOLD_TRIM_COLOR,
+  roughness: 0.42,
+  metalness: 0.48,
+  transparent: true,
+  opacity: 0.34,
+},
 } satisfies Record<string, TableMaterialToken>;
 
 const DEV_TRAP_RELEASE_DICE_START_Y = 2.82;
@@ -268,14 +272,14 @@ function TableRunwayDepthLayer({ table }: { table: TableMeasurements }) {
   receiveShadow
 >
   <boxGeometry args={[table.floorWidth - 1.42, 0.004, 3.65]} />
-  <meshStandardMaterial
-    color="#8b0714"
-    roughness={1}
-    metalness={0}
-    transparent
-    opacity={0.075}
-    depthWrite={false}
-  />
+<meshStandardMaterial
+  color="#a20b1d"
+  roughness={1}
+  metalness={0}
+  transparent
+  opacity={0.09}
+  depthWrite={false}
+/>
 </mesh>
 
       {/* visual-only rear shadow where dice leaves the holder area; no collider */}
@@ -360,6 +364,7 @@ function TableRunway({
   table: TableMeasurements;
   devPhysicalReleaseEnabled?: boolean;
 }) {
+    const carpetTexture = useTexture(TABLE_RUNWAY_CARPET_TEXTURE);
   const upperRunwayRestitution = devPhysicalReleaseEnabled
     ? DEV_RUNWAY_UPPER_RESTITUTION
     : undefined;
@@ -387,7 +392,11 @@ function TableRunway({
         <boxGeometry
           args={[table.floorWidth, 0.18, table.upperFloorDepth + 0.04]}
         />
-        <meshStandardMaterial {...TABLE_MATERIALS.runwayFelt} />
+        <meshStandardMaterial
+          map={carpetTexture}
+          roughness={0.98}
+          metalness={0}
+        />
       </mesh>
 
 <CuboidCollider
@@ -407,7 +416,11 @@ function TableRunway({
         <boxGeometry
           args={[table.floorWidth, 0.18, table.settlingFloorDepth + 0.04]}
         />
-        <meshStandardMaterial {...TABLE_MATERIALS.runwayFelt} />
+        <meshStandardMaterial
+          map={carpetTexture}
+          roughness={0.98}
+          metalness={0}
+        />
       </mesh>
 
 <CuboidCollider
@@ -417,24 +430,6 @@ function TableRunway({
   restitution={settlingRunwayRestitution}
   friction={settlingRunwayFriction}
 />
-
-            {/* visual-only soft inner felt tone; no collider */}
-      <mesh
-        position={[0, table.floorY + 0.102, table.floorZ + 0.32]}
-        rotation={[table.slopeAngle, 0, 0]}
-        receiveShadow
-      >
-        <boxGeometry args={[table.floorWidth - 0.72, 0.006, table.floorDepth - 1.28]} />
-<meshStandardMaterial
-  color="#8d0715"
-  roughness={1}
-  metalness={0}
-  transparent
-  opacity={0.11}
-  depthWrite={false}
-/>
-      </mesh>
-
       <TableRunwayDepthLayer table={table} />
     </>
   );
@@ -473,14 +468,14 @@ function TableBackboardDepth({ table }: { table: TableMeasurements }) {
         receiveShadow
       >
         <boxGeometry args={[3.42, 0.34, 0.018]} />
-        <meshStandardMaterial
-          color="#8a4a18"
-          roughness={0.72}
-          metalness={0.08}
-          transparent
-          opacity={0.16}
-          depthWrite={false}
-        />
+<meshStandardMaterial
+  color="#b06a25"
+  roughness={0.68}
+  metalness={0.1}
+  transparent
+  opacity={0.2}
+  depthWrite={false}
+/>
       </mesh>
 
       {/* visual-only lower holder shadow; no collider */}
@@ -520,9 +515,35 @@ function TableBackboardKanotePattern({ table }: { table: TableMeasurements }) {
   const startX = -((motifCount - 1) * spacing) / 2;
 
   return (
-    <group position={[0, 1.72, table.backWallZ + 0.185]}>
+    <group position={[0, 1.72, table.backWallZ + 0.205]}>
+      {/* visual-only dark lacquer mount bar behind Kanote; no collider */}
+      <mesh position={[0, 0, -0.008]} receiveShadow>
+        <boxGeometry args={[table.floorWidth - 0.78, 0.18, 0.018]} />
+        <meshStandardMaterial
+          color="#210705"
+          roughness={0.5}
+          metalness={0.08}
+          transparent
+          opacity={0.78}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* visual-only soft lower shadow under carved Kanote bar; no collider */}
+      <mesh position={[0, -0.105, -0.006]} receiveShadow>
+        <boxGeometry args={[table.floorWidth - 0.92, 0.035, 0.014]} />
+        <meshStandardMaterial
+          color="#080101"
+          roughness={0.9}
+          metalness={0.02}
+          transparent
+          opacity={0.34}
+          depthWrite={false}
+        />
+      </mesh>
+
       {/* visual-only ghost Kanote band; no collider */}
-      <mesh position={[0, 0, -0.004]} receiveShadow>
+      <mesh position={[0, 0, -0.001]} receiveShadow>
         <boxGeometry args={[table.floorWidth - 0.95, 0.025, 0.012]} />
         <meshStandardMaterial
           {...TABLE_MATERIALS.kanoteBackboardGhost}
@@ -566,6 +587,9 @@ function TableBackboardKanotePattern({ table }: { table: TableMeasurements }) {
 }
 
 function TableBackboard({ table }: { table: TableMeasurements }) {
+  const carpetTexture = useTexture(TABLE_RUNWAY_CARPET_TEXTURE);
+  const wallGoldBorderTexture = useTexture(TABLE_WALL_GOLD_BORDER_TEXTURE);
+
   return (
     <>
 <RoundedBox
@@ -584,13 +608,39 @@ function TableBackboard({ table }: { table: TableMeasurements }) {
         position={[0, 1.05, table.backWallZ]}
       />
 
-      {/* inner lacquer panel */}
+      {/* inner lacquer base behind visible carpet face */}
       <mesh position={[0, 1.04, table.backWallZ + 0.018]} receiveShadow>
         <boxGeometry args={[table.floorWidth - 0.38, 3.72, 0.035]} />
         <meshStandardMaterial {...TABLE_MATERIALS.innerLacquerPanel} />
       </mesh>
-            <TableBackboardDepth table={table} />
-            <TableBackboardKanotePattern table={table} />
+
+            {/* visual-only gold wall border sticker behind carpet; no collider */}
+      <mesh position={[0, 1.05, table.backWallZ + 0.132]} receiveShadow>
+        <boxGeometry args={[table.floorWidth + 0.12, 4.18, 0.012]} />
+        <meshBasicMaterial
+          map={wallGoldBorderTexture}
+          transparent
+          opacity={0.88}
+          alphaTest={0.08}
+          depthWrite={true}
+        />
+      </mesh>
+
+            {/* visible red carpet wall runway face; no collider */}
+      <mesh position={[0, 1.04, table.backWallZ + 0.146]} receiveShadow>
+        <boxGeometry args={[table.floorWidth - 0.56, 3.54, 0.012]} />
+        <meshStandardMaterial
+          map={carpetTexture}
+          roughness={0.96}
+          metalness={0}
+          emissive="#4c0610"
+          emissiveMap={carpetTexture}
+          emissiveIntensity={0.22}
+        />
+      </mesh>
+
+      <TableBackboardDepth table={table} />
+      <TableBackboardKanotePattern table={table} />
     </>
   );
 }
@@ -833,14 +883,14 @@ function FrontLipLacquerDepth({ table }: { table: TableMeasurements }) {
         receiveShadow
       >
         <boxGeometry args={[table.floorWidth - 0.36, 0.13, 0.032]} />
-        <meshStandardMaterial
-          color="#070101"
-          roughness={0.82}
-          metalness={0.04}
-          transparent
-          opacity={0.32}
-          depthWrite={false}
-        />
+<meshStandardMaterial
+  color="#2a0a05"
+  roughness={0.66}
+  metalness={0.08}
+  transparent
+  opacity={0.28}
+  depthWrite={false}
+/>
       </mesh>
 
       {/* visual-only lower shadow for heavier furniture feeling; no collider */}
@@ -867,6 +917,24 @@ function FrontLipKanoteStrip({ table }: { table: TableMeasurements }) {
         <boxGeometry args={[table.floorWidth - 0.62, 0.035, 0.012]} />
         <meshStandardMaterial
           {...TABLE_MATERIALS.kanoteSoftShadow}
+          depthWrite={false}
+        />
+      </mesh>
+
+            {/* visual-only upper gold hairline for royal front-lip trim; no collider */}
+      <mesh position={[0, 0.092, -0.002]} receiveShadow>
+        <boxGeometry args={[table.floorWidth - 0.48, 0.016, 0.014]} />
+        <meshStandardMaterial
+          {...TABLE_MATERIALS.goldTrim}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* visual-only lower gold hairline for royal front-lip trim; no collider */}
+      <mesh position={[0, -0.128, -0.002]} receiveShadow>
+        <boxGeometry args={[table.floorWidth - 0.54, 0.014, 0.014]} />
+        <meshStandardMaterial
+          {...TABLE_MATERIALS.goldTrim}
           depthWrite={false}
         />
       </mesh>
@@ -920,7 +988,11 @@ function FrontLip({ table }: { table: TableMeasurements }) {
   receiveShadow
   castShadow
 >
-  <meshStandardMaterial {...TABLE_MATERIALS.darkBorder} />
+ <meshStandardMaterial
+  color="#2a0a05"
+  roughness={0.48}
+  metalness={0.12}
+/>
 </RoundedBox>
 
 <RoundedBox
