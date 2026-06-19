@@ -62,9 +62,10 @@ export async function signInAnonymously() {
 }
 
 export async function registerWithEmail(formData: FormData) {
-  const email = normalizePlayerAuthEmail(getFormString(formData, "email"));
-  const password = getFormString(formData, "password");
-  const confirmPassword = getFormString(formData, "confirmPassword");
+const email = normalizePlayerAuthEmail(getFormString(formData, "email"));
+const referralCode = getFormString(formData, "referralCode").toUpperCase();
+const password = getFormString(formData, "password");
+const confirmPassword = getFormString(formData, "confirmPassword");
 
   if (!email) {
     redirectWithRegisterError("ဖုန်းနံပါတ် လိုအပ်ပါသည်။");
@@ -84,10 +85,15 @@ export async function registerWithEmail(formData: FormData) {
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      referral_code: referralCode || null,
+    },
+  },
+});
 
   if (error) {
     console.error("Register error:", error.message);
@@ -110,12 +116,26 @@ export async function registerWithEmail(formData: FormData) {
     .from("profiles")
     .upsert({ id: userId }, { onConflict: "id" });
 
-  if (profileError) {
-    console.error("Profile upsert error:", profileError.message);
-    redirectWithRegisterError("ပရိုဖိုင် ပြင်ဆင်မှု မအောင်မြင်ပါ။");
-  }
+if (profileError) {
+  console.error("Profile upsert error:", profileError.message);
+  redirectWithRegisterError("ပရိုဖိုင် ပြင်ဆင်မှု မအောင်မြင်ပါ။");
+}
 
-  redirect("/");
+if (referralCode) {
+  const { error: referralError } = await supabase.rpc(
+    "assign_player_to_agent",
+    {
+      p_player_id: userId,
+      p_referral_code: referralCode,
+    }
+  );
+
+  if (referralError) {
+    console.warn("Referral assign skipped:", referralError.message);
+  }
+}
+
+redirect("/");
 }
 
 export async function loginWithEmail(formData: FormData) {

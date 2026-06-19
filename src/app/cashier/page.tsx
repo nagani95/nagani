@@ -172,8 +172,15 @@ function CashierPageContent() {
     router.replace("/cashier?message=1");
   }
 
-  return (
-    <AppShell>
+return (
+  <AppShell>
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#090202]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(214,168,79,0.2),transparent_34%),linear-gradient(180deg,rgba(44,8,4,0.96),rgba(8,1,1,0.98)_55%,rgba(24,3,2,1))]" />
+      <div className="absolute inset-x-[-20%] top-[-10%] h-[44%] rounded-full bg-[#7b1711]/26 blur-3xl" />
+      <div className="absolute inset-x-0 bottom-0 h-[42%] bg-[radial-gradient(circle_at_50%_100%,rgba(214,168,79,0.18),transparent_58%)]" />
+    </div>
+
+    <div className="relative z-10 pb-44">
       <header className="flex items-center justify-between">
         <Link href="/" className="text-sm font-bold text-[#ffd77a]">
           မူလသို့
@@ -212,7 +219,8 @@ function CashierPageContent() {
       />
 
       <CashierRecentTickets tickets={recentTickets} />
-    </AppShell>
+    </div>
+  </AppShell>
   );
 }
 

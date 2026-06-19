@@ -6,35 +6,33 @@ type CashierHeroProps = {
 
 export default function CashierHero({ balanceLabel }: CashierHeroProps) {
   return (
-    <section className="relative mt-4 overflow-hidden rounded-[1.75rem] border border-[#d6a84f]/25 bg-[#090202]/58 p-4 shadow-2xl shadow-black/45 backdrop-blur-md">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-[#d6a84f]/12 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-14 left-1/2 h-36 w-36 -translate-x-1/2 rounded-full bg-[#7f1111]/25 blur-3xl" />
+    <section className="relative mt-4 overflow-hidden rounded-[2rem] border border-[#d6a84f]/35 bg-[linear-gradient(145deg,rgba(58,10,5,0.94),rgba(9,2,2,0.96),rgba(85,17,8,0.9))] p-5 shadow-2xl shadow-black/60">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.18),transparent_36%)]" />
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/70 to-transparent" />
 
       <div className="relative">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold text-[#f7dfaa]/65">
-            ပိုက်ဆံအိတ်
-          </p>
+          <div>
+            <p className="text-xs font-black tracking-[0.14em] text-[#f7dfaa]/60">
+              ပိုက်ဆံအိတ်
+            </p>
+            <h1 className="mt-2 text-[1.8rem] font-black leading-tight text-[#ffd77a] drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+              ငွေသွင်း / ငွေထုတ်
+            </h1>
+          </div>
 
-          <div className="rounded-full border border-[#d6a84f]/25 bg-[#d6a84f]/10 px-3 py-1 text-[0.68rem] font-bold text-[#ffd77a]">
+          <div className="rounded-full border border-[#d6a84f]/35 bg-[#2a0805]/80 px-3 py-1.5 text-xs font-black text-[#ffd77a] shadow-lg shadow-black/40">
             လုံခြုံသည်
           </div>
         </div>
 
-        <h1 className="mt-3 text-[1.65rem] font-black leading-tight text-[#ffd77a]">
-          ငွေသွင်း / ငွေထုတ်
-        </h1>
+<p className="mt-3 text-xs font-semibold leading-6 text-[#fff3d0]/58">
+  ငွေသွင်း၊ ငွေထုတ် တောင်းဆိုမှုများကို စစ်ဆေးပေးပါမည်။
+</p>
 
-        <p className="mt-2 text-xs leading-5 text-[#fff3d0]/65">
-          ငွေသွင်း၊ ငွေထုတ် တင်ပြီး အခြေအနေကို စောင့်ကြည့်နိုင်ပါသည်။
-        </p>
-
-        <div className="mt-4 rounded-[1.35rem] border border-[#d6a84f]/20 bg-black/25 px-4 py-3">
-          <p className="text-xs font-semibold text-[#f7dfaa]/60">
-            လက်ကျန်ငွေ
-          </p>
-
-          <p className="mt-1 text-[1.7rem] font-black leading-tight text-[#ffd77a]">
+        <div className="mt-5 rounded-[1.7rem] border border-[#ffd77a]/25 bg-[linear-gradient(180deg,rgba(0,0,0,0.42),rgba(45,7,3,0.58))] p-5 shadow-inner shadow-black/50">
+          <p className="text-sm font-bold text-[#f7dfaa]/65">လက်ကျန်ငွေ</p>
+          <p className="mt-2 text-[2rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_3px_12px_rgba(0,0,0,0.85)]">
             {balanceLabel}
           </p>
         </div>
