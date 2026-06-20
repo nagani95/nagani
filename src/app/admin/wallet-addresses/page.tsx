@@ -32,8 +32,8 @@ type AdminWalletAddressesPageProps = {
 const fallbackWalletAddress: WalletAddressRow = {
   id: "main",
   provider_name: "KBZ Pay",
-  account_name: "စိုးပြည့်စုံ",
-  account_number: "09957117174",
+  account_name: "Yamin Htwe",
+  account_number: "09791606366",
   qr_asset_path: "/assets/nagani/wallet/deposit-q.png",
   minimum_deposit: 3000,
   minimum_withdraw: 3000,
