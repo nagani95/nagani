@@ -10,8 +10,10 @@ type SixAnimalRoomBootGateProps = {
   logoSrc: string;
 };
 
-const MIN_LOADING_MS = 950;
-const MAX_WAIT_MS = 5200;
+const LOADING_BACKGROUND_SRC = "/assets/nagani/shared/backgrounds/loading.jpg";
+
+const MIN_LOADING_MS = 1100;
+const MAX_WAIT_MS = 5400;
 
 function wait(ms: number) {
   return new Promise<void>((resolve) => {
@@ -95,9 +97,10 @@ export default function SixAnimalRoomBootGate({
 
       await Promise.race([
         Promise.all([
-          waitForFonts(),
+          waitForImage(LOADING_BACKGROUND_SRC),
           waitForImage(backgroundSrc),
           waitForImage(logoSrc),
+          waitForFonts(),
           waitForRoomVideo(),
         ]).then(() => undefined),
         wait(MAX_WAIT_MS),
@@ -126,7 +129,7 @@ export default function SixAnimalRoomBootGate({
     <div className="relative min-h-[100dvh] bg-[#090202]">
       <div
         className={[
-          "min-h-[100dvh] transition-opacity duration-500",
+          "min-h-[100dvh] transition-opacity duration-700",
           ready ? "opacity-100" : "pointer-events-none opacity-0",
         ].join(" ")}
         aria-hidden={!ready}
@@ -138,36 +141,39 @@ export default function SixAnimalRoomBootGate({
         <div className="fixed inset-0 z-[9999] flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#090202] px-6 text-center text-[#fff3d0]">
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${backgroundSrc})` }}
+            style={{ backgroundImage: `url(${LOADING_BACKGROUND_SRC})` }}
           />
 
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,2,2,0.52),rgba(9,2,2,0.72),rgba(0,0,0,0.96))]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_32%,rgba(255,215,122,0.18)_0%,transparent_38%,rgba(0,0,0,0.72)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.1),rgba(9,2,2,0.26)_42%,rgba(0,0,0,0.76)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(255,215,122,0.07)_0%,transparent_42%,rgba(0,0,0,0.38)_100%)]" />
 
-          <div className="relative z-10 w-full max-w-[300px] overflow-hidden rounded-[1.7rem] border border-[#d6a84f]/24 bg-[#090202]/68 px-6 py-7 shadow-2xl shadow-black/80 backdrop-blur-[8px]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.17),transparent_68%)]" />
-            <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/75 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-8 top-[calc(1.05rem+env(safe-area-inset-top))] h-px bg-gradient-to-r from-transparent via-[#ffd77a]/55 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-10 bottom-[calc(1.1rem+env(safe-area-inset-bottom))] h-px bg-gradient-to-r from-transparent via-[#d6a84f]/40 to-transparent" />
+
+          <div className="relative z-10 mt-[18vh] w-full max-w-[292px] overflow-hidden rounded-[1.65rem] border border-[#d6a84f]/28 bg-[#090202]/38 px-6 py-6 shadow-[0_22px_70px_rgba(0,0,0,0.82)] backdrop-blur-[4px]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.14),transparent_62%)]" />
+            <div className="pointer-events-none absolute inset-x-9 top-0 h-px bg-gradient-to-r from-transparent via-[#fff3d0]/75 to-transparent" />
 
             <div className="relative z-10">
               <img
                 src={logoSrc}
                 alt=""
                 aria-hidden="true"
-                className="mx-auto h-20 w-20 object-contain drop-shadow-[0_0_22px_rgba(255,215,122,0.28)]"
+                className="mx-auto h-16 w-16 object-contain drop-shadow-[0_0_24px_rgba(255,215,122,0.34)]"
                 draggable={false}
               />
 
-              <h2 className="mt-4 text-lg font-black text-[#ffd77a]">
-                ပွဲခန်းမ ဖွင့်နေသည်
-              </h2>
+              <p className="mt-4 text-[1.02rem] font-black tracking-[0.08em] text-[#ffd77a] drop-shadow-[0_2px_7px_rgba(0,0,0,0.85)]">
+                ခေတ္တစောင့်ဆိုင်းပေးပါ သူငှေးမင်း
+              </p>
 
-              <p className="mt-2 text-sm font-semibold leading-6 text-[#fff3d0]/68">
+              <p className="mt-2 text-xs font-semibold tracking-[0.1em] text-[#fff3d0]/68">
                 တော်ဝင်အန်စာခန်း ပြင်ဆင်နေပါသည်
               </p>
 
-              <div className="mt-5 overflow-hidden rounded-full border border-[#d6a84f]/16 bg-black/45 p-[2px] shadow-inner shadow-black/60">
-                <div className="relative h-2.5 overflow-hidden rounded-full bg-[#fff3d0]/10">
-                  <div className="absolute inset-y-0 left-0 w-[42%] animate-[naganiRoomBootLoading_1.35s_ease-in-out_infinite] rounded-full bg-[linear-gradient(90deg,transparent,#8f6422,#d6a84f,#ffd77a,#fff3d0,#d6a84f,transparent)] shadow-[0_0_16px_rgba(255,215,122,0.34)]" />
+              <div className="mt-5 overflow-hidden rounded-full border border-[#d6a84f]/18 bg-black/48 p-[2px] shadow-inner shadow-black/70">
+                <div className="relative h-2 overflow-hidden rounded-full bg-[#fff3d0]/10">
+                  <div className="absolute inset-y-0 left-0 w-[44%] animate-[naganiRoomBootLoading_1.35s_ease-in-out_infinite] rounded-full bg-[linear-gradient(90deg,transparent,#8f6422,#d6a84f,#ffd77a,#fff3d0,#d6a84f,transparent)] shadow-[0_0_16px_rgba(255,215,122,0.36)]" />
                 </div>
               </div>
             </div>
@@ -176,7 +182,7 @@ export default function SixAnimalRoomBootGate({
           <style jsx>{`
             @keyframes naganiRoomBootLoading {
               0% {
-                transform: translateX(-120%);
+                transform: translateX(-125%);
               }
 
               100% {
