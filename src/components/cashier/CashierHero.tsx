@@ -12,7 +12,7 @@ export default function CashierHero({ balanceLabel }: CashierHeroProps) {
 
       <div className="relative">
         <p className="text-[10px] font-black tracking-[0.16em] text-[#d6a84f]/74">
-          ပိုက်ဆံအိတ် လက်ကျန်
+          ပိုက်ဆံအိတ်
         </p>
 
         <p className="mt-2 whitespace-nowrap text-[2.35rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_4px_14px_rgba(0,0,0,0.88)]">
@@ -22,8 +22,7 @@ export default function CashierHero({ balanceLabel }: CashierHeroProps) {
         <div className="mt-3 h-px w-full bg-gradient-to-r from-transparent via-[#d6a84f]/24 to-transparent" />
 
         <p className="mt-2 text-[10px] font-bold leading-4 text-[#f7dfaa]/54">
-          ငွေသွင်း / ငွေထုတ် လုပ်ဆောင်ချက်များကို အောက်တွင် ဆက်လုပ်နိုင်ပါသည်
-        </p>
+          ချက်ချင်း ငွေသွင်း / ငွေထုတ် မြန်ဆန်နိုင်ရန် "မုန့်ဝယ်/shopping" ဟုသုံးနုန်းပါ။</p>
       </div>
     </section>
   );
