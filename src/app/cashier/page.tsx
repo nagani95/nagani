@@ -187,7 +187,7 @@ function CashierPageContent() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_7%,rgba(255,215,122,0.12),transparent_31%),radial-gradient(circle_at_50%_100%,rgba(86,13,6,0.72),transparent_50%)]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+9.5rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+7.45rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <header className="flex h-8 shrink-0 items-center justify-between">
           <Link href="/" className="text-sm font-bold text-[#ffd77a]">
             မူလသို့
@@ -325,7 +325,7 @@ function CashierPageContent() {
   </div>
 </div>
 
-          <div className="shrink-0 px-3 pb-4 pt-2">
+          <div className="shrink-0 px-3 pb-3 pt-2">
             <CashierRequestForm
               activeTab={activeTab}
               amount={amount}

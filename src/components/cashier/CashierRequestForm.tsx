@@ -90,18 +90,18 @@ export default function CashierRequestForm({
             placeholder="10000"
           />
 
-          <p className="shrink-0 pb-0.5 text-[10px] font-bold text-[#7a4a12]/60">
-            {amountLabel} ကျပ်
-          </p>
+<p className="max-w-[4.6rem] shrink-0 truncate pb-0.5 text-right text-[9px] font-bold text-[#7a4a12]/60">
+  {amountLabel} ကျပ်
+</p>
         </div>
 
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
+        <div className="mt-2 grid grid-cols-[repeat(3,minmax(0,1fr))] gap-1">
           {[10000, 50000, 100000].map((quickAmount) => (
             <button
               key={quickAmount}
               type="button"
               onClick={() => onAmountChange(String(quickAmount))}
-              className="h-7 rounded-[0.65rem] border border-[#9c6a21]/35 bg-[linear-gradient(180deg,#fff7df,#ead39a)] px-2 text-[11px] font-black text-[#4a2412] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_5px_rgba(74,36,18,0.16)] active:scale-[0.98]"
+              className="h-7 min-w-0 rounded-[0.6rem] border border-[#9c6a21]/35 bg-[linear-gradient(180deg,#fff7df,#ead39a)] px-1 text-[10px] font-black text-[#4a2412] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_5px_rgba(74,36,18,0.16)] active:scale-[0.98]"
             >
               {formatMMK(quickAmount)}
             </button>
