@@ -235,25 +235,25 @@ function CashierPageContent() {
         <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.3rem] border border-[#d6a84f]/36 bg-[linear-gradient(145deg,rgba(48,12,7,0.96),rgba(8,1,1,0.99),rgba(58,10,5,0.95))] shadow-[0_24px_70px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,215,122,0.16)]">
           {activeTab === "deposit" ? (
             walletAddress ? (
-<div className="shrink-0 rounded-t-[1.3rem] border-b border-[#d6a84f]/14 px-3 py-2.5">
-  <div className="relative overflow-hidden rounded-[1.15rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f7edd3,#ead8ac_58%,#d8bd79)] p-2.5 shadow-[0_10px_24px_rgba(0,0,0,0.42),inset_0_1px_2px_rgba(255,255,255,0.72)]">
+<div className="shrink-0 rounded-t-[1.3rem] border-b border-[#d6a84f]/14 px-3 py-2">
+  <div className="relative overflow-hidden rounded-[1.1rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f7edd3,#ead8ac_58%,#d8bd79)] p-2 shadow-[0_10px_24px_rgba(0,0,0,0.42),inset_0_1px_2px_rgba(255,255,255,0.72)]">
     <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/85 to-transparent" />
 
-    <div className="grid grid-cols-[104px_1fr] gap-3">
+    <div className="grid grid-cols-[96px_1fr] gap-3">
       <div className="relative">
-        <div className="relative aspect-square overflow-hidden rounded-[0.95rem] border border-[#8a5a16]/35 bg-[#fffaf0] p-1.5 shadow-[0_6px_14px_rgba(74,36,18,0.28),inset_0_1px_1px_rgba(255,255,255,0.8)]">
+        <div className="relative aspect-square overflow-hidden rounded-[0.9rem] border border-[#8a5a16]/35 bg-[#fffaf0] p-1.5 shadow-[0_6px_14px_rgba(74,36,18,0.28),inset_0_1px_1px_rgba(255,255,255,0.8)]">
           <Image
             src={walletAddress.qr_asset_path}
             alt="ငွေသွင်းရန် QR"
             fill
-            sizes="104px"
+            sizes="96px"
             className="rounded-[0.55rem] object-contain"
             priority
           />
         </div>
 
-        <div className="mt-1.5 rounded-[0.65rem] border border-[#9c6a21]/24 bg-[#fff7df]/60 px-2 py-1 text-center shadow-inner shadow-[#7a4a12]/12">
-          <p className="truncate text-[9px] font-black text-[#7a4a12]/72">
+        <div className="mt-1 rounded-[0.6rem] border border-[#9c6a21]/20 bg-[#fff7df]/58 px-2 py-0.5 text-center shadow-inner shadow-[#7a4a12]/10">
+          <p className="truncate text-[8.5px] font-black text-[#7a4a12]/70">
             QR ဖြင့် ငွေလွှဲရန်
           </p>
         </div>
@@ -277,35 +277,24 @@ function CashierPageContent() {
           </div>
         </div>
 
-        <div className="mt-2 rounded-[0.85rem] border border-[#9c6a21]/24 bg-[#fff7df]/64 px-2.5 py-2 shadow-inner shadow-[#7a4a12]/14">
-          <p className="text-[9px] font-bold text-[#7a4a12]/58">
-            အကောင့်အမည်
-          </p>
-          <p className="mt-0.5 truncate text-sm font-black text-[#4a2412]">
+        <div className="mt-2 rounded-[0.85rem] border border-[#9c6a21]/24 bg-[#fff7df]/64 px-3 py-2 shadow-inner shadow-[#7a4a12]/14">
+          <p className="truncate text-base font-black text-[#4a2412]">
             {walletAddress.account_name}
           </p>
         </div>
 
-        <div className="mt-2 overflow-hidden rounded-[0.85rem] border border-[#9c6a21]/30 bg-[#fff7df]/64 shadow-inner shadow-[#7a4a12]/14">
-          <div className="border-b border-[#9c6a21]/18 px-2.5 py-1">
-            <p className="text-[9px] font-bold text-[#7a4a12]/62">
-              ဖုန်း / အကောင့်နံပါတ်
-            </p>
-          </div>
+        <div className="mt-2 flex items-center justify-between gap-2 rounded-[0.85rem] border border-[#9c6a21]/30 bg-[#fff7df]/64 px-3 py-2 shadow-inner shadow-[#7a4a12]/14">
+          <p className="min-w-0 truncate text-base font-black tracking-wide text-[#4a2412]">
+            {walletAddress.account_number}
+          </p>
 
-          <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
-            <p className="truncate text-sm font-black tracking-wide text-[#4a2412]">
-              {walletAddress.account_number}
-            </p>
-
-            <button
-              type="button"
-              onClick={handleCopyAccountNumber}
-              className="shrink-0 rounded-[0.55rem] border border-[#7a3d0b]/30 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-2.5 py-1 text-[10px] font-black text-[#2a1208] shadow-[0_2px_6px_rgba(74,36,18,0.25),inset_0_1px_1px_rgba(255,255,255,0.55)] active:scale-[0.98]"
-            >
-              {copyStatus || "ကူးရန်"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleCopyAccountNumber}
+            className="shrink-0 rounded-[0.55rem] border border-[#7a3d0b]/30 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 py-1.5 text-[10px] font-black text-[#2a1208] shadow-[0_2px_6px_rgba(74,36,18,0.25),inset_0_1px_1px_rgba(255,255,255,0.55)] active:scale-[0.98]"
+          >
+            {copyStatus || "ကူးရန်"}
+          </button>
         </div>
       </div>
     </div>
@@ -333,21 +322,21 @@ function CashierPageContent() {
             </div>
           )}
 
-          <div className="shrink-0 px-3 pt-2">
-            <div className="rounded-[0.95rem] border-l-2 border-[#d6a84f]/68 bg-[linear-gradient(90deg,rgba(214,168,79,0.1),rgba(0,0,0,0.16))] px-3 py-2">
-              <p className="text-[11px] font-bold text-[#fff1c2]/58">
-                {activeTab === "deposit"
-                  ? `အနည်းဆုံး ${formatMMK(minimumDeposit)} ကျပ်မှ စတင်နိုင်ပါသည်`
-                  : `အနည်းဆုံး ${formatMMK(minimumWithdraw)} ကျပ်မှ စတင်နိုင်ပါသည်`}
-              </p>
+<div className="shrink-0 px-3 pt-1.5">
+  <div className="rounded-[0.85rem] border-l-2 border-[#d6a84f]/68 bg-[linear-gradient(90deg,rgba(214,168,79,0.1),rgba(0,0,0,0.16))] px-3 py-1.5">
+    <p className="text-[10.5px] font-bold leading-4 text-[#fff1c2]/62">
+      {activeTab === "deposit"
+        ? `အနည်းဆုံး ${formatMMK(minimumDeposit)} ကျပ်မှ စတင်နိုင်ပါသည်`
+        : `အနည်းဆုံး ${formatMMK(minimumWithdraw)} ကျပ်မှ စတင်နိုင်ပါသည်`}
+    </p>
 
-              {activeTab === "deposit" && walletAddress?.admin_note ? (
-                <p className="mt-0.5 max-h-8 overflow-hidden text-[10px] font-semibold leading-4 text-[#d6a84f]/56">
-                  {walletAddress.admin_note}
-                </p>
-              ) : null}
-            </div>
-          </div>
+    {activeTab === "deposit" && walletAddress?.admin_note ? (
+      <p className="mt-0.5 max-h-6 overflow-hidden text-[9.5px] font-semibold leading-3 text-[#d6a84f]/56">
+        {walletAddress.admin_note}
+      </p>
+    ) : null}
+  </div>
+</div>
 
           <div className="shrink-0 px-3 pb-3 pt-2">
             <CashierRequestForm

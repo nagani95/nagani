@@ -20,6 +20,7 @@ import SixAnimalExitConfirm from "@/components/games/six-animal/SixAnimalExitCon
 import SixAnimalLeavingRoomOverlay from "@/components/games/six-animal/SixAnimalLeavingRoomOverlay";
 import SixAnimalBettingCommandPanel from "@/components/games/six-animal/SixAnimalBettingCommandPanel";
 import SixAnimalRoomWaitLayer from "@/components/games/six-animal/SixAnimalRoomWaitLayer";
+import SixAnimalRoomBootGate from "@/components/games/six-animal/SixAnimalRoomBootGate";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import { createClient } from "@/lib/supabase/client";
 import type { SixAnimalKey } from "@/types/games";
@@ -1759,7 +1760,11 @@ const waitLayerAnnouncementKey =
     : "";
 
   return (
-    <main
+    <SixAnimalRoomBootGate
+      backgroundSrc={ROYAL_CHAMBER_WALLPAPER_SRC}
+      logoSrc={NAGANI_LOGO}
+    >
+      <main
       onPointerDownCapture={unlockRoomAudio}
       className="relative isolate h-[100dvh] overflow-hidden bg-[#090202] text-[#fff3d0]"
 style={{
@@ -1767,6 +1772,7 @@ style={{
 }}
 >
       <video
+        data-nagani-room-video="true"
         className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
         src={ROYAL_CHAMBER_VIDEO_SRC}
         poster={ROYAL_CHAMBER_WALLPAPER_SRC}
@@ -1774,7 +1780,7 @@ style={{
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="auto"
         aria-hidden="true"
       />
 
@@ -1914,6 +1920,7 @@ style={{
           </div>
         </section>
       </div>
-    </main>
+      </main>
+    </SixAnimalRoomBootGate>
   );
 }

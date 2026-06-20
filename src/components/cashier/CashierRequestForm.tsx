@@ -39,20 +39,20 @@ export default function CashierRequestForm({
         event.preventDefault();
         void onSubmitRequest();
       }}
-      className="relative grid content-start gap-2 overflow-hidden rounded-[1.15rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f7edd3,#ead8ac_58%,#d8bd79)] p-2.5 shadow-[0_12px_28px_rgba(0,0,0,0.52),inset_0_1px_2px_rgba(255,255,255,0.72)]"
+      className="relative grid content-start gap-1.5 overflow-hidden rounded-[1.05rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f7edd3,#ead8ac_58%,#d8bd79)] p-2 shadow-[0_10px_24px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.72)]"
     >
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
 
       <input type="hidden" name="requestType" value={activeTab} />
 
-      <div className="relative grid grid-cols-2 gap-1 rounded-[0.9rem] border border-[#8a5a16]/25 bg-[#4a2412]/12 p-1 shadow-inner shadow-[#4a2412]/25">
+      <div className="relative grid grid-cols-2 gap-1 rounded-[0.85rem] border border-[#8a5a16]/25 bg-[#4a2412]/12 p-1 shadow-inner shadow-[#4a2412]/25">
         <button
           type="button"
           onClick={() => onTabChange("deposit")}
           className={
             isDeposit
-              ? "h-10 rounded-[0.7rem] border border-[#7a3d0b]/28 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 text-sm font-black text-[#2a1208] shadow-[0_3px_10px_rgba(86,45,12,0.35),inset_0_1px_1px_rgba(255,255,255,0.55)]"
-              : "h-10 rounded-[0.7rem] px-3 text-sm font-black text-[#6b3a0d]/62 active:scale-[0.99]"
+              ? "h-9 rounded-[0.65rem] border border-[#7a3d0b]/28 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 text-sm font-black text-[#2a1208] shadow-[0_3px_10px_rgba(86,45,12,0.35),inset_0_1px_1px_rgba(255,255,255,0.55)]"
+              : "h-9 rounded-[0.65rem] px-3 text-sm font-black text-[#6b3a0d]/62 active:scale-[0.99]"
           }
         >
           ငွေသွင်း
@@ -63,20 +63,20 @@ export default function CashierRequestForm({
           onClick={() => onTabChange("withdraw")}
           className={
             !isDeposit
-              ? "h-10 rounded-[0.7rem] border border-[#7a3d0b]/28 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 text-sm font-black text-[#2a1208] shadow-[0_3px_10px_rgba(86,45,12,0.35),inset_0_1px_1px_rgba(255,255,255,0.55)]"
-              : "h-10 rounded-[0.7rem] px-3 text-sm font-black text-[#6b3a0d]/62 active:scale-[0.99]"
+              ? "h-9 rounded-[0.65rem] border border-[#7a3d0b]/28 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 text-sm font-black text-[#2a1208] shadow-[0_3px_10px_rgba(86,45,12,0.35),inset_0_1px_1px_rgba(255,255,255,0.55)]"
+              : "h-9 rounded-[0.65rem] px-3 text-sm font-black text-[#6b3a0d]/62 active:scale-[0.99]"
           }
         >
           ငွေထုတ်
         </button>
       </div>
 
-      <div className="rounded-[1rem] border border-[#9c6a21]/22 bg-[#fff7df]/64 px-3 py-2.5 shadow-inner shadow-[#7a4a12]/16">
+      <div className="rounded-[0.95rem] border border-[#9c6a21]/22 bg-[#fff7df]/64 px-3 py-2 shadow-inner shadow-[#7a4a12]/16">
         <p className="text-[10px] font-black tracking-[0.12em] text-[#7a4a12]/82">
           {isDeposit ? "ငွေသွင်းပမာဏ" : "ငွေထုတ်ပမာဏ"}
         </p>
 
-        <div className="mt-1 flex items-end gap-2 border-b border-[#9c6a21]/34 pb-1.5">
+        <div className="mt-1 flex items-end gap-2 border-b border-[#9c6a21]/34 pb-1">
           <span className="pb-0.5 text-xs font-black text-[#7a4a12]/58">
             Ks
           </span>
@@ -86,7 +86,7 @@ export default function CashierRequestForm({
             value={amount}
             onChange={(event) => onAmountChange(event.target.value)}
             inputMode="numeric"
-            className="min-w-0 flex-1 bg-transparent text-[1.45rem] font-black leading-none text-[#4a2412] outline-none placeholder:text-[#7a4a12]/25"
+            className="min-w-0 flex-1 bg-transparent text-[1.35rem] font-black leading-none text-[#4a2412] outline-none placeholder:text-[#7a4a12]/25"
             placeholder="10000"
           />
 
@@ -101,7 +101,7 @@ export default function CashierRequestForm({
               key={quickAmount}
               type="button"
               onClick={() => onAmountChange(String(quickAmount))}
-              className="h-8 rounded-[0.7rem] border border-[#9c6a21]/35 bg-[linear-gradient(180deg,#fff7df,#ead39a)] px-2 text-[11px] font-black text-[#4a2412] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_5px_rgba(74,36,18,0.16)] active:scale-[0.98]"
+              className="h-7 rounded-[0.65rem] border border-[#9c6a21]/35 bg-[linear-gradient(180deg,#fff7df,#ead39a)] px-2 text-[11px] font-black text-[#4a2412] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_5px_rgba(74,36,18,0.16)] active:scale-[0.98]"
             >
               {formatMMK(quickAmount)}
             </button>
@@ -109,7 +109,7 @@ export default function CashierRequestForm({
         </div>
       </div>
 
-      <div className="rounded-[1rem] border border-[#9c6a21]/22 bg-[#fff7df]/64 px-3 py-2.5 shadow-inner shadow-[#7a4a12]/16">
+      <div className="rounded-[0.95rem] border border-[#9c6a21]/22 bg-[#fff7df]/64 px-3 py-2 shadow-inner shadow-[#7a4a12]/16">
         <p className="text-[10px] font-black tracking-[0.12em] text-[#7a4a12]/82">
           {isDeposit ? "လွှဲပြေစာ မှတ်ချက်" : "ငွေလက်ခံမည့် အချက်အလက်"}
         </p>
@@ -119,15 +119,15 @@ export default function CashierRequestForm({
           value={note}
           onChange={(event) => onNoteChange(event.target.value)}
           rows={2}
-          className="mt-1.5 h-[3.15rem] w-full resize-none rounded-[0.75rem] border border-[#9c6a21]/24 bg-[#fffaf0]/75 px-3 py-2 text-sm font-bold leading-5 text-[#4a2412] outline-none placeholder:text-[#7a4a12]/36 focus:border-[#9c6a21]/58 focus:ring-2 focus:ring-[#c89b3c]/22"
+          className="mt-1 h-[2.65rem] w-full resize-none rounded-[0.7rem] border border-[#9c6a21]/24 bg-[#fffaf0]/75 px-3 py-1.5 text-sm font-bold leading-5 text-[#4a2412] outline-none placeholder:text-[#7a4a12]/36 focus:border-[#9c6a21]/58 focus:ring-2 focus:ring-[#c89b3c]/22"
           placeholder={
             isDeposit
-              ? "ပြေစာနောက်ဆုံးနံပါတ် 6လုံး"
+              ? "နောက်ဆုံးနံပါတ် 6လုံး"
               : "အကောင့်အမည် / ဖုန်းနံပါတ်"
           }
         />
 
-        <p className="mt-1 text-[10px] font-semibold leading-4 text-[#7a4a12]/58">
+        <p className="mt-1 text-[9.5px] font-semibold leading-3 text-[#7a4a12]/58">
           {isDeposit
             ? "စစ်ဆေးပြီးပါက လက်ကျန်ငွေ ဖြည့်ပေးပါမည်။"
             : "အတည်ပြုပြီးပါက ငွေထုတ်မှု ဆောင်ရွက်ပေးပါမည်။"}
@@ -139,8 +139,8 @@ export default function CashierRequestForm({
         disabled={!isValidAmount}
         className={
           isValidAmount
-            ? "h-10 w-full rounded-[0.9rem] border border-[#ffd77a]/60 bg-[linear-gradient(180deg,#b51b22,#7b0f14_56%,#430407)] px-5 text-sm font-black text-[#ffe6a3] shadow-[0_8px_18px_rgba(74,10,10,0.42),inset_0_1px_2px_rgba(255,215,122,0.45)] active:scale-[0.98]"
-            : "h-10 w-full rounded-[0.9rem] border border-[#9c6a21]/24 bg-[#4a2412]/14 px-5 text-sm font-black text-[#7a4a12]/42"
+            ? "h-10 w-full rounded-[0.85rem] border border-[#ffd77a]/60 bg-[linear-gradient(180deg,#b51b22,#7b0f14_56%,#430407)] px-5 text-sm font-black text-[#ffe6a3] shadow-[0_8px_18px_rgba(74,10,10,0.42),inset_0_1px_2px_rgba(255,215,122,0.45)] active:scale-[0.98]"
+            : "h-10 w-full rounded-[0.85rem] border border-[#9c6a21]/24 bg-[#4a2412]/14 px-5 text-sm font-black text-[#7a4a12]/42"
         }
       >
         {actionLabel}
