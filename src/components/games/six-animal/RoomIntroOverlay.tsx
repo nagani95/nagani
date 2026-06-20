@@ -51,19 +51,19 @@ export default function RoomIntroOverlay({
             : "တော်ဝင်ပွဲခန်းမ ပြင်ဆင်နေပါသည်";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#090202] px-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#090202] px-6 text-center text-[#fff3d0]">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${roomBackground})` }}
       />
 
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,2,2,0.38),rgba(9,2,2,0.64),rgba(0,0,0,0.9))]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(255,215,122,0.13)_0%,transparent_36%,rgba(0,0,0,0.68)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.18),rgba(9,2,2,0.42)_48%,rgba(0,0,0,0.86)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,rgba(255,215,122,0.08)_0%,transparent_42%,rgba(0,0,0,0.52)_100%)]" />
 
       <button
         type="button"
         onClick={onExitClick}
-        className="absolute left-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[#d6a84f]/30 bg-black/35 shadow-lg shadow-black/50 backdrop-blur-md active:scale-[0.96]"
+        className="absolute left-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[#d6a84f]/30 bg-black/38 shadow-lg shadow-black/60 backdrop-blur-md active:scale-[0.96]"
         aria-label="ထွက်ရန်"
       >
         <img
@@ -80,7 +80,7 @@ export default function RoomIntroOverlay({
           <button
             type="button"
             onClick={onBackgroundMusicToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d6a84f]/30 bg-black/35 text-sm font-black text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-md active:scale-[0.96]"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d6a84f]/30 bg-black/38 text-sm font-black text-[#ffd77a] shadow-lg shadow-black/60 backdrop-blur-md active:scale-[0.96]"
             aria-label="နောက်ခံတေးသံ"
           >
             {isBackgroundMusicMuted ? "♪̸" : "♪"}
@@ -90,7 +90,7 @@ export default function RoomIntroOverlay({
             <button
               type="button"
               onClick={onFullscreenToggle}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d6a84f]/30 bg-black/35 text-sm font-black text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-md active:scale-[0.96]"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d6a84f]/30 bg-black/38 text-sm font-black text-[#ffd77a] shadow-lg shadow-black/60 backdrop-blur-md active:scale-[0.96]"
               aria-label="မျက်နှာပြင်အပြည့်"
             >
               {isFullscreenMode ? "×" : "⛶"}
@@ -99,33 +99,33 @@ export default function RoomIntroOverlay({
         </div>
       ) : null}
 
-      <div className="relative w-full max-w-[300px] overflow-hidden rounded-[1.7rem] border border-[#d6a84f]/24 bg-[#090202]/62 px-6 py-7 text-center shadow-2xl shadow-black/80 backdrop-blur-[7px]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.16),transparent_68%)]" />
-        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/75 to-transparent" />
+      <div className="relative z-10 w-full max-w-[340px] overflow-hidden rounded-[2rem] border border-[#c8922f]/38 bg-[linear-gradient(180deg,rgba(38,12,7,0.9),rgba(13,4,3,0.96))] px-7 py-8 shadow-[0_30px_90px_rgba(0,0,0,0.88)] backdrop-blur-[8px]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.18),transparent_58%)]" />
+        <div className="pointer-events-none absolute inset-[1px] rounded-[calc(2rem-1px)] border border-[#fff3d0]/8" />
+        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-[#fff3d0]/75 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-12 bottom-0 h-px bg-gradient-to-r from-transparent via-[#c8922f]/48 to-transparent" />
 
-        <div className="relative z-10">
+        <div className="relative z-10 flex flex-col items-center">
           <img
             src={logoAsset}
-            alt="နဂါးနီ"
-            className="mx-auto h-20 w-20 object-contain drop-shadow-[0_0_22px_rgba(255,215,122,0.28)]"
+            alt="ရွှေအိုး"
+            className="h-auto w-[10.6rem] object-contain drop-shadow-[0_10px_22px_rgba(0,0,0,0.72)]"
             draggable={false}
           />
 
-          <h2 className="mt-4 text-lg font-black text-[#ffd77a]">နဂါးနီ</h2>
-
-          <p className="mt-2 text-sm font-semibold leading-6 text-[#fff3d0]/68">
+          <p className="mt-4 text-[1.18rem] font-black leading-8 text-[#ffd77a] drop-shadow-[0_2px_8px_rgba(0,0,0,0.86)]">
             {statusText}
           </p>
 
           {safeCountdown > 0 ? (
-            <p className="mt-2 text-xs font-black text-[#ffd77a]/80">
+            <p className="mt-1 text-[0.85rem] font-black text-[#fff3d0]/72">
               {safeCountdown} စက္ကန့်
             </p>
           ) : null}
 
-          <div className="mt-5 overflow-hidden rounded-full border border-[#d6a84f]/16 bg-black/45 p-[2px] shadow-inner shadow-black/60">
-            <div className="relative h-2.5 overflow-hidden rounded-full bg-[#fff3d0]/10">
-              <div className="absolute inset-y-0 left-0 w-[42%] animate-[naganiBootLoading_1.35s_ease-in-out_infinite] rounded-full bg-[linear-gradient(90deg,transparent,#8f6422,#d6a84f,#ffd77a,#fff3d0,#d6a84f,transparent)] shadow-[0_0_16px_rgba(255,215,122,0.34)]" />
+          <div className="mt-6 w-full overflow-hidden rounded-full border border-[#a66d20]/55 bg-[rgba(0,0,0,0.68)] p-[3px] shadow-[inset_0_1px_4px_rgba(255,215,122,0.06)]">
+            <div className="relative h-[0.7rem] overflow-hidden rounded-full bg-[linear-gradient(180deg,rgba(255,243,208,0.04),rgba(0,0,0,0.24))]">
+              <div className="absolute inset-y-[1px] left-0 w-[38%] animate-[naganiBootLoading_1.5s_ease-in-out_infinite] rounded-full bg-[linear-gradient(90deg,#6f4712_0%,#b67a20_24%,#f0c35d_52%,#fff0b8_72%,#d9a33d_100%)] shadow-[0_0_14px_rgba(255,215,122,0.42)]" />
             </div>
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function RoomIntroOverlay({
       <style jsx>{`
         @keyframes naganiBootLoading {
           0% {
-            transform: translateX(-120%);
+            transform: translateX(-125%);
           }
 
           100% {
