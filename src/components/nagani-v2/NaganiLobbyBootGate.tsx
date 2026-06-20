@@ -170,11 +170,11 @@ export default function NaganiLobbyBootGate({
       src={LOADING_LOGO_SRC}
       alt=""
       aria-hidden="true"
-      className="h-auto w-[11.4rem] object-contain drop-shadow-[0_10px_22px_rgba(0,0,0,0.72)]"
+      className="h-auto w-[9.8rem] object-contain drop-shadow-[0_9px_18px_rgba(0,0,0,0.72)]"
       draggable={false}
     />
 
-    <p className="mt-4 text-[1.42rem] font-black leading-none tracking-[0.01em] text-[#ffd77a] drop-shadow-[0_2px_8px_rgba(0,0,0,0.86)]">
+    <p className="mt-3 text-[1.42rem] font-black leading-none tracking-[0.01em] text-[#ffd77a] drop-shadow-[0_2px_8px_rgba(0,0,0,0.86)]">
       နဂါးနီရွှေအိုး ဖွင့်နေသည်
     </p>
 
