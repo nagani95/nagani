@@ -9,6 +9,7 @@ type NaganiLobbyBootGateProps = {
 };
 
 const LOADING_BACKGROUND_SRC = "/assets/nagani/shared/backgrounds/loading.jpg";
+const LOADING_LOGO_SRC = "/assets/nagani/shared/logo/nagani-logo-concept-v1.png";
 
 const MIN_LOADING_MS = 1100;
 const MAX_WAIT_MS = 5200;
@@ -163,9 +164,17 @@ export default function NaganiLobbyBootGate({
             <div className="pointer-events-none absolute inset-x-9 top-0 h-px bg-gradient-to-r from-transparent via-[#fff3d0]/75 to-transparent" />
 
             <div className="relative z-10">
-              <div className="mx-auto flex size-16 items-center justify-center rounded-full border border-[#ffd77a]/34 bg-[#120303]/56 shadow-[0_0_34px_rgba(255,215,122,0.2)]">
-                <div className="size-8 rounded-full border border-[#fff3d0]/55 bg-[radial-gradient(circle,rgba(255,243,208,0.92),rgba(214,168,79,0.72)_48%,rgba(72,10,5,0.92)_100%)] shadow-[0_0_18px_rgba(255,215,122,0.34)] animate-pulse" />
-              </div>
+<div className="mx-auto flex size-[4.35rem] items-center justify-center rounded-full border border-[#ffd77a]/34 bg-[#120303]/56 shadow-[0_0_34px_rgba(255,215,122,0.2)]">
+  <div className="flex size-[3.35rem] items-center justify-center rounded-full border border-[#fff3d0]/18 bg-[radial-gradient(circle,rgba(255,243,208,0.1),rgba(72,10,5,0.72)_100%)] shadow-[0_0_18px_rgba(255,215,122,0.22)]">
+    <img
+      src={LOADING_LOGO_SRC}
+      alt=""
+      aria-hidden="true"
+      className="h-[2.55rem] w-[2.55rem] object-contain drop-shadow-[0_0_12px_rgba(255,215,122,0.28)]"
+      draggable={false}
+    />
+  </div>
+</div>
 
               <p className="mt-4 text-[1.02rem] font-black tracking-[0.08em] text-[#ffd77a] drop-shadow-[0_2px_7px_rgba(0,0,0,0.85)]">
                 ကစားပွဲခန်းမ သို့ဝင်ရောက်သည်
