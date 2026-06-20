@@ -14,10 +14,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_URL = "https://naganishweohh.com";
+
 export const metadata: Metadata = {
-  title: "Nagani | နဂါးနီ",
+  metadataBase: new URL(APP_URL),
+  title: "ရွှေအိုး | Nagani",
   description:
-    "Premium Myanmar traditional games platform for ၆ ကောင်ဂျင် and ၃၆ ကောင်ထီ.",
+    "Premium Myanmar traditional games platform",
+  alternates: {
+    canonical: APP_URL,
+  },
+  openGraph: {
+    title: "ရွှေအိုး | Nagani",
+    description:
+      "Premium Myanmar traditional games platform",
+    url: APP_URL,
+    siteName: "နဂါးနီရွှေအိုး",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
