@@ -75,3 +75,35 @@ export async function removePlayerReferralAction(formData: FormData) {
   revalidatePath(ADMIN_REFERRALS_PATH);
   redirectWithStatus("success", "Player referral removed successfully");
 }
+
+export async function calculateAgentSettlementAction(formData: FormData) {
+  const supabase = await createClient();
+  let errorMessage: string | null = null;
+
+  try {
+    const agentId = getText(formData, "agent_id");
+    const settlementMonth =
+      getText(formData, "settlement_month") ||
+      new Date().toISOString().slice(0, 7) + "-01";
+
+    const { error } = await supabase.rpc("calculate_agent_monthly_settlement", {
+      p_agent_id: agentId,
+      p_settlement_month: settlementMonth,
+    });
+
+    if (error) {
+      errorMessage = error.message;
+    }
+  } catch (error) {
+    errorMessage =
+      error instanceof Error ? error.message : "Failed to calculate settlement";
+  }
+
+  if (errorMessage) {
+    redirectWithStatus("error", errorMessage);
+  }
+
+  revalidatePath(ADMIN_REFERRALS_PATH);
+  revalidatePath("/agent");
+  redirectWithStatus("success", "Agent monthly settlement calculated");
+}

@@ -7,6 +7,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import { createClient } from "@/lib/supabase/server";
 import {
   assignPlayerToAgentAction,
+  calculateAgentSettlementAction,
   removePlayerReferralAction,
 } from "./actions";
 
@@ -263,6 +264,65 @@ export default async function AdminReferralsPage({
           </p>
         </div>
       </section>
+
+      <section className="mt-4 rounded-2xl border border-amber-300/12 bg-black/35 p-4">
+  <div className="mb-4">
+    <p className="text-[11px] font-black uppercase tracking-[0.28em] text-amber-200/45">
+      Monthly Settlement
+    </p>
+    <h2 className="mt-1 text-xl font-black text-amber-100">
+      Calculate Agent Balance
+    </h2>
+  </div>
+
+  {activeAgents.length === 0 ? (
+    <p className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-bold text-white/45">
+      No active agents available.
+    </p>
+  ) : (
+    <div className="grid gap-3">
+      {activeAgents.map((agent) => (
+        <form
+          key={agent.id}
+          action={calculateAgentSettlementAction}
+          className="grid gap-3 rounded-xl border border-white/10 bg-[#120504] p-4 md:grid-cols-[1fr_180px_180px]"
+        >
+          <input type="hidden" name="agent_id" value={agent.id} />
+
+          <div>
+            <p className="text-base font-black text-amber-100">
+              {agent.display_name}
+            </p>
+            <p className="mt-1 text-xs font-bold text-white/45">
+              Code: {agent.agent_code} · Rate: {formatPercent(agent.commission_rate)}%
+            </p>
+          </div>
+
+          <label>
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">
+              Month
+            </span>
+            <input
+              name="settlement_month"
+              type="date"
+              defaultValue={new Date().toISOString().slice(0, 7) + "-01"}
+              className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
+            />
+          </label>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className="w-full rounded-xl border border-amber-300/25 bg-amber-300/15 px-4 py-3 text-sm font-black text-amber-100 transition hover:bg-amber-300 hover:text-black"
+            >
+              Calculate
+            </button>
+          </div>
+        </form>
+      ))}
+    </div>
+  )}
+</section>
 
       <section className="mt-4 rounded-2xl border border-amber-300/12 bg-black/35 p-4">
         <div className="mb-4">

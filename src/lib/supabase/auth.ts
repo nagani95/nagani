@@ -48,6 +48,10 @@ function redirectWithAdminLoginError(message: string): never {
   redirect(`/admin/login?error=${encodeURIComponent(message)}`);
 }
 
+function redirectWithAgentLoginError(message: string): never {
+  redirect(`/agent/login?error=${encodeURIComponent(message)}`);
+}
+
 export async function signInAnonymously() {
   const supabase = await createClient();
 
@@ -203,4 +207,31 @@ export async function adminLoginWithEmail(formData: FormData) {
   }
 
   redirect("/admin");
+}
+
+export async function agentLoginWithPhone(formData: FormData) {
+  const email = normalizePlayerAuthEmail(getFormString(formData, "phone"));
+  const password = getFormString(formData, "password");
+
+  if (!email) {
+    redirectWithAgentLoginError("ဖုန်းနံပါတ် လိုအပ်ပါသည်။");
+  }
+
+  if (!password) {
+    redirectWithAgentLoginError("စကားဝှက် လိုအပ်ပါသည်။");
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    console.error("Agent login error:", error.message);
+    redirectWithAgentLoginError("အေးဂျင့် ဝင်ရောက်မှု မအောင်မြင်ပါ။");
+  }
+
+  redirect("/agent");
 }

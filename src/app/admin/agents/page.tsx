@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   activateAgentAction,
   createAgentAction,
+  createAgentLoginAction,
   pauseAgentAction,
   updateAgentAction,
 } from "./actions";
@@ -23,6 +24,8 @@ type AgentProfile = {
   negative_carry: number;
   notes: string | null;
   created_at: string;
+  auth_user_id: string | null;
+  agent_login_phone: string | null;
 };
 
 type AdminAgentsPageProps = {
@@ -77,7 +80,7 @@ export default async function AdminAgentsPage({
   const { data, error } = await supabase
     .from("agent_profiles")
     .select(
-      "id, agent_code, display_name, commission_rate, status, negative_carry, notes, created_at"
+      "id, agent_code, display_name, commission_rate, status, negative_carry, notes, created_at, auth_user_id, agent_login_phone"
     )
     .order("created_at", { ascending: false })
     .returns<AgentProfile[]>();
@@ -191,7 +194,7 @@ export default async function AdminAgentsPage({
           </h2>
         </div>
 
-        <form action={createAgentAction} className="grid gap-3 lg:grid-cols-5">
+        <form action={createAgentAction} className="grid gap-3 lg:grid-cols-6">
           <label>
             <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
               Agent Code
@@ -215,6 +218,32 @@ export default async function AdminAgentsPage({
               className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
             />
           </label>
+
+<label>
+  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
+    Login Phone
+  </span>
+  <input
+    name="phone_number"
+    required
+    placeholder="09957117174"
+    className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+  />
+</label>
+
+<label>
+  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
+    Password
+  </span>
+  <input
+    name="password"
+    required
+    type="password"
+    minLength={6}
+    placeholder="Minimum 6 characters"
+    className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+  />
+</label>
 
           <label>
             <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
@@ -427,6 +456,70 @@ export default async function AdminAgentsPage({
                   </button>
                 </div>
               </form>
+
+<div className="mt-4 rounded-xl border border-amber-300/10 bg-black/25 p-4">
+  <div
+    className={[
+      "mb-3 rounded-xl border px-4 py-3 text-xs font-black uppercase tracking-[0.14em]",
+      agent.auth_user_id
+        ? "border-emerald-300/15 bg-emerald-400/10 text-emerald-100"
+        : "border-amber-300/15 bg-amber-400/10 text-amber-100",
+    ].join(" ")}
+  >
+    {agent.auth_user_id ? "Login Ready" : "Login Not Created"}
+    {agent.agent_login_phone ? (
+      <span className="ml-3 normal-case tracking-normal text-white/70">
+        Phone: {agent.agent_login_phone}
+      </span>
+    ) : null}
+  </div>
+
+  <form action={createAgentLoginAction} className="grid gap-3 lg:grid-cols-3">
+    <input type="hidden" name="agent_id" value={agent.id} />
+    <input type="hidden" name="agent_code" value={agent.agent_code} />
+    <input
+      type="hidden"
+      name="auth_user_id"
+      value={agent.auth_user_id ?? ""}
+    />
+
+    <label>
+      <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">
+        Login Phone
+      </span>
+      <input
+        name="phone_number"
+        required
+        defaultValue={agent.agent_login_phone ?? ""}
+        placeholder="09957117174"
+        className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+      />
+    </label>
+
+    <label>
+      <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">
+        Password / Reset Password
+      </span>
+      <input
+        name="password"
+        required
+        type="password"
+        minLength={6}
+        placeholder="Minimum 6 characters"
+        className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+      />
+    </label>
+
+    <div className="flex items-end">
+      <button
+        type="submit"
+        className="w-full rounded-xl border border-amber-300/25 bg-amber-300/15 px-4 py-3 text-sm font-black text-amber-100 transition hover:bg-amber-300 hover:text-black"
+      >
+        {agent.auth_user_id ? "Save / Reset Login" : "Create Login"}
+      </button>
+    </div>
+  </form>
+</div>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {agent.status === "active" ? (

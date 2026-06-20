@@ -4,12 +4,23 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const ADMIN_AGENTS_PATH = "/admin/agents";
 
+type CreatedAgent = {
+  id?: string;
+};
+
 function getText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
+}
+
+function normalizeNaganiPhoneAuthEmail(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits ? `${digits}@nagani.local` : "";
 }
 
 function getCommissionDecimal(formData: FormData) {
@@ -31,8 +42,53 @@ function redirectWithStatus(type: "success" | "error", message: string): never {
   redirect(`${ADMIN_AGENTS_PATH}?${type}=${encodeURIComponent(message)}`);
 }
 
+async function createAgentAuthUser(params: {
+  phoneNumber: string;
+  password: string;
+  agentCode: string;
+}) {
+  const supabaseAdmin = createAdminClient();
+  const authEmail = normalizeNaganiPhoneAuthEmail(params.phoneNumber);
+  const cleanPhone = params.phoneNumber.replace(/\D/g, "");
+
+  if (!authEmail) {
+    throw new Error("Agent phone number is required");
+  }
+
+  if (!params.password) {
+    throw new Error("Agent password is required");
+  }
+
+  if (params.password.length < 6) {
+    throw new Error("Agent password must be at least 6 characters");
+  }
+
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email: authEmail,
+    password: params.password,
+    email_confirm: true,
+    user_metadata: {
+      nagani_role: "agent",
+      agent_code: params.agentCode,
+      phone_number: cleanPhone,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data.user?.id) {
+    throw new Error("Failed to create agent login user");
+  }
+
+  return data.user.id;
+}
+
 export async function createAgentAction(formData: FormData) {
   const supabase = await createClient();
+  const supabaseAdmin = createAdminClient();
+  let createdAuthUserId: string | null = null;
   let errorMessage: string | null = null;
 
   try {
@@ -40,8 +96,25 @@ export async function createAgentAction(formData: FormData) {
     const displayName = getText(formData, "display_name");
     const commissionRate = getCommissionDecimal(formData);
     const notes = getText(formData, "notes") || null;
+    const phoneNumber = getText(formData, "phone_number");
+    const password = getText(formData, "password");
+    const cleanPhone = phoneNumber.replace(/\D/g, "");
 
-    const { error } = await supabase.rpc("create_agent_profile", {
+    if (!agentCode) {
+      throw new Error("Agent code is required");
+    }
+
+    if (!displayName) {
+      throw new Error("Display name is required");
+    }
+
+    createdAuthUserId = await createAgentAuthUser({
+      phoneNumber,
+      password,
+      agentCode,
+    });
+
+    const { data, error } = await supabase.rpc("create_agent_profile", {
       p_agent_code: agentCode,
       p_display_name: displayName,
       p_commission_rate: commissionRate,
@@ -49,9 +122,28 @@ export async function createAgentAction(formData: FormData) {
     });
 
     if (error) {
-      errorMessage = error.message;
+      throw new Error(error.message);
+    }
+
+    const createdAgent = data as CreatedAgent | null;
+
+    const updateQuery = supabaseAdmin.from("agent_profiles").update({
+      auth_user_id: createdAuthUserId,
+      agent_login_phone: cleanPhone,
+    });
+
+    const { error: linkError } = createdAgent?.id
+      ? await updateQuery.eq("id", createdAgent.id)
+      : await updateQuery.eq("agent_code", agentCode);
+
+    if (linkError) {
+      throw new Error(linkError.message);
     }
   } catch (error) {
+    if (createdAuthUserId) {
+      await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
+    }
+
     errorMessage =
       error instanceof Error ? error.message : "Failed to create agent";
   }
@@ -61,7 +153,96 @@ export async function createAgentAction(formData: FormData) {
   }
 
   revalidatePath(ADMIN_AGENTS_PATH);
-  redirectWithStatus("success", "Agent created successfully");
+  redirectWithStatus("success", "Agent created with phone login successfully");
+}
+
+export async function createAgentLoginAction(formData: FormData) {
+  const supabaseAdmin = createAdminClient();
+  let createdAuthUserId: string | null = null;
+  let errorMessage: string | null = null;
+
+  try {
+    const agentId = getText(formData, "agent_id");
+    const agentCode = getText(formData, "agent_code").toLowerCase();
+    const existingAuthUserId = getText(formData, "auth_user_id");
+    const phoneNumber = getText(formData, "phone_number");
+    const password = getText(formData, "password");
+    const cleanPhone = phoneNumber.replace(/\D/g, "");
+    const authEmail = normalizeNaganiPhoneAuthEmail(phoneNumber);
+
+    if (!agentId) {
+      throw new Error("Agent ID is required");
+    }
+
+    if (!authEmail || !cleanPhone) {
+      throw new Error("Agent phone number is required");
+    }
+
+    if (!password || password.length < 6) {
+      throw new Error("Agent password must be at least 6 characters");
+    }
+
+    if (existingAuthUserId) {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(
+        existingAuthUserId,
+        {
+          email: authEmail,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            nagani_role: "agent",
+            agent_code: agentCode,
+            phone_number: cleanPhone,
+          },
+        },
+      );
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const { error: profileError } = await supabaseAdmin
+        .from("agent_profiles")
+        .update({ agent_login_phone: cleanPhone })
+        .eq("id", agentId);
+
+      if (profileError) {
+        throw new Error(profileError.message);
+      }
+    } else {
+      createdAuthUserId = await createAgentAuthUser({
+        phoneNumber,
+        password,
+        agentCode,
+      });
+
+      const { error } = await supabaseAdmin
+        .from("agent_profiles")
+        .update({
+          auth_user_id: createdAuthUserId,
+          agent_login_phone: cleanPhone,
+        })
+        .eq("id", agentId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+  } catch (error) {
+    if (createdAuthUserId) {
+      await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
+    }
+
+    errorMessage =
+      error instanceof Error ? error.message : "Failed to create agent login";
+  }
+
+  if (errorMessage) {
+    redirectWithStatus("error", errorMessage);
+  }
+
+  revalidatePath(ADMIN_AGENTS_PATH);
+  redirectWithStatus("success", "Agent phone login saved successfully");
 }
 
 export async function updateAgentAction(formData: FormData) {
