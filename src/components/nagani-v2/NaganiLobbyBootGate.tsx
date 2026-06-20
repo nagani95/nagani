@@ -159,42 +159,36 @@ export default function NaganiLobbyBootGate({
           <div className="pointer-events-none absolute inset-x-8 top-[calc(1.05rem+env(safe-area-inset-top))] h-px bg-gradient-to-r from-transparent via-[#ffd77a]/55 to-transparent" />
           <div className="pointer-events-none absolute inset-x-10 bottom-[calc(1.1rem+env(safe-area-inset-bottom))] h-px bg-gradient-to-r from-transparent via-[#d6a84f]/40 to-transparent" />
 
-<div className="relative z-10 mt-[17vh] w-full max-w-[350px] overflow-hidden rounded-[2rem] border border-[#c8922f]/40 bg-[linear-gradient(180deg,rgba(34,11,6,0.88),rgba(15,4,3,0.94))] px-7 py-8 shadow-[0_30px_90px_rgba(0,0,0,0.88)] backdrop-blur-[8px]">
-  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.18),transparent_56%)]" />
+<div className="relative z-10 mt-[16vh] w-full max-w-[350px] overflow-hidden rounded-[2rem] border border-[#c8922f]/38 bg-[linear-gradient(180deg,rgba(38,12,7,0.9),rgba(13,4,3,0.96))] px-7 py-8 shadow-[0_30px_90px_rgba(0,0,0,0.88)] backdrop-blur-[8px]">
+  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.18),transparent_58%)]" />
   <div className="pointer-events-none absolute inset-[1px] rounded-[calc(2rem-1px)] border border-[#fff3d0]/8" />
   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-[#fff3d0]/75 to-transparent" />
   <div className="pointer-events-none absolute inset-x-12 bottom-0 h-px bg-gradient-to-r from-transparent via-[#c8922f]/48 to-transparent" />
 
   <div className="relative z-10 flex flex-col items-center">
-    <div className="relative flex h-[5.9rem] w-[8.6rem] items-center justify-center rounded-[1.35rem] border border-[#d6a84f]/28 bg-[radial-gradient(circle_at_50%_35%,rgba(255,215,122,0.12),rgba(29,8,5,0.84)_62%,rgba(8,2,2,0.92)_100%)] shadow-[0_0_34px_rgba(255,215,122,0.14),inset_0_1px_0_rgba(255,243,208,0.08)]">
-      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#fff3d0]/42 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 rounded-[1.35rem] bg-[radial-gradient(circle_at_50%_50%,rgba(255,215,122,0.1),transparent_62%)]" />
+    <img
+      src={LOADING_LOGO_SRC}
+      alt=""
+      aria-hidden="true"
+      className="h-auto w-[11.4rem] object-contain drop-shadow-[0_10px_22px_rgba(0,0,0,0.72)]"
+      draggable={false}
+    />
 
-      <img
-        src={LOADING_LOGO_SRC}
-        alt=""
-        aria-hidden="true"
-        className="relative z-10 h-[5.55rem] w-[8.1rem] object-contain drop-shadow-[0_5px_14px_rgba(0,0,0,0.72)]"
-        draggable={false}
-      />
-    </div>
-
-    <p className="mt-5 text-[1.3rem] font-black leading-none tracking-[0.01em] text-[#ffd77a] drop-shadow-[0_2px_8px_rgba(0,0,0,0.86)]">
-      ကစားပွဲခန်းမသို့ ဝင်ရောက်နေသည်
+    <p className="mt-4 text-[1.42rem] font-black leading-none tracking-[0.01em] text-[#ffd77a] drop-shadow-[0_2px_8px_rgba(0,0,0,0.86)]">
+      နဂါးနီရွှေအိုး ဖွင့်နေသည်
     </p>
 
-    <p className="mt-3 text-[0.9rem] font-semibold leading-6 text-[#fff3d0]/78">
+    <p className="mt-3 text-[0.95rem] font-semibold leading-6 text-[#fff3d0]/78">
       ခေတ္တစောင့်ပါ။ တော်ဝင်ခန်းမကို ပြင်ဆင်နေပါသည်
     </p>
 
-    <div className="mt-6 w-full overflow-hidden rounded-full border border-[#a66d20]/55 bg-[rgba(0,0,0,0.62)] p-[3px] shadow-[inset_0_1px_4px_rgba(255,215,122,0.06)]">
+    <div className="mt-6 w-full overflow-hidden rounded-full border border-[#a66d20]/55 bg-[rgba(0,0,0,0.68)] p-[3px] shadow-[inset_0_1px_4px_rgba(255,215,122,0.06)]">
       <div className="relative h-[0.7rem] overflow-hidden rounded-full bg-[linear-gradient(180deg,rgba(255,243,208,0.04),rgba(0,0,0,0.24))]">
         <div className="absolute inset-y-[1px] left-0 w-[38%] animate-[naganiLobbyBootLoading_1.5s_ease-in-out_infinite] rounded-full bg-[linear-gradient(90deg,#6f4712_0%,#b67a20_24%,#f0c35d_52%,#fff0b8_72%,#d9a33d_100%)] shadow-[0_0_14px_rgba(255,215,122,0.42)]" />
       </div>
     </div>
   </div>
 </div>
-
           <style jsx>{`
             @keyframes naganiLobbyBootLoading {
               0% {
