@@ -39,7 +39,7 @@ export default function CashierRequestForm({
         event.preventDefault();
         void onSubmitRequest();
       }}
-      className="relative grid content-start gap-1.5 overflow-hidden rounded-[1.05rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f7edd3,#ead8ac_58%,#d8bd79)] p-2 shadow-[0_10px_24px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.72)]"
+      className="relative grid content-start gap-1.5 overflow-hidden rounded-[1.1rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f8efd9,#ead8ac_58%,#d8bd79)] p-2 shadow-[0_10px_24px_rgba(0,0,0,0.48),inset_0_1px_2px_rgba(255,255,255,0.72)]"
     >
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
 
@@ -86,7 +86,7 @@ export default function CashierRequestForm({
             value={amount}
             onChange={(event) => onAmountChange(event.target.value)}
             inputMode="numeric"
-            className="min-w-0 flex-1 bg-transparent text-[1.35rem] font-black leading-none text-[#4a2412] outline-none placeholder:text-[#7a4a12]/25"
+            className="min-w-0 flex-1 bg-transparent text-[1.3rem] font-black leading-none text-[#4a2412] outline-none placeholder:text-[#7a4a12]/25"
             placeholder="10000"
           />
 
@@ -119,7 +119,7 @@ export default function CashierRequestForm({
           value={note}
           onChange={(event) => onNoteChange(event.target.value)}
           rows={2}
-          className="mt-1 h-[2.65rem] w-full resize-none rounded-[0.7rem] border border-[#9c6a21]/24 bg-[#fffaf0]/75 px-3 py-1.5 text-sm font-bold leading-5 text-[#4a2412] outline-none placeholder:text-[#7a4a12]/36 focus:border-[#9c6a21]/58 focus:ring-2 focus:ring-[#c89b3c]/22"
+          className="mt-1 h-[2.45rem] w-full resize-none rounded-[0.7rem] border border-[#9c6a21]/24 bg-[#fffaf0]/75 px-3 py-1.5 text-sm font-bold leading-5 text-[#4a2412] outline-none placeholder:text-[#7a4a12]/36 focus:border-[#9c6a21]/58 focus:ring-2 focus:ring-[#c89b3c]/22"
           placeholder={
             isDeposit
               ? "နောက်ဆုံးနံပါတ် 6လုံး"
@@ -139,8 +139,8 @@ export default function CashierRequestForm({
         disabled={!isValidAmount}
         className={
           isValidAmount
-            ? "h-10 w-full rounded-[0.85rem] border border-[#ffd77a]/60 bg-[linear-gradient(180deg,#b51b22,#7b0f14_56%,#430407)] px-5 text-sm font-black text-[#ffe6a3] shadow-[0_8px_18px_rgba(74,10,10,0.42),inset_0_1px_2px_rgba(255,215,122,0.45)] active:scale-[0.98]"
-            : "h-10 w-full rounded-[0.85rem] border border-[#9c6a21]/24 bg-[#4a2412]/14 px-5 text-sm font-black text-[#7a4a12]/42"
+            ? "h-11 w-full rounded-[0.9rem] border border-[#ffd77a]/60 bg-[linear-gradient(180deg,#b51b22,#7b0f14_56%,#430407)] px-5 text-base font-black text-[#ffe6a3] shadow-[0_8px_18px_rgba(74,10,10,0.42),inset_0_1px_2px_rgba(255,215,122,0.45)] active:scale-[0.98]"
+            : "h-11 w-full rounded-[0.9rem] border border-[#9c6a21]/24 bg-[#4a2412]/14 px-5 text-base font-black text-[#7a4a12]/42"
         }
       >
         {actionLabel}
