@@ -119,12 +119,12 @@ export default async function HomePage() {
             style={{
               backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
             }}
-            aria-label="နဂါးနီ"
+            aria-label="ရွှေအိုး"
           />
 
-          <div className="-mt-3 rounded-full border border-[#ffd77a]/30 bg-[#090202]/42 px-4 py-1 text-sm font-black tracking-[0.12em] text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-[2px]">
-            နဂါးနီ
-          </div>
+<div className="-mt-3 rounded-full border border-[#ffd77a]/30 bg-[#090202]/42 px-4 py-1 text-sm font-black tracking-[0.12em] text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-[2px]">
+  ရွှေအိုး
+</div>
         </div>
 
         <div className="pointer-events-none absolute left-1/2 top-[58.85%] z-10 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,215,122,0.46)_0%,rgba(214,168,79,0.18)_38%,transparent_72%)] blur-xl" />
