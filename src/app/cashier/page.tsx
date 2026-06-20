@@ -200,7 +200,7 @@ function CashierPageContent() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_7%,rgba(255,215,122,0.12),transparent_31%),radial-gradient(circle_at_50%_100%,rgba(86,13,6,0.72),transparent_50%)]" />
       </div>
 
-      <div className="fixed inset-0 z-10 mx-auto flex w-full max-w-md flex-col overflow-hidden px-5 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+      <div className="fixed inset-0 z-10 mx-auto flex w-full max-w-md flex-col overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-[calc(env(safe-area-inset-bottom)+10rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)] [-webkit-overflow-scrolling:touch]">
         <header className="flex h-8 shrink-0 items-center justify-between">
           <Link href="/" className="text-sm font-bold text-[#ffd77a]">
             မူလသို့
@@ -232,7 +232,7 @@ function CashierPageContent() {
           </div>
         )}
 
-        <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.3rem] border border-[#d6a84f]/36 bg-[linear-gradient(145deg,rgba(48,12,7,0.96),rgba(8,1,1,0.99),rgba(58,10,5,0.95))] shadow-[0_24px_70px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,215,122,0.16)]">
+        <section className="mt-2 flex min-h-0 flex-none flex-col overflow-visible rounded-[1.3rem] border border-[#d6a84f]/36 bg-[linear-gradient(145deg,rgba(48,12,7,0.96),rgba(8,1,1,0.99),rgba(58,10,5,0.95))] shadow-[0_24px_70px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,215,122,0.16)]">
           {activeTab === "deposit" ? (
             walletAddress ? (
 <div className="shrink-0 rounded-t-[1.3rem] border-b border-[#d6a84f]/14 px-3 py-2">
@@ -283,19 +283,19 @@ function CashierPageContent() {
           </p>
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2 rounded-[0.85rem] border border-[#9c6a21]/30 bg-[#fff7df]/64 px-3 py-2 shadow-inner shadow-[#7a4a12]/14">
-          <p className="min-w-0 truncate text-base font-black tracking-wide text-[#4a2412]">
-            {walletAddress.account_number}
-          </p>
+<div className="mt-2 grid grid-cols-[minmax(0,1fr)_2.85rem] items-center gap-1.5 rounded-[0.85rem] border border-[#9c6a21]/30 bg-[#fff7df]/64 px-2.5 py-2 shadow-inner shadow-[#7a4a12]/14">
+  <p className="min-w-0 whitespace-nowrap text-[0.9rem] font-black tracking-[0.01em] text-[#4a2412]">
+    {walletAddress.account_number}
+  </p>
 
-          <button
-            type="button"
-            onClick={handleCopyAccountNumber}
-            className="shrink-0 rounded-[0.55rem] border border-[#7a3d0b]/30 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 py-1.5 text-[10px] font-black text-[#2a1208] shadow-[0_2px_6px_rgba(74,36,18,0.25),inset_0_1px_1px_rgba(255,255,255,0.55)] active:scale-[0.98]"
-          >
-            {copyStatus || "ကူးရန်"}
-          </button>
-        </div>
+  <button
+    type="button"
+    onClick={handleCopyAccountNumber}
+    className="h-8 shrink-0 rounded-[0.5rem] border border-[#7a3d0b]/30 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-1 text-[9px] font-black text-[#2a1208] shadow-[0_2px_6px_rgba(74,36,18,0.25),inset_0_1px_1px_rgba(255,255,255,0.55)] active:scale-[0.98]"
+  >
+    {copyStatus === "ကူးယူပြီးပါပြီ" ? "ပြီး" : copyStatus ? "မရ" : "ကူး"}
+  </button>
+</div>
       </div>
     </div>
   </div>
@@ -338,7 +338,7 @@ function CashierPageContent() {
   </div>
 </div>
 
-          <div className="shrink-0 px-3 pb-3 pt-2">
+          <div className="shrink-0 px-3 pb-7 pt-2">
             <CashierRequestForm
               activeTab={activeTab}
               amount={amount}
