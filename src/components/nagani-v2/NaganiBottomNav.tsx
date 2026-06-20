@@ -38,22 +38,22 @@ export default function NaganiBottomNav() {
 
   function iconTone(isActive: boolean) {
     return isActive
-      ? "scale-105 opacity-100 drop-shadow-[0_0_24px_rgba(255,215,122,0.9)]"
-      : "opacity-96 drop-shadow-[0_9px_18px_rgba(0,0,0,0.78)] group-hover:scale-[1.03] group-hover:opacity-100";
+      ? "scale-[1.04] opacity-100 drop-shadow-[0_0_20px_rgba(255,215,122,0.82)]"
+      : "opacity-95 drop-shadow-[0_8px_16px_rgba(0,0,0,0.76)] group-hover:scale-[1.03] group-hover:opacity-100";
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-2 pb-[calc(0.38rem+env(safe-area-inset-bottom))]">
-      <div className="relative h-[8.25rem] overflow-visible">
+    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-2 pb-[calc(0.22rem+env(safe-area-inset-bottom))]">
+      <div className="relative h-[7.25rem] overflow-visible">
         <img
           src="/assets/nagani/v2/nav-bar-parabaik-red.png"
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-[0.12rem] left-1/2 h-[6.15rem] w-[104%] max-w-none -translate-x-1/2 select-none object-fill drop-shadow-[0_-16px_32px_rgba(0,0,0,0.74)]"
+          className="pointer-events-none absolute bottom-[0.05rem] left-1/2 h-[5.45rem] w-[104%] max-w-none -translate-x-1/2 select-none object-fill drop-shadow-[0_-14px_30px_rgba(0,0,0,0.72)]"
           draggable={false}
         />
 
-        <div className="absolute bottom-[0.95rem] left-1/2 z-20 grid w-[104%] -translate-x-1/2 grid-cols-3 items-center px-8">
+        <div className="absolute bottom-[0.62rem] left-1/2 z-20 grid w-[102%] -translate-x-1/2 grid-cols-3 items-center px-9">
           {navItems.map((item) => {
             const isActive = item.active(pathname);
 
@@ -66,7 +66,7 @@ export default function NaganiBottomNav() {
                 className="group flex items-center justify-center transition active:scale-[0.97]"
               >
                 <span
-                  className={`relative flex h-[5.45rem] w-[5.45rem] items-center justify-center rounded-full transition ${iconTone(
+                  className={`relative flex h-[4.75rem] w-[4.75rem] items-center justify-center rounded-full transition ${iconTone(
                     isActive
                   )}`}
                 >
