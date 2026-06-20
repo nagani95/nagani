@@ -8,20 +8,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
 import CashierHero from "@/components/cashier/CashierHero";
-import CashierRecentTickets from "@/components/cashier/CashierRecentTickets";
 import CashierRequestForm from "@/components/cashier/CashierRequestForm";
 import AppShell from "@/components/layout/AppShell";
 import { createClient } from "@/lib/supabase/client";
 
 type CashierTab = "deposit" | "withdraw";
-
-type WalletRequestRow = {
-  id: string;
-  request_type: "deposit" | "withdraw";
-  amount: number | string;
-  status: "pending" | "approved" | "rejected" | "cancelled";
-  created_at: string;
-};
 
 type WalletAddressRow = {
   provider_name: string;
@@ -34,50 +25,17 @@ type WalletAddressRow = {
   is_active: boolean;
 };
 
-type CashierTicket = {
-  id: string;
-  type: string;
-  amount: number;
-  status: string;
-  time: string;
-};
-
 const DEFAULT_MINIMUM_AMOUNT = 3000;
 const TEMP_PALACE_BACKGROUND =
   "/assets/nagani/six-animal/room/six-animal-palace-room-bg-v1.jpg";
 
 function toSafeAmount(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
-
   return Number.isFinite(amount) ? amount : 0;
 }
 
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
-}
-
-function formatTicketTime(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Yangon",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function formatRequestType(type: WalletRequestRow["request_type"]) {
-  return type === "deposit" ? "ငွေသွင်း" : "ငွေထုတ်";
-}
-
-function formatRequestStatus(status: WalletRequestRow["status"]) {
-  if (status === "pending") return "စောင့်ဆိုင်းနေသည်";
-  if (status === "approved") return "အတည်ပြုပြီး";
-  if (status === "rejected") return "ငြင်းပယ်ပြီး";
-  if (status === "cancelled") return "ပယ်ဖျက်ပြီး";
-
-  return status;
 }
 
 function CashierPageContent() {
@@ -91,7 +49,6 @@ function CashierPageContent() {
   const [walletAddress, setWalletAddress] = useState<WalletAddressRow | null>(
     null
   );
-  const [recentTickets, setRecentTickets] = useState<CashierTicket[]>([]);
   const [copyStatus, setCopyStatus] = useState("");
 
   const [activeTab, setActiveTab] = useState<CashierTab>("deposit");
@@ -101,6 +58,7 @@ function CashierPageContent() {
   const minimumDeposit = walletAddress
     ? toSafeAmount(walletAddress.minimum_deposit)
     : DEFAULT_MINIMUM_AMOUNT;
+
   const minimumWithdraw = walletAddress
     ? toSafeAmount(walletAddress.minimum_withdraw)
     : DEFAULT_MINIMUM_AMOUNT;
@@ -118,10 +76,18 @@ function CashierPageContent() {
     return activeTab === "deposit" ? "ငွေသွင်း တင်မည်" : "ငွေထုတ် တင်မည်";
   }, [activeTab]);
 
-  const notePlaceholder =
-    activeTab === "deposit"
-      ? "လွှဲပြေစာနောက်ဆုံးနံပါတ် 6လုံး ထည့်ပါ"
-      : "ငွေထုတ်မည့် ဖုန်းနံပါတ် / အကောင့်အမည် ထည့်ပါ";
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -151,28 +117,10 @@ function CashierPageContent() {
         .eq("is_active", true)
         .maybeSingle<WalletAddressRow>();
 
-      const { data: requests } = await supabase
-        .from("wallet_requests")
-        .select("id, request_type, amount, status, created_at")
-        .eq("profile_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10)
-        .returns<WalletRequestRow[]>();
-
       if (!isMounted) return;
 
       setWalletBalance(toSafeAmount(wallet?.balance));
       setWalletAddress(address ?? null);
-
-      setRecentTickets(
-        (requests ?? []).map((request) => ({
-          id: `NG-WALLET-${request.id.slice(0, 8).toUpperCase()}`,
-          type: formatRequestType(request.request_type),
-          amount: toSafeAmount(request.amount),
-          status: formatRequestStatus(request.status),
-          time: formatTicketTime(request.created_at),
-        }))
-      );
     }
 
     void fetchCashierData();
@@ -202,6 +150,7 @@ function CashierPageContent() {
     try {
       await navigator.clipboard.writeText(walletAddress.account_number);
       setCopyStatus("ကူးယူပြီးပါပြီ");
+      window.setTimeout(() => setCopyStatus(""), 2200);
     } catch {
       setCopyStatus("ကူးယူ၍ မရပါ");
     }
@@ -242,184 +191,179 @@ function CashierPageContent() {
 
   return (
     <AppShell>
-<div className="pointer-events-none fixed inset-0 z-0 mx-auto w-full max-w-md overflow-hidden bg-[#090202]">
-  <div
-    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-    style={{ backgroundImage: `url(${TEMP_PALACE_BACKGROUND})` }}
-  />
-  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.54)_0%,rgba(0,0,0,0.22)_34%,rgba(0,0,0,0.78)_100%)]" />
-  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(255,215,122,0.13),transparent_32%),radial-gradient(circle_at_50%_100%,rgba(86,13,6,0.64),transparent_50%)]" />
-</div>
+      <div className="pointer-events-none fixed inset-0 z-0 mx-auto w-full max-w-md overflow-hidden bg-[#080101]">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${TEMP_PALACE_BACKGROUND})` }}
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.62)_0%,rgba(0,0,0,0.28)_35%,rgba(0,0,0,0.88)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_7%,rgba(255,215,122,0.12),transparent_31%),radial-gradient(circle_at_50%_100%,rgba(86,13,6,0.72),transparent_50%)]" />
+      </div>
 
-      <div className="relative z-10 px-1 pb-44">
-        <header className="flex items-center justify-between">
+      <div className="fixed inset-0 z-10 mx-auto flex w-full max-w-md flex-col overflow-hidden px-5 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+        <header className="flex h-8 shrink-0 items-center justify-between">
           <Link href="/" className="text-sm font-bold text-[#ffd77a]">
             မူလသို့
           </Link>
 
-          <div className="rounded-full border border-[#d6a84f]/20 bg-[#d6a84f]/10 px-3 py-1 text-xs font-bold text-[#ffd77a]">
-            ပိုက်ဆံအိတ်
-          </div>
+          <Link
+            href="/cashier/history"
+            className="rounded-full border border-[#d6a84f]/32 bg-[linear-gradient(145deg,rgba(42,12,7,0.8),rgba(0,0,0,0.38))] px-3 py-1.5 text-xs font-black text-[#ffd77a] shadow-lg shadow-black/40"
+          >
+            မှတ်တမ်း
+          </Link>
         </header>
 
         <CashierHero balanceLabel={`${formatMMK(walletBalance)} ကျပ်`} />
 
-        {successMessage ? (
-          <div className="mt-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-100">
-            တင်သွင်းမှု အောင်မြင်ပါသည်။
-          </div>
-        ) : null}
-
-        {errorMessage ? (
-          <div className="mt-4 rounded-[1.25rem] border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-100">
-            တင်သွင်းမှု မအောင်မြင်ပါ။ ပြန်စစ်ပါ။
-          </div>
-        ) : null}
-
-        <section className="mt-4 overflow-hidden rounded-[1.85rem] border border-[#d6a84f]/42 bg-[linear-gradient(145deg,rgba(58,10,5,0.97),rgba(10,2,2,0.99),rgba(70,13,6,0.96))] shadow-[0_26px_80px_rgba(0,0,0,0.82),inset_0_1px_0_rgba(255,215,122,0.16)]">
-          <div className="border-b border-[#d6a84f]/18 bg-[#d6a84f]/8 px-5 py-4">
-            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#ffd77a]/50">
-              ငွေသွင်းရန်
-            </p>
-            <h2 className="mt-1 text-xl font-black text-[#fff1c2]">
-              ငွေလွှဲရန် အကောင့်
-            </h2>
-            <p className="mt-1 text-xs font-semibold leading-5 text-[#fff1c2]/48">
-              ငွေလွှဲပြီးပါက အောက်ပါဖောင်တွင် လွှဲပြေစာနောက်ဆုံးနံပါတ် 6လုံး
-              ထည့်ပြီး တင်ပါ။
-            </p>
-          </div>
-
-          {walletAddress ? (
-            <div className="grid gap-4 p-5">
-              <div className="mx-auto w-full max-w-[260px] rounded-[1.5rem] border border-[#d6a84f]/20 bg-white p-3 shadow-xl shadow-black/30">
-                <Image
-                  src={walletAddress.qr_asset_path}
-                  alt="ငွေသွင်းရန် QR"
-                  width={260}
-                  height={260}
-                  className="h-auto w-full rounded-[1rem]"
-                  priority
-                />
+        {(successMessage || errorMessage) && (
+          <div className="pointer-events-none absolute inset-x-5 top-[6.15rem] z-30">
+            {successMessage ? (
+              <div className="rounded-full border border-[#d6a84f]/32 bg-[linear-gradient(145deg,rgba(40,24,8,0.92),rgba(10,5,2,0.94))] px-4 py-2 text-center text-xs font-bold text-[#ffd77a] shadow-xl shadow-black/45 backdrop-blur">
+                တင်သွင်းမှု အောင်မြင်ပါသည်။
               </div>
+            ) : null}
 
-              <div className="grid gap-3">
-                <div className="rounded-[1.25rem] border border-[#d6a84f]/20 bg-black/55 p-4">
-                  <p className="text-xs font-bold text-[#fff1c2]/38">
-                    ဝန်ဆောင်မှု
-                  </p>
-                  <p className="mt-1 text-lg font-black text-[#ffd77a]">
-                    {walletAddress.provider_name}
-                  </p>
-                </div>
+            {errorMessage ? (
+              <div className="rounded-full border border-red-300/25 bg-[linear-gradient(145deg,rgba(70,10,10,0.9),rgba(18,3,3,0.94))] px-4 py-2 text-center text-xs font-bold text-red-100 shadow-xl shadow-black/45 backdrop-blur">
+                တင်သွင်းမှု မအောင်မြင်ပါ။ ပြန်စစ်ပါ။
+              </div>
+            ) : null}
+          </div>
+        )}
 
-                <div className="rounded-[1.25rem] border border-[#d6a84f]/20 bg-black/55 p-4">
-                  <p className="text-xs font-bold text-[#fff1c2]/38">
-                    အကောင့်အမည်
-                  </p>
-                  <p className="mt-1 text-lg font-black text-[#fff1c2]">
-                    {walletAddress.account_name}
-                  </p>
-                </div>
+        <section className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.3rem] border border-[#d6a84f]/36 bg-[linear-gradient(145deg,rgba(48,12,7,0.96),rgba(8,1,1,0.99),rgba(58,10,5,0.95))] shadow-[0_24px_70px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,215,122,0.16)]">
+          {activeTab === "deposit" ? (
+            walletAddress ? (
+<div className="shrink-0 rounded-t-[1.3rem] border-b border-[#d6a84f]/14 px-3 py-2.5">
+  <div className="relative overflow-hidden rounded-[1.15rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f7edd3,#ead8ac_58%,#d8bd79)] p-2.5 shadow-[0_10px_24px_rgba(0,0,0,0.42),inset_0_1px_2px_rgba(255,255,255,0.72)]">
+    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/85 to-transparent" />
 
-                <div className="rounded-[1.25rem] border border-emerald-300/22 bg-emerald-400/14 p-4 shadow-inner shadow-black/35">
-                  <p className="text-xs font-bold text-emerald-100/55">
-                    ဖုန်း / အကောင့်နံပါတ်
-                  </p>
+    <div className="grid grid-cols-[104px_1fr] gap-3">
+      <div className="relative">
+        <div className="relative aspect-square overflow-hidden rounded-[0.95rem] border border-[#8a5a16]/35 bg-[#fffaf0] p-1.5 shadow-[0_6px_14px_rgba(74,36,18,0.28),inset_0_1px_1px_rgba(255,255,255,0.8)]">
+          <Image
+            src={walletAddress.qr_asset_path}
+            alt="ငွေသွင်းရန် QR"
+            fill
+            sizes="104px"
+            className="rounded-[0.55rem] object-contain"
+            priority
+          />
+        </div>
 
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <p className="text-xl font-black text-emerald-100">
-                      {walletAddress.account_number}
-                    </p>
+        <div className="mt-1.5 rounded-[0.65rem] border border-[#9c6a21]/24 bg-[#fff7df]/60 px-2 py-1 text-center shadow-inner shadow-[#7a4a12]/12">
+          <p className="truncate text-[9px] font-black text-[#7a4a12]/72">
+            QR ဖြင့် ငွေလွှဲရန်
+          </p>
+        </div>
+      </div>
 
-                    <button
-                      type="button"
-                      onClick={handleCopyAccountNumber}
-                      className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-300/15 px-4 py-2 text-xs font-black text-emerald-100 active:scale-[0.98]"
-                    >
-                      ကူးရန်
-                    </button>
-                  </div>
+      <div className="min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[9px] font-black tracking-[0.16em] text-[#7a4a12]/62">
+              PAYMENT
+            </p>
+            <p className="truncate text-base font-black leading-tight text-[#4a2412]">
+              {walletAddress.provider_name}
+            </p>
+          </div>
 
-                  {copyStatus ? (
-                    <p className="mt-2 text-xs font-bold text-emerald-100/70">
-                      {copyStatus}
-                    </p>
-                  ) : null}
-                </div>
+          <div className="rounded-[0.55rem] border border-[#9c6a21]/24 bg-[#fff7df]/58 px-2 py-1 shadow-inner shadow-[#7a4a12]/10">
+            <p className="text-[9px] font-black text-[#7a4a12]/68">
+              ငွေသွင်း
+            </p>
+          </div>
+        </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[1.25rem] border border-[#d6a84f]/12 bg-black/30 p-4">
-                    <p className="text-xs font-bold text-[#fff1c2]/38">
-                      အနည်းဆုံး ငွေသွင်း
-                    </p>
-                    <p className="mt-1 text-lg font-black text-[#ffd77a]">
-                      {formatMMK(minimumDeposit)} ကျပ်
-                    </p>
-                  </div>
+        <div className="mt-2 rounded-[0.85rem] border border-[#9c6a21]/24 bg-[#fff7df]/64 px-2.5 py-2 shadow-inner shadow-[#7a4a12]/14">
+          <p className="text-[9px] font-bold text-[#7a4a12]/58">
+            အကောင့်အမည်
+          </p>
+          <p className="mt-0.5 truncate text-sm font-black text-[#4a2412]">
+            {walletAddress.account_name}
+          </p>
+        </div>
 
-                  <div className="rounded-[1.25rem] border border-[#d6a84f]/12 bg-black/30 p-4">
-                    <p className="text-xs font-bold text-[#fff1c2]/38">
-                      အနည်းဆုံး ငွေထုတ်
-                    </p>
-                    <p className="mt-1 text-lg font-black text-[#ffd77a]">
-                      {formatMMK(minimumWithdraw)} ကျပ်
-                    </p>
-                  </div>
-                </div>
+        <div className="mt-2 overflow-hidden rounded-[0.85rem] border border-[#9c6a21]/30 bg-[#fff7df]/64 shadow-inner shadow-[#7a4a12]/14">
+          <div className="border-b border-[#9c6a21]/18 px-2.5 py-1">
+            <p className="text-[9px] font-bold text-[#7a4a12]/62">
+              ဖုန်း / အကောင့်နံပါတ်
+            </p>
+          </div>
 
-                <div className="rounded-[1.25rem] border border-[#d6a84f]/24 bg-[#d6a84f]/12 p-4 shadow-inner shadow-black/30">
-                  <p className="text-xs font-bold text-[#ffd77a]/60">
-                    မှတ်ချက်
-                  </p>
-                  <p className="mt-1 text-sm font-bold leading-6 text-[#fff1c2]/72">
-                    {walletAddress.admin_note}
+          <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
+            <p className="truncate text-sm font-black tracking-wide text-[#4a2412]">
+              {walletAddress.account_number}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleCopyAccountNumber}
+              className="shrink-0 rounded-[0.55rem] border border-[#7a3d0b]/30 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-2.5 py-1 text-[10px] font-black text-[#2a1208] shadow-[0_2px_6px_rgba(74,36,18,0.25),inset_0_1px_1px_rgba(255,255,255,0.55)] active:scale-[0.98]"
+            >
+              {copyStatus || "ကူးရန်"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+            ) : (
+              <div className="shrink-0 border-b border-red-300/14 p-3">
+                <div className="rounded-[1rem] border border-red-300/18 bg-red-500/10 p-3">
+                  <p className="text-sm font-black text-red-100">
+                    ငွေသွင်းအကောင့် မရရှိသေးပါ
                   </p>
                 </div>
               </div>
-            </div>
+            )
           ) : (
-            <div className="p-5">
-              <div className="rounded-[1.25rem] border border-red-300/20 bg-red-500/10 p-4">
-                <p className="text-sm font-black text-red-100">
-                  ငွေသွင်းအကောင့် မရရှိသေးပါ
+            <div className="shrink-0 border-b border-[#d6a84f]/14 p-3">
+              <div className="rounded-[1rem] border border-[#d6a84f]/18 bg-black/35 px-3 py-2.5 shadow-inner shadow-black/45">
+                <p className="text-sm font-black text-[#ffd77a]">
+                  ငွေထုတ်ရန် အချက်အလက် ထည့်ပါ
                 </p>
-                <p className="mt-1 text-xs font-semibold leading-5 text-red-100/65">
-                  ခဏစောင့်ပြီး ပြန်လည်စစ်ဆေးပါ သို့မဟုတ် Support ကို
-                  ဆက်သွယ်ပါ။
+                <p className="mt-1 text-xs font-semibold leading-5 text-[#fff1c2]/50">
+                  ဖုန်းနံပါတ် / အကောင့်အမည်ကို မှတ်ချက်ထဲတွင် ထည့်ပါ။
                 </p>
               </div>
             </div>
           )}
-        </section>
 
-        <div className="mt-4 rounded-[1.75rem] border border-[#d6a84f]/35 bg-[linear-gradient(180deg,rgba(14,3,2,0.97),rgba(34,6,3,0.96))] p-3 shadow-xl shadow-black/60">
-          <div className="mb-3 rounded-[1.25rem] border border-[#d6a84f]/18 bg-[#d6a84f]/10 px-4 py-3">
-            <p className="text-xs font-bold text-[#fff1c2]/45">
-              {activeTab === "deposit"
-                ? `အနည်းဆုံး ${formatMMK(minimumDeposit)} ကျပ်မှ စတင်နိုင်ပါသည်`
-                : `အနည်းဆုံး ${formatMMK(minimumWithdraw)} ကျပ်မှ စတင်နိုင်ပါသည်`}
-            </p>
-            <p className="mt-1 text-xs font-semibold text-[#fff1c2]/38">
-              {notePlaceholder}
-            </p>
+          <div className="shrink-0 px-3 pt-2">
+            <div className="rounded-[0.95rem] border-l-2 border-[#d6a84f]/68 bg-[linear-gradient(90deg,rgba(214,168,79,0.1),rgba(0,0,0,0.16))] px-3 py-2">
+              <p className="text-[11px] font-bold text-[#fff1c2]/58">
+                {activeTab === "deposit"
+                  ? `အနည်းဆုံး ${formatMMK(minimumDeposit)} ကျပ်မှ စတင်နိုင်ပါသည်`
+                  : `အနည်းဆုံး ${formatMMK(minimumWithdraw)} ကျပ်မှ စတင်နိုင်ပါသည်`}
+              </p>
+
+              {activeTab === "deposit" && walletAddress?.admin_note ? (
+                <p className="mt-0.5 max-h-8 overflow-hidden text-[10px] font-semibold leading-4 text-[#d6a84f]/56">
+                  {walletAddress.admin_note}
+                </p>
+              ) : null}
+            </div>
           </div>
 
-          <CashierRequestForm
-            activeTab={activeTab}
-            amount={amount}
-            note={note}
-            amountLabel={formatMMK(numericAmount)}
-            actionLabel={actionLabel}
-            isValidAmount={isValidAmount}
-            onTabChange={handleTabChange}
-            onAmountChange={handleAmountChange}
-            onNoteChange={handleNoteChange}
-            onSubmitRequest={handleSubmitRequest}
-          />
-        </div>
-
-        <CashierRecentTickets tickets={recentTickets} />
+          <div className="shrink-0 px-3 pb-3 pt-2">
+            <CashierRequestForm
+              activeTab={activeTab}
+              amount={amount}
+              note={note}
+              amountLabel={formatMMK(numericAmount)}
+              actionLabel={actionLabel}
+              isValidAmount={isValidAmount}
+              onTabChange={handleTabChange}
+              onAmountChange={handleAmountChange}
+              onNoteChange={handleNoteChange}
+              onSubmitRequest={handleSubmitRequest}
+            />
+          </div>
+        </section>
       </div>
     </AppShell>
   );
