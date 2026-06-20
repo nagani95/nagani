@@ -39,20 +39,20 @@ export default function CashierRequestForm({
         event.preventDefault();
         void onSubmitRequest();
       }}
-      className="relative grid content-start gap-1.5 overflow-hidden rounded-[1.1rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f8efd9,#ead8ac_58%,#d8bd79)] p-2 shadow-[0_10px_24px_rgba(0,0,0,0.48),inset_0_1px_2px_rgba(255,255,255,0.72)]"
+      className="relative grid w-full min-w-0 content-start gap-1.5 overflow-hidden rounded-[1.1rem] border border-[#c89b3c]/55 bg-[linear-gradient(180deg,#f8efd9,#ead8ac_58%,#d8bd79)] p-2 shadow-[0_10px_24px_rgba(0,0,0,0.48),inset_0_1px_2px_rgba(255,255,255,0.72)]"
     >
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
 
       <input type="hidden" name="requestType" value={activeTab} />
 
-      <div className="relative grid grid-cols-2 gap-1 rounded-[0.85rem] border border-[#8a5a16]/25 bg-[#4a2412]/12 p-1 shadow-inner shadow-[#4a2412]/25">
+      <div className="relative grid w-full min-w-0 grid-cols-[repeat(2,minmax(0,1fr))] gap-1 rounded-[0.85rem] border border-[#8a5a16]/25 bg-[#4a2412]/12 p-1 shadow-inner shadow-[#4a2412]/25">
         <button
           type="button"
           onClick={() => onTabChange("deposit")}
           className={
             isDeposit
-              ? "h-9 rounded-[0.65rem] border border-[#7a3d0b]/28 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 text-sm font-black text-[#2a1208] shadow-[0_3px_10px_rgba(86,45,12,0.35),inset_0_1px_1px_rgba(255,255,255,0.55)]"
-              : "h-9 rounded-[0.65rem] px-3 text-sm font-black text-[#6b3a0d]/62 active:scale-[0.99]"
+              ? "h-9 min-w-0 truncate rounded-[0.65rem] border border-[#7a3d0b]/28 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 text-sm font-black text-[#2a1208] shadow-[0_3px_10px_rgba(86,45,12,0.35),inset_0_1px_1px_rgba(255,255,255,0.55)]"
+              : "h-9 min-w-0 truncate rounded-[0.65rem] px-3 text-sm font-black text-[#6b3a0d]/62 active:scale-[0.99]"
           }
         >
           ငွေသွင်း
@@ -63,8 +63,8 @@ export default function CashierRequestForm({
           onClick={() => onTabChange("withdraw")}
           className={
             !isDeposit
-              ? "h-9 rounded-[0.65rem] border border-[#7a3d0b]/28 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 text-sm font-black text-[#2a1208] shadow-[0_3px_10px_rgba(86,45,12,0.35),inset_0_1px_1px_rgba(255,255,255,0.55)]"
-              : "h-9 rounded-[0.65rem] px-3 text-sm font-black text-[#6b3a0d]/62 active:scale-[0.99]"
+              ? "h-9 min-w-0 truncate rounded-[0.65rem] border border-[#7a3d0b]/28 bg-[linear-gradient(180deg,#fff1ba,#d59a32_58%,#8b4a0d)] px-3 text-sm font-black text-[#2a1208] shadow-[0_3px_10px_rgba(86,45,12,0.35),inset_0_1px_1px_rgba(255,255,255,0.55)]"
+              : "h-9 min-w-0 truncate rounded-[0.65rem] px-3 text-sm font-black text-[#6b3a0d]/62 active:scale-[0.99]"
           }
         >
           ငွေထုတ်
@@ -101,7 +101,7 @@ export default function CashierRequestForm({
               key={quickAmount}
               type="button"
               onClick={() => onAmountChange(String(quickAmount))}
-              className="h-7 min-w-0 rounded-[0.6rem] border border-[#9c6a21]/35 bg-[linear-gradient(180deg,#fff7df,#ead39a)] px-1 text-[10px] font-black text-[#4a2412] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_5px_rgba(74,36,18,0.16)] active:scale-[0.98]"
+              className="h-7 min-w-0 truncate rounded-[0.6rem] border border-[#9c6a21]/35 bg-[linear-gradient(180deg,#fff7df,#ead39a)] px-0.5 text-[9.5px] font-black text-[#4a2412] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_5px_rgba(74,36,18,0.16)] active:scale-[0.98]"
             >
               {formatMMK(quickAmount)}
             </button>
