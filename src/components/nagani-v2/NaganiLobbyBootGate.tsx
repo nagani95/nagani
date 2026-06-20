@@ -168,11 +168,11 @@ export default function NaganiLobbyBootGate({
               </div>
 
               <p className="mt-4 text-[1.02rem] font-black tracking-[0.08em] text-[#ffd77a] drop-shadow-[0_2px_7px_rgba(0,0,0,0.85)]">
-                ရွှေအိုး ဖွင့်နေသည်
+                ကစားပွဲခန်းမ သို့ဝင်ရောက်သည်
               </p>
 
               <p className="mt-2 text-xs font-semibold tracking-[0.14em] text-[#fff3d0]/68">
-                ခေတ္တစောင့်ပါ
+                ခေတ္တစောင့်ပါ သူဌေးမင်း
               </p>
 
               <div className="mt-5 overflow-hidden rounded-full border border-[#d6a84f]/18 bg-black/48 p-[2px] shadow-inner shadow-black/70">
