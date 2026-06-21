@@ -18,14 +18,14 @@ const APP_URL = "https://naganishweohh.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
-  title: "ရွှေအိုး | Nagani",
+  title: "နဂါးနီရွှေအိုး | Naganishweohh",
   description:
     "Premium Myanmar traditional games platform",
   alternates: {
     canonical: APP_URL,
   },
   openGraph: {
-    title: "ရွှေအိုး | Nagani",
+    title: "နဂါးနီရွှေအိုး | Naganishweohh",
     description:
       "Premium Myanmar traditional games platform",
     url: APP_URL,
