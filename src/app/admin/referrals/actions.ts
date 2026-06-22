@@ -86,10 +86,10 @@ export async function calculateAgentSettlementAction(formData: FormData) {
       getText(formData, "settlement_month") ||
       new Date().toISOString().slice(0, 7) + "-01";
 
-    const { error } = await supabase.rpc("calculate_agent_monthly_settlement", {
-      p_agent_id: agentId,
-      p_settlement_month: settlementMonth,
-    });
+const { error } = await supabase.rpc("calculate_agent_monthly_settlement_v2", {
+  p_agent_id: agentId,
+  p_settlement_month: settlementMonth,
+});
 
     if (error) {
       errorMessage = error.message;
@@ -105,5 +105,5 @@ export async function calculateAgentSettlementAction(formData: FormData) {
 
   revalidatePath(ADMIN_REFERRALS_PATH);
   revalidatePath("/agent");
-  redirectWithStatus("success", "Agent monthly settlement calculated");
+  redirectWithStatus("success", "Agent monthly settlement v2 calculated");
 }

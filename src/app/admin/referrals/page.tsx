@@ -188,14 +188,23 @@ export default async function AdminReferralsPage({
       title="Referrals"
       eyebrow="Referral Assignment"
       description="Assign registered players to active agents. This prepares monthly net settlement only; it does not create instant commission."
-      action={
-        <Link
-          href="/admin/agents"
-          className="rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black text-amber-100/80 transition hover:bg-amber-300 hover:text-black"
-        >
-          Agents
-        </Link>
-      }
+action={
+  <div className="flex flex-wrap gap-2">
+    <Link
+      href="/admin/agents"
+      className="rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black text-amber-100/80 transition hover:bg-amber-300 hover:text-black"
+    >
+      Agents
+    </Link>
+
+    <Link
+      href="/admin/agent-withdraws"
+      className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-xs font-black text-emerald-100/80 transition hover:bg-emerald-300 hover:text-black"
+    >
+      Agent Withdraws
+    </Link>
+  </div>
+}
     >
       {params.success ? (
         <section className="rounded-2xl border border-emerald-400/25 bg-emerald-950/25 p-4">
