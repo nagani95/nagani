@@ -28,7 +28,7 @@ const PROVIDERS: Record<
 };
 
 const DEFAULT_NOTE =
-  "ငွေလွှဲပြီးပါက မှတ်ချက်ထဲတွင် လွှဲပြေစာနောက်ဆုံးနံပါတ် 6လုံး ထည့်ပါ။";
+  "ငွေလွှဲပြီးပါက မှတ်ချက်ထဲတွင် လွှဲပြေစာနောက်ဆုံးနံပါတ် ၅လုံး ထည့်ပါ။";
 
 function getText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();

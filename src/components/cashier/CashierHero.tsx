@@ -38,7 +38,7 @@ export default function CashierHero({
         <div className="mt-3 h-px w-full bg-gradient-to-r from-transparent via-[#d6a84f]/24 to-transparent" />
 
         <p className="mt-2 text-[10px] font-bold leading-4 text-[#f7dfaa]/56">
-          ငွေသွင်း / ငွေထုတ် အချက်အလက်များကို သေချာစစ်ဆေးပြီး တင်ပါ။
+          ချက်ချင်း ငွေသွင်း/ငွေထုတ် မြန်ဆန်ရန် note(မုန့်ဝယ်/shopping) ဟုရေးပါ။
         </p>
       </div>
     </section>
