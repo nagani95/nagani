@@ -6,13 +6,38 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
+const PROVIDERS: Record<
+  string,
+  {
+    providerName: string;
+    sortOrder: number;
+  }
+> = {
+  kbzpay: {
+    providerName: "KBZPay",
+    sortOrder: 1,
+  },
+  wavepay: {
+    providerName: "WavePay",
+    sortOrder: 2,
+  },
+  ayapay: {
+    providerName: "AyaPay",
+    sortOrder: 3,
+  },
+};
+
+const DEFAULT_NOTE =
+  "ငွေလွှဲပြီးပါက မှတ်ချက်ထဲတွင် လွှဲပြေစာနောက်ဆုံးနံပါတ် 6လုံး ထည့်ပါ။";
+
 function getText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
-function getNumber(formData: FormData, key: string) {
-  const value = Number(formData.get(key) ?? 0);
-  return Number.isFinite(value) ? value : 0;
+function getQrExtension(file: File) {
+  if (file.type === "image/jpeg") return "jpg";
+  if (file.type === "image/webp") return "webp";
+  return "png";
 }
 
 export async function updateWalletAddressAction(formData: FormData) {
@@ -33,35 +58,88 @@ export async function updateWalletAddressAction(formData: FormData) {
     redirect("/admin/wallet-addresses?error=Admin access denied");
   }
 
-  const providerName = getText(formData, "provider_name");
+  const walletAddressId = getText(formData, "wallet_address_id");
+  const providerConfig = PROVIDERS[walletAddressId];
+
+  if (!providerConfig) {
+    redirect("/admin/wallet-addresses?error=Invalid payment provider");
+  }
+
   const accountName = getText(formData, "account_name");
   const accountNumber = getText(formData, "account_number");
-  const qrAssetPath = getText(formData, "qr_asset_path");
-  const adminNote = getText(formData, "admin_note");
-  const minimumDeposit = getNumber(formData, "minimum_deposit");
-  const minimumWithdraw = getNumber(formData, "minimum_withdraw");
+  const currentQrAssetPath = getText(formData, "current_qr_asset_path");
   const isActive = formData.get("is_active") === "on";
+  const qrFileValue = formData.get("qr_file");
 
-  if (!providerName || !accountName || !accountNumber || !qrAssetPath) {
-    redirect("/admin/wallet-addresses?error=Missing required wallet address field");
+  let qrAssetPath = currentQrAssetPath;
+
+  if (qrFileValue instanceof File && qrFileValue.size > 0) {
+    if (!qrFileValue.type.startsWith("image/")) {
+      redirect("/admin/wallet-addresses?error=QR file must be an image");
+    }
+
+    if (qrFileValue.size > 2 * 1024 * 1024) {
+      redirect("/admin/wallet-addresses?error=QR image must be under 2MB");
+    }
+
+    const extension = getQrExtension(qrFileValue);
+    const storagePath = `${walletAddressId}/${Date.now()}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("wallet-qr")
+      .upload(storagePath, qrFileValue, {
+        cacheControl: "3600",
+        contentType: qrFileValue.type,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      redirect(
+        `/admin/wallet-addresses?error=${encodeURIComponent(
+          uploadError.message
+        )}`
+      );
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("wallet-qr")
+      .getPublicUrl(storagePath);
+
+    qrAssetPath = publicUrlData.publicUrl;
+  }
+
+  if (isActive && (!accountName || !accountNumber || !qrAssetPath)) {
+    redirect(
+      `/admin/wallet-addresses?error=${encodeURIComponent(
+        "Active provider needs account name, account number, and QR image"
+      )}`
+    );
   }
 
   const { error } = await supabase.from("wallet_addresses").upsert({
-    id: "main",
-    provider_name: providerName,
+    id: walletAddressId,
+    provider_key: walletAddressId,
+    provider_name: providerConfig.providerName,
     account_name: accountName,
     account_number: accountNumber,
     qr_asset_path: qrAssetPath,
-    minimum_deposit: minimumDeposit,
-    minimum_withdraw: minimumWithdraw,
-    admin_note: adminNote,
+    minimum_deposit: 3000,
+    minimum_withdraw: 3000,
+    admin_note: DEFAULT_NOTE,
+    sort_order: providerConfig.sortOrder,
     is_active: isActive,
     updated_by: user.id,
   });
 
   if (error) {
-    redirect(`/admin/wallet-addresses?error=${encodeURIComponent(error.message)}`);
+    redirect(
+      `/admin/wallet-addresses?error=${encodeURIComponent(error.message)}`
+    );
   }
 
-  redirect("/admin/wallet-addresses?success=Wallet address updated");
+  redirect(
+    `/admin/wallet-addresses?success=${encodeURIComponent(
+      `${providerConfig.providerName} saved`
+    )}`
+  );
 }

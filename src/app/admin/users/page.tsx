@@ -234,15 +234,14 @@ export default async function AdminUsersPage() {
         </div>
 
         <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
-          <div className="hidden border-b border-white/10 bg-white/[0.03] px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/35 xl:grid xl:grid-cols-[150px_1.2fr_140px_160px_160px_150px_150px]">
-            <p>Member</p>
-            <p>Profile ID</p>
-            <p>Username</p>
-            <p>Balance</p>
-            <p>Agent</p>
-            <p>Joined</p>
-            <p>Controls</p>
-          </div>
+<div className="hidden border-b border-white/10 bg-white/[0.03] px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/35 xl:grid xl:grid-cols-[150px_1.2fr_160px_160px_150px_150px]">
+  <p>Member</p>
+  <p>Phone / Login</p>
+  <p>Balance</p>
+  <p>Agent</p>
+  <p>Joined</p>
+  <p>Controls</p>
+</div>
 
           {loadedCount === 0 ? (
             <div className="px-4 py-5 text-sm font-bold text-white/45">
@@ -258,7 +257,7 @@ export default async function AdminUsersPage() {
             return (
               <div
                 key={profile.id}
-                className="grid gap-3 border-b border-white/10 px-4 py-4 text-sm last:border-b-0 xl:grid-cols-[150px_1.2fr_140px_160px_160px_150px_150px] xl:items-center"
+                className="grid gap-3 border-b border-white/10 px-4 py-4 text-sm last:border-b-0 xl:grid-cols-[150px_1.2fr_160px_160px_150px_150px] xl:items-center"
               >
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
@@ -269,23 +268,17 @@ export default async function AdminUsersPage() {
                   </p>
                 </div>
 
-                <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
-                    Profile ID
-                  </p>
-                  <p className="break-all font-bold text-white/45">
-                    {profile.id}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
-                    Username
-                  </p>
-                  <p className="font-bold text-white/65">
-                    {profile.username || "—"}
-                  </p>
-                </div>
+<div className="min-w-0">
+  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
+    Phone / Login
+  </p>
+  <p className="break-all text-base font-black text-amber-100">
+    {profile.username || "—"}
+  </p>
+  <p className="mt-1 break-all text-[10px] font-semibold text-white/25">
+    ID: {profile.id.slice(0, 8).toUpperCase()}
+  </p>
+</div>
 
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">

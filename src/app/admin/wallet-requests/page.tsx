@@ -21,6 +21,11 @@ type WalletRequestRow = {
   admin_note: string | null;
   reviewed_at: string | null;
   created_at: string;
+wallet_address_id: string | null;
+payment_provider_key: string | null;
+payment_provider_name: string | null;
+payment_account_name: string | null;
+payment_account_number: string | null;
 };
 
 type ProfileRow = {
@@ -89,6 +94,18 @@ function formatMemberId(profileId: string, memberCode?: string | null) {
   return memberCode || `NG-${profileId.slice(0, 8).toUpperCase()}`;
 }
 
+function getPaymentProviderLabel(request: WalletRequestRow) {
+  if (request.request_type === "withdraw") {
+    return "Withdraw";
+  }
+
+  return (
+    request.payment_provider_name ||
+    request.wallet_address_id ||
+    "Deposit provider not saved"
+  );
+}
+
 export default async function AdminWalletRequestsPage({
   searchParams,
 }: AdminWalletRequestsPageProps) {
@@ -100,7 +117,7 @@ export default async function AdminWalletRequestsPage({
   const { data: requests, error } = await supabase
     .from("wallet_requests")
     .select(
-      "id, profile_id, request_type, amount, note, status, admin_note, reviewed_at, created_at"
+      "id, profile_id, request_type, amount, note, status, admin_note, reviewed_at, created_at, wallet_address_id, payment_provider_key, payment_provider_name, payment_account_name, payment_account_number"
     )
     .order("created_at", { ascending: false })
     .limit(50)
@@ -258,26 +275,28 @@ export default async function AdminWalletRequestsPage({
                 className="rounded-xl border border-amber-300/15 bg-[#120504] p-4"
               >
                 <div className="grid gap-3 lg:grid-cols-[160px_1fr_120px_160px_120px] lg:items-center">
-                  <div>
-                    <p className="text-xs font-black text-white/35">
-                      NG-WALLET-{request.id.slice(0, 8).toUpperCase()}
-                    </p>
-                    <p className="mt-1 text-[11px] font-bold text-white/30">
-                      {formatTime(request.created_at)}
-                    </p>
-                  </div>
+<div>
+  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30">
+    Request Time
+  </p>
+  <p className="mt-1 text-xs font-bold text-white/45">
+    {formatTime(request.created_at)}
+  </p>
+</div>
 
-                  <div className="min-w-0">
-                    <p className="text-base font-black text-amber-100">
-                      {formatMemberId(request.profile_id, profile?.member_code)}
-                    </p>
-                    <p className="mt-1 break-all text-xs font-semibold text-white/35">
-                      {request.profile_id}
-                    </p>
-                    <p className="mt-1 text-xs font-bold text-white/40">
-                      {profile?.username || "No username"}
-                    </p>
-                  </div>
+<div className="min-w-0">
+  <p className="text-base font-black text-amber-100">
+    {formatMemberId(request.profile_id, profile?.member_code)}
+  </p>
+
+  <p className="mt-1 break-all text-sm font-black text-[#ffe6a3]">
+    {profile?.username || "Phone not saved"}
+  </p>
+
+  <p className="mt-1 break-all text-[10px] font-semibold text-white/25">
+    ID: {request.profile_id.slice(0, 8).toUpperCase()}
+  </p>
+</div>
 
                   <p
                     className={`w-fit rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.14em] ${getTypeClass(
@@ -299,6 +318,37 @@ export default async function AdminWalletRequestsPage({
                     {formatRequestStatus(request.status)}
                   </p>
                 </div>
+
+                {request.request_type === "deposit" ? (
+  <div className="mt-3 rounded-xl border border-emerald-300/15 bg-emerald-400/10 p-3">
+    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-100/45">
+      Payment Receiver
+    </p>
+
+    <div className="mt-2 grid gap-2 md:grid-cols-3">
+      <div>
+        <p className="text-[10px] font-bold text-white/30">Provider</p>
+        <p className="mt-1 text-sm font-black text-emerald-100">
+          {getPaymentProviderLabel(request)}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold text-white/30">Account Name</p>
+        <p className="mt-1 text-sm font-black text-amber-100">
+          {request.payment_account_name || "—"}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold text-white/30">Account Number</p>
+        <p className="mt-1 text-sm font-black text-amber-100">
+          {request.payment_account_number || "—"}
+        </p>
+      </div>
+    </div>
+  </div>
+) : null}
 
                 {request.note ? (
                   <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
@@ -377,23 +427,34 @@ export default async function AdminWalletRequestsPage({
                 key={request.id}
                 className="grid gap-3 border-b border-white/10 p-4 last:border-b-0 xl:grid-cols-[150px_1fr_120px_150px_130px_150px] xl:items-center"
               >
-                <div>
-                  <p className="text-xs font-black text-white/35">
-                    {request.id.slice(0, 8).toUpperCase()}
-                  </p>
-                  <p className="mt-1 text-[11px] font-bold text-white/30">
-                    {formatTime(request.created_at)}
-                  </p>
-                </div>
+<div>
+  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30">
+    Request Time
+  </p>
+  <p className="mt-1 text-xs font-bold text-white/45">
+    {formatTime(request.created_at)}
+  </p>
+</div>
 
-                <div className="min-w-0">
-                  <p className="font-black text-amber-100">
-                    {formatMemberId(request.profile_id, profile?.member_code)}
-                  </p>
-                  <p className="mt-1 break-all text-xs font-semibold text-white/35">
-                    {request.profile_id}
-                  </p>
-                </div>
+<div className="min-w-0">
+  <p className="font-black text-amber-100">
+    {formatMemberId(request.profile_id, profile?.member_code)}
+  </p>
+
+  <p className="mt-1 break-all text-sm font-black text-[#ffe6a3]">
+    {profile?.username || "Phone not saved"}
+  </p>
+
+  <p className="mt-1 break-all text-[10px] font-semibold text-white/25">
+    ID: {request.profile_id.slice(0, 8).toUpperCase()}
+  </p>
+
+  {request.request_type === "deposit" ? (
+    <p className="mt-1 text-xs font-black text-emerald-100/70">
+      {getPaymentProviderLabel(request)}
+    </p>
+  ) : null}
+</div>
 
                 <p
                   className={`w-fit rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.14em] ${getTypeClass(
