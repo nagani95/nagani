@@ -75,6 +75,7 @@ export default function SixAnimalPage() {
   const [supabase] = useState(() => createClient());
   
   const [walletBalance, setWalletBalance] = useState<number>(0);
+const [walletBonusBalance, setWalletBonusBalance] = useState<number>(0);
   const [roundId, setRoundId] = useState<string>("");
   const [serverRngResults, setServerRngResults] = useState<string[]>([]);
   const [selectedAnimal, setSelectedAnimal] = useState<SixAnimalKey | null>(null);
@@ -620,8 +621,11 @@ const numericBetAmount = Number(betAmount || 0);
 const isBettingOpen = phase === "betting";
 const canEditBet = isBettingOpen;
 
+const playableWalletBalance = walletBalance + walletBonusBalance;
+
 const walletStepAmount =
-  Math.floor(Math.max(0, walletBalance) / BET_AMOUNT_STEP) * BET_AMOUNT_STEP;
+  Math.floor(Math.max(0, playableWalletBalance) / BET_AMOUNT_STEP) *
+  BET_AMOUNT_STEP;
 
 const maxPlayableBetAmount = Math.min(
   SIX_ANIMAL_RULES.maxBet,
@@ -1044,12 +1048,17 @@ if (!user) {
 
 const { data: wallet } = await supabase
   .from("wallets")
-  .select("balance")
+  .select("balance, bonus_balance")
   .eq("profile_id", user.id)
   .maybeSingle();
 
 const fetchedWalletBalance = Number(wallet?.balance ?? 0);
+const fetchedWalletBonusBalance = Number(wallet?.bonus_balance ?? 0);
+const fetchedPlayableWalletBalance =
+  fetchedWalletBalance + fetchedWalletBonusBalance;
+
 setWalletBalance(fetchedWalletBalance);
+setWalletBonusBalance(fetchedWalletBonusBalance);
 
             const { data: activeRound, error: activeRoundError } = await supabase
         .from("six_animal_rounds")
@@ -1064,7 +1073,7 @@ setWalletBalance(fetchedWalletBalance);
         console.error("[SixAnimal] active round fetch error:", activeRoundError);
       }
 
-if (fetchedWalletBalance < SIX_ANIMAL_RULES.minBet) {
+if (fetchedPlayableWalletBalance < SIX_ANIMAL_RULES.minBet) {
   const existingRoundBets = activeRound
     ? await fetchCurrentUserBetsForRound(activeRound.id)
     : [];
@@ -1599,7 +1608,8 @@ async function handlePlaceBet() {
       animal?: SixAnimalKey;
       animal_2?: SixAnimalKey | null;
       new_balance?: number;
-      total_pair_amount?: number;
+new_bonus_balance?: number;
+total_pair_amount?: number;
     } | null;
 
     if (error || response?.success === false) {
@@ -1669,9 +1679,13 @@ async function handlePlaceBet() {
 
     playRoomSound("bet-locked");
 
-    if (response?.new_balance !== undefined) {
-      setWalletBalance(response.new_balance);
-    }
+if (response?.new_balance !== undefined) {
+  setWalletBalance(response.new_balance);
+}
+
+if (response?.new_bonus_balance !== undefined) {
+  setWalletBonusBalance(response.new_bonus_balance);
+}
 
     isSubmittingBetRef.current = false;
     return;
@@ -1694,7 +1708,8 @@ async function handlePlaceBet() {
     success?: boolean;
     error?: string;
     new_balance?: number;
-    total_animal_amount?: number;
+new_bonus_balance?: number;
+total_animal_amount?: number;
   } | null;
 
   if (error || response?.success === false) {
@@ -1737,10 +1752,13 @@ async function handlePlaceBet() {
 
   playRoomSound("bet-locked");
 
-  if (response?.new_balance !== undefined) {
-    setWalletBalance(response.new_balance);
-  }
+if (response?.new_balance !== undefined) {
+  setWalletBalance(response.new_balance);
+}
 
+if (response?.new_bonus_balance !== undefined) {
+  setWalletBonusBalance(response.new_bonus_balance);
+}
   isSubmittingBetRef.current = false;
 }
 
@@ -1831,7 +1849,7 @@ style={{
             <SixAnimalBettingCommandPanel
               commandBarClass={commandBarClass}
               timerLabel={timerLabel}
-              walletBalanceLabel={`${formatMMK(walletBalance)} ကျပ်`}
+              walletBalanceLabel={`${formatMMK(playableWalletBalance)} ကျပ်`}
             />
           ) : null}
 

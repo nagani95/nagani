@@ -164,11 +164,11 @@ export default function SixAnimalRoomBootGate({
               />
 
               <p className="mt-4 text-[1.02rem] font-black tracking-[0.08em] text-[#ffd77a] drop-shadow-[0_2px_7px_rgba(0,0,0,0.85)]">
-                ခေတ္တစောင့်ဆိုင်းပေးပါ သူငှေးဘန
+                ခေတ္တစောင့်ဆိုင်းပေးပါ သူငှေးမင်း
               </p>
 
               <p className="mt-2 text-xs font-semibold tracking-[0.1em] text-[#fff3d0]/68">
-                တော်ဝင်အန်စာခန်း ပြင်ဆင်နေပါသည်
+                တော်ဝင်ကစားခန်း ပြင်ဆင်နေပါသည်
               </p>
 
               <div className="mt-5 overflow-hidden rounded-full border border-[#d6a84f]/18 bg-black/48 p-[2px] shadow-inner shadow-black/70">

@@ -45,6 +45,7 @@ function CashierPageContent() {
 
   const [supabase] = useState(() => createClient());
   const [walletBalance, setWalletBalance] = useState(0);
+const [withdrawalUnlocked, setWithdrawalUnlocked] = useState(false);
   const [walletAddresses, setWalletAddresses] = useState<WalletAddressRow[]>(
     []
   );
@@ -73,9 +74,12 @@ function CashierPageContent() {
 
   const numericAmount = toSafeAmount(amount);
   const isDepositAvailable = Boolean(walletAddress?.is_active);
-  const isValidAmount =
-    numericAmount >= minimumAmount &&
-    (activeTab === "withdraw" || isDepositAvailable);
+const isValidAmount =
+  numericAmount >= minimumAmount &&
+  (activeTab === "withdraw" || isDepositAvailable);
+
+const canSubmitWalletRequest =
+  isValidAmount && (activeTab === "deposit" || withdrawalUnlocked);
 
   const actionLabel = useMemo(() => {
     return activeTab === "deposit" ? "ငွေသွင်း တင်မည်" : "ငွေထုတ် တင်မည်";
@@ -99,6 +103,12 @@ function CashierPageContent() {
         .select("balance")
         .eq("profile_id", user.id)
         .maybeSingle<{ balance: number | string | null }>();
+      
+      const { data: profile } = await supabase
+  .from("profiles")
+  .select("withdrawal_unlocked")
+  .eq("id", user.id)
+  .maybeSingle<{ withdrawal_unlocked: boolean | null }>();
 
       const { data: addresses } = await supabase
         .from("wallet_addresses")
@@ -113,7 +123,8 @@ function CashierPageContent() {
       const activeAddresses = (addresses ?? []) as WalletAddressRow[];
 
       setWalletBalance(toSafeAmount(wallet?.balance));
-      setWalletAddresses(activeAddresses);
+setWithdrawalUnlocked(Boolean(profile?.withdrawal_unlocked));
+setWalletAddresses(activeAddresses);
 
       setSelectedWalletAddressId((currentId) => {
         if (activeAddresses.some((item) => item.id === currentId)) {
@@ -163,7 +174,7 @@ function CashierPageContent() {
   }
 
   async function handleSubmitRequest() {
-    if (!isValidAmount) return;
+    if (!canSubmitWalletRequest) return;
 
     const {
       data: { user },
@@ -242,7 +253,7 @@ function CashierPageContent() {
           note={note}
           amountLabel={formatMMK(numericAmount)}
           actionLabel={actionLabel}
-          isValidAmount={isValidAmount}
+          isValidAmount={canSubmitWalletRequest}
           onTabChange={handleTabChange}
           onAmountChange={handleAmountChange}
           onNoteChange={handleNoteChange}
@@ -268,9 +279,9 @@ function CashierPageContent() {
             <button
               type="submit"
               form="cashier-request-form"
-              disabled={!isValidAmount}
+              disabled={!canSubmitWalletRequest}
               className={
-                isValidAmount
+                canSubmitWalletRequest
                   ? "mt-3 h-12 w-full rounded-[1rem] border border-[#ffd77a]/60 bg-[linear-gradient(180deg,#b51b22,#7b0f14_56%,#430407)] px-5 text-base font-black text-[#ffe6a3] shadow-[0_10px_22px_rgba(74,10,10,0.44),inset_0_1px_2px_rgba(255,215,122,0.45)] active:scale-[0.98]"
                   : "mt-3 h-12 w-full rounded-[1rem] border border-[#9c6a21]/24 bg-[#4a2412]/20 px-5 text-base font-black text-[#d6a84f]/42"
               }
@@ -278,7 +289,7 @@ function CashierPageContent() {
               {actionLabel}
             </button>
 
-            {!isValidAmount ? (
+            {!canSubmitWalletRequest ? (
               <p className="mt-2 text-center text-[10px] font-bold text-[#ffd0b6]/68">
                 အနည်းဆုံးသတ်မှတ်ထားသော ပမာဏ လိုအပ်ပါသည်
               </p>
@@ -366,9 +377,11 @@ function CashierPageContent() {
   <p className="relative text-sm font-black text-[#ffd77a]">
     ငွေထုတ်ရန် အချက်အလက်
   </p>
-  <p className="relative mt-1.5 text-xs font-bold leading-5 text-[#fff1c2]/82">
-    အကောင့်အမည် / ဖုန်းနံပါတ်ကို မှတ်ချက်ထဲတွင် ထည့်ပါ။
-  </p>
+<p className="relative mt-1.5 text-xs font-bold leading-5 text-[#fff1c2]/82">
+  {withdrawalUnlocked
+    ? "အကောင့်အမည် / ဖုန်းနံပါတ်ကို မှတ်ချက်ထဲတွင် ထည့်ပါ။"
+    : "၃,၀၀၀ ကျပ်မှစ၍ ငွေဖြည့်ပြီး ၁ ပွဲကစားပြီးမှ ငွေထုတ်နိုင်ပါသည်။"}
+</p>
 </section>
         )}
 
@@ -385,9 +398,9 @@ function CashierPageContent() {
             <button
               type="submit"
               form="cashier-request-form"
-              disabled={!isValidAmount}
+              disabled={!canSubmitWalletRequest}
               className={
-                isValidAmount
+                canSubmitWalletRequest
                   ? "mt-3 h-12 w-full rounded-[1rem] border border-[#ffd77a]/60 bg-[linear-gradient(180deg,#b51b22,#7b0f14_56%,#430407)] px-5 text-base font-black text-[#ffe6a3] shadow-[0_10px_22px_rgba(74,10,10,0.44),inset_0_1px_2px_rgba(255,215,122,0.45)] active:scale-[0.98]"
                   : "mt-3 h-12 w-full rounded-[1rem] border border-[#9c6a21]/24 bg-[#4a2412]/20 px-5 text-base font-black text-[#d6a84f]/42"
               }
@@ -395,11 +408,13 @@ function CashierPageContent() {
               {actionLabel}
             </button>
 
-            {!isValidAmount ? (
-              <p className="mt-2 text-center text-[10px] font-bold text-[#ffd0b6]/68">
-                အနည်းဆုံးသတ်မှတ်ထားသော ပမာဏ လိုအပ်ပါသည်
-              </p>
-            ) : null}
+{!canSubmitWalletRequest ? (
+  <p className="mt-2 text-center text-[10px] font-bold text-[#ffd0b6]/68">
+    {withdrawalUnlocked
+      ? "အနည်းဆုံးသတ်မှတ်ထားသော ပမာဏ လိုအပ်ပါသည်"
+      : "၃,၀၀၀ ကျပ် ငွေဖြည့်ပြီး ၁ ပွဲကစားရန် လိုအပ်ပါသည်"}
+  </p>
+) : null}
           </>
         ) : null}
       </main>
