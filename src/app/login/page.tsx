@@ -34,11 +34,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             />
 
             <h1 className="mt-3 text-4xl font-black tracking-[0.1em] text-[#ffd77a] drop-shadow-[0_3px_14px_rgba(0,0,0,0.9)]">
-              နဂါးနီ
+              နဂါးနီရွှေအိုး
             </h1>
 
             <p className="mt-2 text-sm font-bold leading-7 text-[#fff3d0]/78 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-              မြန်မာ့ရိုးရာ တော်ဝင်ပွဲခန်းမသို့ ဝင်ရောက်ပါ
+              မြန်မာ့ရိုးရာ အံစာကစားပွဲ
             </p>
           </div>
 
@@ -49,7 +49,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <form action={loginWithEmail} className="relative space-y-5">
               <div>
                 <p className="text-xs font-black tracking-[0.16em] text-[#f7dfaa]/60">
-                  အကောင့်ဝင်ရန်
+                  ကိုယ်ပိုင်အကောင့်ဝင်ရန်
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-[#ffd77a]">
                   ဝင်ရောက်မည်
@@ -69,7 +69,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 required
                 autoComplete="tel"
                 inputMode="tel"
-                placeholder="ဖုန်းနံပါတ်"
+                placeholder="09xxxx"
               />
 
               <NaganiRoyalInput

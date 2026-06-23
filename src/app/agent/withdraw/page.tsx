@@ -1,4 +1,4 @@
-//src/app/agent/withdraw/page.tsx
+// src/app/agent/withdraw/page.tsx
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -58,6 +58,15 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function getStatusLabel(status: WithdrawRow["status"]) {
+  if (status === "pending") return "စောင့်နေ";
+  if (status === "approved") return "အတည်ပြုပြီး";
+  if (status === "paid") return "ငွေလွှဲပြီး";
+  if (status === "rejected") return "ငြင်းပယ်";
+  if (status === "cancelled") return "ပယ်ဖျက်";
+  return "မသိ";
+}
+
 function getStatusClass(status: WithdrawRow["status"]) {
   if (status === "pending") {
     return "border-amber-300/25 bg-amber-400/10 text-amber-100";
@@ -76,6 +85,46 @@ function getStatusClass(status: WithdrawRow["status"]) {
   }
 
   return "border-white/10 bg-white/[0.03] text-white/45";
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-amber-100/70">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function TextInput({
+  name,
+  placeholder,
+  disabled,
+  type = "text",
+}: {
+  name: string;
+  placeholder: string;
+  disabled: boolean;
+  type?: string;
+}) {
+  return (
+    <input
+      name={name}
+      required
+      type={type}
+      placeholder={placeholder}
+      disabled={disabled}
+      className="w-full rounded-2xl border border-amber-300/18 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/28 focus:border-amber-300/55 disabled:opacity-50"
+    />
+  );
 }
 
 export default async function AgentWithdrawPage({
@@ -115,19 +164,19 @@ export default async function AgentWithdrawPage({
   const canWithdraw = agent.agent_status === "active" && availableBalance > 0;
 
   return (
-    <main className="min-h-dvh bg-[radial-gradient(circle_at_top,rgba(245,190,90,0.2),transparent_35%),linear-gradient(180deg,#260502,#070101)] px-5 py-6 text-amber-50">
-      <div className="mx-auto w-full max-w-[430px] space-y-5">
-        <header className="rounded-[2rem] border border-amber-300/25 bg-[linear-gradient(145deg,rgba(76,13,6,0.97),rgba(18,2,2,0.99),rgba(62,10,5,0.96))] p-5 shadow-2xl shadow-black/60">
-          <div className="flex items-start justify-between gap-4">
+    <main className="min-h-dvh bg-[radial-gradient(circle_at_top,rgba(245,190,90,0.18),transparent_34%),linear-gradient(180deg,#260502,#070101)] px-4 py-4 text-amber-50">
+      <div className="mx-auto w-full max-w-[430px] space-y-4">
+        <header className="rounded-[1.7rem] border border-amber-300/24 bg-[linear-gradient(145deg,rgba(78,13,6,0.98),rgba(17,2,2,0.99),rgba(55,8,4,0.97))] p-4 shadow-2xl shadow-black/65">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-200/60">
-                Agent Withdraw
+              <p className="text-[10px] font-black tracking-[0.22em] text-amber-200/55">
+                ငွေထုတ်ရန်
               </p>
-              <h1 className="mt-2 text-2xl font-black text-amber-50">
-                Withdraw Request
+              <h1 className="mt-1 text-2xl font-black text-amber-50">
+                Agent Balance
               </h1>
-              <p className="mt-1 text-sm leading-6 text-amber-100/65">
-                {agent.display_name ?? "Agent"} balance ထုတ်ယူရန်။
+              <p className="mt-1 text-sm font-bold text-amber-100/55">
+                {agent.display_name ?? "Agent"}
               </p>
             </div>
 
@@ -135,8 +184,29 @@ export default async function AgentWithdrawPage({
               href="/agent"
               className="rounded-full border border-amber-300/20 bg-black/25 px-3 py-2 text-xs font-black text-amber-100"
             >
-              Back
+              နောက်သို့
             </Link>
+          </div>
+
+          <div className="mt-4 rounded-[1.35rem] border border-amber-300/14 bg-black/25 p-4">
+            <p className="text-sm font-bold text-amber-100/55">
+              ထုတ်ယူနိုင်သောငွေ
+            </p>
+
+            <p className="mt-2 text-4xl font-black leading-none text-amber-50">
+              {formatMMK(agent.available_balance)} MMK
+            </p>
+
+            <div className="mt-3 rounded-2xl border border-amber-300/12 bg-black/25 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-bold text-amber-100/50">
+                  စောင့်နေသော ငွေထုတ်
+                </p>
+                <p className="text-base font-black text-amber-50">
+                  {formatMMK(agent.pending_withdraw_amount)} MMK
+                </p>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -157,7 +227,7 @@ export default async function AgentWithdrawPage({
         {withdrawError ? (
           <section className="rounded-2xl border border-red-300/25 bg-red-950/25 p-4">
             <p className="text-sm font-black text-red-100">
-              Failed to load withdraw history
+              ငွေထုတ်မှတ်တမ်း မဖွင့်နိုင်ပါ။
             </p>
             <p className="mt-1 text-xs text-red-100/70">
               {withdrawError.message}
@@ -165,24 +235,18 @@ export default async function AgentWithdrawPage({
           </section>
         ) : null}
 
-        <section className="overflow-hidden rounded-[2rem] border border-amber-300/25 bg-[linear-gradient(145deg,rgba(44,8,4,0.96),rgba(10,1,1,0.98))] shadow-2xl shadow-black/60">
-          <div className="border-b border-amber-300/15 p-5">
-            <p className="text-sm font-semibold text-amber-100/70">
-              ထုတ်ယူနိုင်သော Balance
+        <section className="rounded-[1.7rem] border border-amber-300/22 bg-[linear-gradient(145deg,rgba(44,7,3,0.97),rgba(9,1,1,0.99))] p-4 shadow-2xl shadow-black/55">
+          <div>
+            <p className="text-[10px] font-black tracking-[0.22em] text-amber-100/42">
+              Request
             </p>
-            <p className="mt-3 text-4xl font-black tracking-tight text-amber-50">
-              {formatMMK(agent.available_balance)} MMK
-            </p>
-            <p className="mt-2 text-sm font-bold text-amber-100/45">
-              Pending Withdraw: {formatMMK(agent.pending_withdraw_amount)} MMK
-            </p>
+            <h2 className="mt-1 text-xl font-black text-amber-50">
+              ငွေထုတ်တောင်းရန်
+            </h2>
           </div>
 
-          <form action={createAgentWithdrawAction} className="space-y-4 p-5">
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Amount
-              </span>
+          <form action={createAgentWithdrawAction} className="mt-4 space-y-4">
+            <Field label="ငွေပမာဏ">
               <input
                 name="amount"
                 required
@@ -192,77 +256,53 @@ export default async function AgentWithdrawPage({
                 step="1000"
                 placeholder="10000"
                 disabled={!canWithdraw}
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55 disabled:opacity-50"
+                className="w-full rounded-2xl border border-amber-300/18 bg-black/35 px-4 py-3 text-base font-black text-amber-50 outline-none placeholder:text-amber-100/28 focus:border-amber-300/55 disabled:opacity-50"
               />
-            </label>
+            </Field>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Payment Method
-              </span>
-              <select
-                name="payment_provider_key"
-                required
-                disabled={!canWithdraw}
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none focus:border-amber-300/55 disabled:opacity-50"
-              >
-                <option value="kpay">KBZPay</option>
-                <option value="wavepay">WavePay</option>
-                <option value="ayapay">AYA Pay</option>
-                <option value="cbpay">CB Pay</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
+            <Field label="ငွေလက်ခံမည့် wallet">
+<select
+  name="payment_provider_key"
+  required
+  className="w-full rounded-2xl border border-amber-300/18 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none focus:border-amber-300/55"
+>
+  <option value="kpay">KBZPay</option>
+  <option value="wavepay">WavePay</option>
+  <option value="ayapay">AYA Pay</option>
+  <option value="cbpay">CB Pay</option>
+  <option value="other">အခြား</option>
+</select>
+            </Field>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Account Name
-              </span>
-              <input
+            <Field label="အကောင့်အမည်">
+              <TextInput
                 name="payment_account_name"
-                required
-                placeholder="Account holder name"
+                placeholder="အကောင့်ပိုင်ရှင်အမည်"
                 disabled={!canWithdraw}
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55 disabled:opacity-50"
               />
-            </label>
+            </Field>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Account Number / Phone
-              </span>
-              <input
+            <Field label="ဖုန်းနံပါတ် / အကောင့်နံပါတ်">
+              <TextInput
                 name="payment_account_number"
-                required
                 placeholder="09112233445"
                 disabled={!canWithdraw}
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55 disabled:opacity-50"
               />
-            </label>
+            </Field>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Note
-              </span>
-              <input
-                name="note"
-                placeholder="Optional"
-                disabled={!canWithdraw}
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55 disabled:opacity-50"
-              />
-            </label>
+            <input name="note" type="hidden" value="" />
 
             <button
               type="submit"
               disabled={!canWithdraw}
               className="w-full rounded-2xl border border-amber-200/45 bg-[linear-gradient(180deg,#f7d27a,#b87819)] px-5 py-3 text-base font-black text-[#2a0701] shadow-lg shadow-black/40 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Submit Withdraw
+              ငွေထုတ်တောင်းရန်
             </button>
 
             {!canWithdraw ? (
               <p className="rounded-2xl border border-amber-300/15 bg-black/25 px-4 py-3 text-center text-sm font-bold text-amber-100/55">
-                Withdraw လုပ်ရန် available balance မရှိသေးပါ။
+                ထုတ်ယူနိုင်သောငွေ မရှိသေးပါ။
               </p>
             ) : null}
           </form>
@@ -270,21 +310,21 @@ export default async function AgentWithdrawPage({
 
         <section className="space-y-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-amber-200/45">
-              History
+            <p className="text-[10px] font-black tracking-[0.22em] text-amber-100/42">
+              မှတ်တမ်း
             </p>
             <h2 className="mt-1 text-xl font-black text-amber-50">
-              Withdraw Requests
+              ငွေထုတ်စာရင်း
             </h2>
           </div>
 
           {withdraws.length === 0 ? (
             <div className="rounded-[1.5rem] border border-amber-300/15 bg-black/25 p-5 text-center">
               <p className="text-lg font-black text-amber-50">
-                No withdraw requests yet
+                ငွေထုတ်တောင်းထားခြင်း မရှိသေးပါ
               </p>
               <p className="mt-1 text-sm text-amber-100/55">
-                Submitted requests will appear here.
+                တောင်းပြီးပါက ဤနေရာတွင် ပြပါမည်။
               </p>
             </div>
           ) : null}
@@ -306,11 +346,11 @@ export default async function AgentWithdrawPage({
 
                 <span
                   className={[
-                    "rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em]",
+                    "rounded-full border px-3 py-1 text-[11px] font-black",
                     getStatusClass(request.status),
                   ].join(" ")}
                 >
-                  {request.status}
+                  {getStatusLabel(request.status)}
                 </span>
               </div>
 
@@ -332,7 +372,7 @@ export default async function AgentWithdrawPage({
 
               {request.admin_note ? (
                 <p className="mt-3 rounded-2xl border border-amber-300/10 bg-amber-300/5 p-3 text-xs font-semibold leading-5 text-amber-100/55">
-                  Admin: {request.admin_note}
+                  Admin မှတ်ချက်: {request.admin_note}
                 </p>
               ) : null}
             </article>

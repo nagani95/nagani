@@ -1,4 +1,4 @@
-//src/app/agent/login/page.tsx
+// src/app/agent/login/page.tsx
 
 "use client";
 
@@ -48,7 +48,7 @@ export default function AgentLoginPage() {
     setIsLoading(false);
 
     if (error) {
-      setErrorText("အေးဂျင့်အကောင့်ဝင်မရပါ။ ဖုန်းနံပါတ် / စကားဝှက် စစ်ပါ။");
+      setErrorText("ဖုန်းနံပါတ် သို့မဟုတ် စကားဝှက် မှားနေပါသည်။");
       return;
     }
 
@@ -64,22 +64,25 @@ export default function AgentLoginPage() {
 
           <div className="relative">
             <div className="mb-7 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-200/70">
-                NAGANI AGENT
+              <p className="text-xs font-black tracking-[0.32em] text-amber-200/65">
+                အေးဂျင့်စင်တာ
               </p>
+
               <h1 className="mt-3 text-2xl font-black text-amber-50">
-                အေးဂျင့် Login
+                အေးဂျင့်ဝင်ရန်
               </h1>
-              <p className="mt-2 text-sm leading-6 text-amber-100/70">
-                လစဉ် Referral Settlement ကြည့်ရန်
+
+              <p className="mt-2 text-sm font-bold leading-6 text-amber-100/60">
+                Admin မှ ဖွင့်ပေးထားသော ဖုန်းနံပါတ်ဖြင့် ဝင်ရောက်ပါ။
               </p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-amber-100">
+                <span className="mb-2 block text-sm font-bold text-amber-100/75">
                   ဖုန်းနံပါတ်
                 </span>
+
                 <input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
@@ -87,28 +90,29 @@ export default function AgentLoginPage() {
                   inputMode="numeric"
                   required
                   autoComplete="tel"
-                  className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55"
+                  className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/30 focus:border-amber-300/55"
                   placeholder="09112233445"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-amber-100">
+                <span className="mb-2 block text-sm font-bold text-amber-100/75">
                   စကားဝှက်
                 </span>
+
                 <input
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   type="password"
                   required
                   autoComplete="current-password"
-                  className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55"
+                  className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/30 focus:border-amber-300/55"
                   placeholder="••••••••"
                 />
               </label>
 
               {errorText ? (
-                <p className="rounded-2xl border border-red-300/25 bg-red-950/35 px-4 py-3 text-sm text-red-100">
+                <p className="rounded-2xl border border-red-300/25 bg-red-950/35 px-4 py-3 text-sm font-bold leading-6 text-red-100">
                   {errorText}
                 </p>
               ) : null}
@@ -118,12 +122,12 @@ export default function AgentLoginPage() {
                 disabled={isLoading}
                 className="w-full rounded-2xl border border-amber-200/45 bg-[linear-gradient(180deg,#f7d27a,#b87819)] px-5 py-3 text-base font-black text-[#2a0701] shadow-lg shadow-black/40 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoading ? "ဝင်နေပါသည်..." : "ဝင်မည်"}
+                {isLoading ? "ဝင်ရောက်နေပါသည်..." : "ဝင်ရန်"}
               </button>
             </form>
 
-            <p className="mt-5 text-center text-xs leading-5 text-amber-100/50">
-              Admin မှ ချိတ်ဆက်ထားသော အေးဂျင့်ဖုန်းနံပါတ်ဖြင့် ဝင်ရောက်ပါ။
+            <p className="mt-5 text-center text-xs font-bold leading-5 text-amber-100/45">
+              အကောင့်မရသေးပါက Admin ထံ ဆက်သွယ်ပါ။
             </p>
           </div>
         </section>

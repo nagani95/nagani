@@ -1,4 +1,4 @@
-//src/app/agent/sub-agents/page.tsx
+// src/app/agent/sub-agents/page.tsx
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -64,6 +64,12 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function getStatusLabel(status: string | null | undefined) {
+  if (status === "active") return "ဖွင့်ထား";
+  if (status === "paused") return "ရပ်ထား";
+  return "ပိတ်ထား";
+}
+
 function getStatusClass(status: string | null | undefined) {
   if (status === "active") {
     return "border-emerald-300/25 bg-emerald-950/35 text-emerald-100";
@@ -74,6 +80,95 @@ function getStatusClass(status: string | null | undefined) {
   }
 
   return "border-red-300/25 bg-red-950/35 text-red-100";
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-amber-100/75">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function TextInput({
+  name,
+  placeholder,
+  type = "text",
+  required = true,
+  minLength,
+}: {
+  name: string;
+  placeholder: string;
+  type?: string;
+  required?: boolean;
+  minLength?: number;
+}) {
+  return (
+    <input
+      name={name}
+      required={required}
+      type={type}
+      minLength={minLength}
+      placeholder={placeholder}
+      className="w-full rounded-2xl border border-amber-300/18 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/28 focus:border-amber-300/55"
+    />
+  );
+}
+
+function NumberInput({
+  name,
+  min,
+  max,
+  step,
+  defaultValue,
+}: {
+  name: string;
+  min: string;
+  max: string | number;
+  step: string;
+  defaultValue: string | number;
+}) {
+  return (
+    <input
+      name={name}
+      required
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      defaultValue={defaultValue}
+      className="w-full rounded-2xl border border-amber-300/18 bg-black/35 px-4 py-3 text-base font-black text-amber-50 outline-none focus:border-amber-300/55"
+    />
+  );
+}
+
+function SmallStat({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-amber-300/12 bg-black/25 p-3">
+      <p className="text-[11px] font-bold text-amber-100/45">{label}</p>
+      <p className="mt-1 text-xl font-black text-amber-50">{value}</p>
+      <p className="mt-1 text-[11px] font-bold leading-4 text-amber-100/35">
+        {sub}
+      </p>
+    </div>
+  );
 }
 
 export default async function AgentSubAgentsPage({
@@ -112,19 +207,19 @@ export default async function AgentSubAgentsPage({
   const maxActiveBonus = Number(agent.max_active_player_bonus_amount ?? 1000);
 
   return (
-    <main className="min-h-dvh bg-[radial-gradient(circle_at_top,rgba(245,190,90,0.2),transparent_35%),linear-gradient(180deg,#260502,#070101)] px-5 py-6 text-amber-50">
-      <div className="mx-auto w-full max-w-[430px] space-y-5">
-        <header className="rounded-[2rem] border border-amber-300/25 bg-[linear-gradient(145deg,rgba(76,13,6,0.97),rgba(18,2,2,0.99),rgba(62,10,5,0.96))] p-5 shadow-2xl shadow-black/60">
-          <div className="flex items-start justify-between gap-4">
+    <main className="min-h-dvh bg-[radial-gradient(circle_at_top,rgba(245,190,90,0.18),transparent_34%),linear-gradient(180deg,#260502,#070101)] px-4 py-4 text-amber-50">
+      <div className="mx-auto w-full max-w-[430px] space-y-4">
+        <header className="rounded-[1.7rem] border border-amber-300/24 bg-[linear-gradient(145deg,rgba(78,13,6,0.98),rgba(17,2,2,0.99),rgba(55,8,4,0.97))] p-4 shadow-2xl shadow-black/65">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-200/60">
-                Sub Agents
+              <p className="text-[10px] font-black tracking-[0.22em] text-amber-200/55">
+                အောက်ခံအေးဂျင့်
               </p>
-              <h1 className="mt-2 text-2xl font-black text-amber-50">
-                Agent B Control
+              <h1 className="mt-1 text-2xl font-black text-amber-50">
+                စီမံရန်
               </h1>
-              <p className="mt-1 text-sm leading-6 text-amber-100/65">
-                {agent.display_name ?? "Primary Agent"} can create sub agents.
+              <p className="mt-1 text-sm font-bold leading-5 text-amber-100/55">
+                သင်ဖန်တီးထားသော Agent B များကို ကြည့်ရန်နှင့် အသစ်ဖန်တီးရန်။
               </p>
             </div>
 
@@ -132,8 +227,22 @@ export default async function AgentSubAgentsPage({
               href="/agent"
               className="rounded-full border border-amber-300/20 bg-black/25 px-3 py-2 text-xs font-black text-amber-100"
             >
-              Back
+              နောက်သို့
             </Link>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <SmallStat
+              label="Sub Agent"
+              value={subAgents.length}
+              sub="သင်ဖန်တီးထားသူ"
+            />
+
+            <SmallStat
+              label="အများဆုံး Rate"
+              value={`${maxCommissionPercent}%`}
+              sub="ဒီထက်ပို မပေးနိုင်"
+            />
           </div>
         </header>
 
@@ -154,129 +263,82 @@ export default async function AgentSubAgentsPage({
         {error ? (
           <section className="rounded-2xl border border-red-300/25 bg-red-950/25 p-4">
             <p className="text-sm font-black text-red-100">
-              Failed to load sub agents
+              Sub Agent စာရင်း မဖွင့်နိုင်ပါ။
             </p>
             <p className="mt-1 text-xs text-red-100/70">{error.message}</p>
           </section>
         ) : null}
 
-        <section className="rounded-[2rem] border border-amber-300/20 bg-[linear-gradient(145deg,rgba(44,8,4,0.96),rgba(10,1,1,0.98))] p-5 shadow-2xl shadow-black/60">
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-amber-200/45">
-            Create Agent B
-          </p>
-
-          <h2 className="mt-2 text-xl font-black text-amber-50">
-            New Sub Agent
-          </h2>
-
-          <p className="mt-2 text-sm leading-6 text-amber-100/55">
-            Commission must be 0–{maxCommissionPercent}%. Active player bonus
-            must be 0–{formatMMK(maxActiveBonus)} MMK.
-          </p>
+        <section className="rounded-[1.7rem] border border-amber-300/22 bg-[linear-gradient(145deg,rgba(44,7,3,0.97),rgba(9,1,1,0.99))] p-4 shadow-2xl shadow-black/55">
+          <div>
+            <p className="text-[10px] font-black tracking-[0.22em] text-amber-100/42">
+              အသစ်ဖန်တီးရန်
+            </p>
+            <h2 className="mt-1 text-xl font-black text-amber-50">
+              Agent B အသစ်
+            </h2>
+            <p className="mt-2 text-sm font-bold leading-6 text-amber-100/50">
+              Commission ကို 0 မှ {maxCommissionPercent}% အတွင်းသာ သတ်မှတ်နိုင်သည်။
+              Active bonus ကို 0 မှ {formatMMK(maxActiveBonus)} MMK အတွင်းသာ
+              သတ်မှတ်နိုင်သည်။
+            </p>
+          </div>
 
           <form action={createSubAgentAction} className="mt-5 space-y-4">
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Agent Code
-              </span>
-              <input
-                name="agent_code"
-                required
-                placeholder="agentb001"
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55"
-              />
-            </label>
+            <Field label="Agent code">
+              <TextInput name="agent_code" placeholder="agentb001" />
+            </Field>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Display Name
-              </span>
-              <input
-                name="display_name"
-                required
-                placeholder="Agent B"
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55"
-              />
-            </label>
+            <Field label="အမည်">
+              <TextInput name="display_name" placeholder="ဥပမာ - Agent B" />
+            </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="mb-2 block text-sm font-bold text-amber-100">
-                  Commission %
-                </span>
-                <input
+              <Field label="Commission %">
+                <NumberInput
                   name="commission_rate_percent"
-                  required
-                  type="number"
                   min="0"
                   max={maxCommissionPercent}
                   step="0.01"
                   defaultValue={maxCommissionPercent}
-                  className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none focus:border-amber-300/55"
                 />
-              </label>
+              </Field>
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-bold text-amber-100">
-                  Active Bonus
-                </span>
-                <input
+              <Field label="Active bonus">
+                <NumberInput
                   name="active_player_bonus_amount"
-                  required
-                  type="number"
                   min="0"
                   max={maxActiveBonus}
                   step="100"
                   defaultValue={maxActiveBonus}
-                  className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none focus:border-amber-300/55"
                 />
-              </label>
+              </Field>
             </div>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Login Phone
-              </span>
-              <input
+            <Field label="Login phone">
+              <TextInput
                 name="phone_number"
-                required
                 type="tel"
-                inputMode="numeric"
                 placeholder="09112233445"
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55"
               />
-            </label>
+            </Field>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Password
-              </span>
-              <input
+            <Field label="Password">
+              <TextInput
                 name="password"
-                required
                 type="password"
                 minLength={6}
-                placeholder="Minimum 6 characters"
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55"
+                placeholder="အနည်းဆုံး ၆ လုံး"
               />
-            </label>
+            </Field>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-amber-100">
-                Notes
-              </span>
-              <input
-                name="notes"
-                placeholder="Optional"
-                className="w-full rounded-2xl border border-amber-300/20 bg-black/35 px-4 py-3 text-base font-bold text-amber-50 outline-none placeholder:text-amber-100/35 focus:border-amber-300/55"
-              />
-            </label>
+            <input name="notes" type="hidden" value="" />
 
             <button
               type="submit"
               className="w-full rounded-2xl border border-amber-200/45 bg-[linear-gradient(180deg,#f7d27a,#b87819)] px-5 py-3 text-base font-black text-[#2a0701] shadow-lg shadow-black/40"
             >
-              Create Sub Agent
+              Sub Agent ဖန်တီးရန်
             </button>
           </form>
         </section>
@@ -284,11 +346,11 @@ export default async function AgentSubAgentsPage({
         <section className="space-y-3">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-amber-200/45">
-                Agent B List
+              <p className="text-[10px] font-black tracking-[0.22em] text-amber-100/42">
+                စာရင်း
               </p>
               <h2 className="mt-1 text-xl font-black text-amber-50">
-                {subAgents.length} Sub Agents
+                Sub Agent {subAgents.length} ယောက်
               </h2>
             </div>
           </div>
@@ -296,10 +358,10 @@ export default async function AgentSubAgentsPage({
           {subAgents.length === 0 ? (
             <div className="rounded-[1.5rem] border border-amber-300/15 bg-black/25 p-5 text-center">
               <p className="text-lg font-black text-amber-50">
-                No sub agents yet
+                Sub Agent မရှိသေးပါ
               </p>
               <p className="mt-1 text-sm text-amber-100/55">
-                Create Agent B above.
+                အပေါ်က form ဖြင့် Agent B အသစ်ဖန်တီးပါ။
               </p>
             </div>
           ) : null}
@@ -326,54 +388,42 @@ export default async function AgentSubAgentsPage({
 
                 <span
                   className={[
-                    "rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em]",
+                    "rounded-full border px-3 py-1 text-[11px] font-black",
                     getStatusClass(subAgent.agent_status),
                   ].join(" ")}
                 >
-                  {subAgent.agent_status ?? "unknown"}
+                  {getStatusLabel(subAgent.agent_status)}
                 </span>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-2xl border border-amber-300/10 bg-black/25 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100/40">
-                    Rate
-                  </p>
-                  <p className="mt-1 text-lg font-black text-amber-50">
-                    {formatPercent(subAgent.commission_rate)}%
-                  </p>
-                </div>
+                <SmallStat
+                  label="Commission"
+                  value={`${formatPercent(subAgent.commission_rate)}%`}
+                  sub="Agent B ရမည့် rate"
+                />
 
-                <div className="rounded-2xl border border-amber-300/10 bg-black/25 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100/40">
-                    Active Bonus
-                  </p>
-                  <p className="mt-1 text-lg font-black text-amber-50">
-                    {formatMMK(subAgent.active_player_bonus_amount)}
-                  </p>
-                </div>
+                <SmallStat
+                  label="Active Bonus"
+                  value={formatMMK(subAgent.active_player_bonus_amount)}
+                  sub="Active တစ်ယောက်လျှင်"
+                />
 
-                <div className="rounded-2xl border border-amber-300/10 bg-black/25 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100/40">
-                    Players
-                  </p>
-                  <p className="mt-1 text-lg font-black text-amber-50">
-                    {subAgent.registered_player_count ?? 0}
-                  </p>
-                </div>
+                <SmallStat
+                  label="Player"
+                  value={subAgent.registered_player_count ?? 0}
+                  sub="ဖိတ်ထားသူ"
+                />
 
-                <div className="rounded-2xl border border-amber-300/10 bg-black/25 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100/40">
-                    Active
-                  </p>
-                  <p className="mt-1 text-lg font-black text-amber-50">
-                    {subAgent.active_player_count ?? 0}
-                  </p>
-                </div>
+                <SmallStat
+                  label="Active"
+                  value={subAgent.active_player_count ?? 0}
+                  sub="Bonus/commission ဝင်မည်"
+                />
               </div>
 
               <p className="mt-3 text-xs font-bold text-amber-100/35">
-                Created: {formatDate(subAgent.created_at)}
+                ဖန်တီးသည့်နေ့: {formatDate(subAgent.created_at)}
               </p>
             </article>
           ))}

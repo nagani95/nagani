@@ -18,9 +18,52 @@ function getText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
+function normalizeAgentCode(value: string) {
+  return value.trim().replace(/\s+/g, "").toUpperCase();
+}
+
 function normalizeNaganiPhoneAuthEmail(value: string) {
   const digits = value.replace(/\D/g, "");
   return digits ? `${digits}@nagani.local` : "";
+}
+
+async function assertNoDuplicateAgentIdentity(params: {
+  agentCode: string;
+  cleanPhone: string;
+}) {
+  const supabaseAdmin = createAdminClient();
+
+  const { data: codeMatch, error: codeError } = await supabaseAdmin
+    .from("agent_profiles")
+    .select("id")
+    .eq("agent_code", params.agentCode)
+    .limit(1)
+    .maybeSingle();
+
+  if (codeError) {
+    throw new Error(codeError.message);
+  }
+
+  if (codeMatch) {
+    throw new Error("Agent code already exists");
+  }
+
+  if (params.cleanPhone) {
+    const { data: phoneMatch, error: phoneError } = await supabaseAdmin
+      .from("agent_profiles")
+      .select("id")
+      .eq("agent_login_phone", params.cleanPhone)
+      .limit(1)
+      .maybeSingle();
+
+    if (phoneError) {
+      throw new Error(phoneError.message);
+    }
+
+    if (phoneMatch) {
+      throw new Error("Agent phone number already exists");
+    }
+  }
 }
 
 function getPercentDecimal(formData: FormData, key: string) {
@@ -104,7 +147,7 @@ export async function createSubAgentAction(formData: FormData) {
   let errorMessage: string | null = null;
 
   try {
-    const agentCode = getText(formData, "agent_code").toLowerCase();
+    const agentCode = normalizeAgentCode(getText(formData, "agent_code"));
     const displayName = getText(formData, "display_name");
     const phoneNumber = getText(formData, "phone_number");
     const password = getText(formData, "password");
@@ -117,11 +160,16 @@ export async function createSubAgentAction(formData: FormData) {
       throw new Error("Sub agent code is required");
     }
 
-    if (!displayName) {
-      throw new Error("Display name is required");
-    }
+if (!displayName) {
+  throw new Error("Display name is required");
+}
 
-    createdAuthUserId = await createAgentAuthUser({
+await assertNoDuplicateAgentIdentity({
+  agentCode,
+  cleanPhone,
+});
+
+createdAuthUserId = await createAgentAuthUser({
       phoneNumber,
       password,
       agentCode,

@@ -93,7 +93,7 @@ export default async function HomePage() {
             <div className="relative z-10 flex h-full flex-col items-center justify-center px-3 pb-2.5 pt-3 text-center">
               <div className="w-full">
                 <p className="text-[0.58rem] font-black tracking-[0.14em] text-[#f7dfaa]/70">
-                  အိုင်ဒီ
+                  ID
                 </p>
                 <p className="mt-0.5 text-[0.88rem] font-black leading-none tracking-[0.1em] text-[#ffd77a] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
                   {memberIdLabel}
@@ -104,7 +104,7 @@ export default async function HomePage() {
 
               <div className="w-full">
                 <p className="text-[0.58rem] font-bold leading-none text-[#f7dfaa]/70">
-                  လက်ကျန်
+                  သင့်ငွေ
                 </p>
                 <p className="mt-1 text-[0.72rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
                   {formatMMK(walletBalance)} ကျပ်

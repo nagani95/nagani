@@ -182,7 +182,7 @@ const players = (Array.isArray(playerData) ? playerData : []) as PlayerRow[];
           <SummaryCard
             label="Active"
             value={activePlayers.length}
-            sub="Deposit ≥ 10,000"
+            sub="Activated"
           />
 
           <SummaryCard

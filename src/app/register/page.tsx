@@ -14,6 +14,7 @@ type RegisterPageProps = {
   searchParams?: Promise<{
     error?: string;
     message?: string;
+    ref?: string;
   }>;
 };
 
@@ -21,6 +22,10 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const params = await searchParams;
   const errorMessage = params?.error;
   const successMessage = params?.message;
+const referralCode = params?.ref?.trim().toUpperCase() ?? "";
+const loginHref = referralCode
+  ? `/login?ref=${encodeURIComponent(referralCode)}`
+  : "/login";
 
   return (
     <NaganiPageShell contentClassName="relative z-10 min-h-[100svh]">
@@ -36,7 +41,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             />
 
             <h1 className="mt-3 text-3xl font-black tracking-[0.1em] text-[#ffd77a] drop-shadow-[0_3px_14px_rgba(0,0,0,0.9)]">
-              နဂါးနီ
+              နဂါးနီရွှေအိုး
             </h1>
 
             <p className="mt-2 text-sm font-bold leading-7 text-[#fff3d0]/78 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
@@ -70,6 +75,36 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 </div>
               ) : null}
 
+              {referralCode ? (
+                <>
+                  <input
+                    type="hidden"
+                    name="referralCode"
+                    value={referralCode}
+                  />
+
+                  <div className="rounded-2xl border border-[#d6a84f]/20 bg-black/25 px-4 py-3">
+                    <p className="text-xs font-black text-[#f7dfaa]/50">
+                      မိတ်ဆက် Agent Code
+                    </p>
+                    <p className="mt-1 text-lg font-black text-[#ffd77a]">
+                      {referralCode}
+                    </p>
+                    <p className="mt-1 text-xs font-bold leading-5 text-[#fff3d0]/50">
+                      ဤအကောင့်သည် မိတ်ဆက် Agent နှင့် အလိုအလျောက်ချိတ်ပါမည်။
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <NaganiRoyalInput
+                  label="မိတ်ဆက်ကုဒ်"
+                  name="referralCode"
+                  type="text"
+                  autoComplete="off"
+                  placeholder="ရှိလျှင် ထည့်ပါ"
+                />
+              )}
+
               <NaganiRoyalInput
                 label="ဖုန်းနံပါတ်"
                 name="email"
@@ -77,15 +112,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 required
                 autoComplete="tel"
                 inputMode="tel"
-                placeholder="ဖုန်းနံပါတ်"
-              />
-
-              <NaganiRoyalInput
-                label="မိတ်ဆက်ကုဒ်"
-                name="referralCode"
-                type="text"
-                autoComplete="off"
-                placeholder="ရှိလျှင် ထည့်ပါ"
+                placeholder="09xxx"
               />
 
               <NaganiRoyalInput
@@ -121,7 +148,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 </Link>
 
                 <Link
-                  href="/login"
+                  href={loginHref}
                   className="text-[#ffd77a] active:text-[#fff3d0]"
                 >
                   ဝင်ရောက်မည်
