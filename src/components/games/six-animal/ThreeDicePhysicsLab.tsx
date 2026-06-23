@@ -1762,6 +1762,125 @@ trajectoryRecorderRunNonce={trajectoryRecorderRunNonce}
   </div>
 </section>
 
+  {trajectoryRecordings.length > 0 ? (
+    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {trajectoryRecordings.map((recording, index) => (
+        <div
+          key={`trajectory-recording-${index}`}
+          className="rounded-2xl border border-white/10 bg-black/25 p-4"
+        >
+          <p className="font-black text-fuchsia-100">
+            #{index + 1} · D{recording.dieIndex + 1} ·{" "}
+            {recording.finalAnimal}
+          </p>
+
+          <p className="mt-1 text-white/45">
+            {recording.frames.length} frames · Readable{" "}
+            {recording.readableAtSeconds}s · End{" "}
+            {recording.motionEndSeconds}s
+          </p>
+
+          <p className="mt-1 text-white/45">
+            Travel {recording.metrics.horizontalTravel} · Tumble{" "}
+            {recording.metrics.tumbleTurns} · Deflector{" "}
+            {recording.metrics.deflectorBounceScore}
+          </p>
+
+          {(() => {
+  const candidate: DiceTrajectoryRecorderCandidate = {
+    finalAnimal: recording.finalAnimal,
+    dieIndex: recording.dieIndex,
+    frames: recording.frames,
+
+    finalStatus: recording.finalStatus,
+    confidence: recording.finalConfidence,
+    tiltDegrees: recording.finalTiltDegrees,
+
+    readableAtSeconds: recording.readableAtSeconds,
+    motionEndSeconds: recording.motionEndSeconds,
+    replayEndSeconds: recording.replayEndSeconds,
+
+    metrics: recording.metrics,
+    motionScore: getRecordedMotionScore(recording.metrics),
+    motionGrade: getRecordedMotionGrade(recording.metrics),
+
+    notes: [
+      "Captured from V1 live physics recorder.",
+      `Shape preset: ${diceShapePreset}`,
+      `Collider preset: ${diceColliderPreset}`,
+    ],
+  };
+
+  const gate = evaluateDiceTrajectoryGate(candidate);
+
+  return (
+    <>
+      <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+        <p
+          className={
+            gate.severity === "block"
+              ? "text-[10px] font-black uppercase tracking-[0.16em] text-red-200"
+              : gate.severity === "warn"
+                ? "text-[10px] font-black uppercase tracking-[0.16em] text-amber-200"
+                : "text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200"
+          }
+        >
+          Gate: {gate.severity}
+        </p>
+
+        {gate.issues.length > 0 ? (
+          <div className="mt-2 space-y-1">
+            {gate.issues.slice(0, 3).map((issue) => (
+              <p key={issue.code} className="text-[10px] text-white/45">
+                • {issue.message}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-[10px] text-emerald-100/70">
+            Production-ready candidate.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => previewTrajectoryRecording(index)}
+          className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
+        >
+          Preview
+        </button>
+
+        <button
+          type="button"
+          onClick={() => diagnosticExportTrajectoryRecording(index)}
+          className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100"
+        >
+          Diagnostic Export
+        </button>
+
+        <button
+          type="button"
+          disabled={!gate.canProductionApprove}
+          onClick={() => approveTrajectoryRecording(index)}
+          className={
+            gate.canProductionApprove
+              ? "rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
+              : "cursor-not-allowed rounded-xl border border-red-300/15 bg-red-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-100/35"
+          }
+        >
+          Production Approve
+        </button>
+      </div>
+    </>
+  );
+})()}
+        </div>
+      ))}
+    </div>
+  ) : null}
+
         {cleanTableShotMode ? null : (
 <section className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-12">
           <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 md:col-span-1 xl:col-span-3">
@@ -2550,125 +2669,6 @@ shadowSmokeResult.motionMetrics.frontStopRisk <= 0.72
   Preview: {trajectoryPreviewLabel}
 </p>
   </div>
-
-  {trajectoryRecordings.length > 0 ? (
-    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {trajectoryRecordings.map((recording, index) => (
-        <div
-          key={`trajectory-recording-${index}`}
-          className="rounded-2xl border border-white/10 bg-black/25 p-4"
-        >
-          <p className="font-black text-fuchsia-100">
-            #{index + 1} · D{recording.dieIndex + 1} ·{" "}
-            {recording.finalAnimal}
-          </p>
-
-          <p className="mt-1 text-white/45">
-            {recording.frames.length} frames · Readable{" "}
-            {recording.readableAtSeconds}s · End{" "}
-            {recording.motionEndSeconds}s
-          </p>
-
-          <p className="mt-1 text-white/45">
-            Travel {recording.metrics.horizontalTravel} · Tumble{" "}
-            {recording.metrics.tumbleTurns} · Deflector{" "}
-            {recording.metrics.deflectorBounceScore}
-          </p>
-
-          {(() => {
-  const candidate: DiceTrajectoryRecorderCandidate = {
-    finalAnimal: recording.finalAnimal,
-    dieIndex: recording.dieIndex,
-    frames: recording.frames,
-
-    finalStatus: recording.finalStatus,
-    confidence: recording.finalConfidence,
-    tiltDegrees: recording.finalTiltDegrees,
-
-    readableAtSeconds: recording.readableAtSeconds,
-    motionEndSeconds: recording.motionEndSeconds,
-    replayEndSeconds: recording.replayEndSeconds,
-
-    metrics: recording.metrics,
-    motionScore: getRecordedMotionScore(recording.metrics),
-    motionGrade: getRecordedMotionGrade(recording.metrics),
-
-    notes: [
-      "Captured from V1 live physics recorder.",
-      `Shape preset: ${diceShapePreset}`,
-      `Collider preset: ${diceColliderPreset}`,
-    ],
-  };
-
-  const gate = evaluateDiceTrajectoryGate(candidate);
-
-  return (
-    <>
-      <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-        <p
-          className={
-            gate.severity === "block"
-              ? "text-[10px] font-black uppercase tracking-[0.16em] text-red-200"
-              : gate.severity === "warn"
-                ? "text-[10px] font-black uppercase tracking-[0.16em] text-amber-200"
-                : "text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200"
-          }
-        >
-          Gate: {gate.severity}
-        </p>
-
-        {gate.issues.length > 0 ? (
-          <div className="mt-2 space-y-1">
-            {gate.issues.slice(0, 3).map((issue) => (
-              <p key={issue.code} className="text-[10px] text-white/45">
-                • {issue.message}
-              </p>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-2 text-[10px] text-emerald-100/70">
-            Production-ready candidate.
-          </p>
-        )}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => previewTrajectoryRecording(index)}
-          className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100"
-        >
-          Preview
-        </button>
-
-        <button
-          type="button"
-          onClick={() => diagnosticExportTrajectoryRecording(index)}
-          className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100"
-        >
-          Diagnostic Export
-        </button>
-
-        <button
-          type="button"
-          disabled={!gate.canProductionApprove}
-          onClick={() => approveTrajectoryRecording(index)}
-          className={
-            gate.canProductionApprove
-              ? "rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100"
-              : "cursor-not-allowed rounded-xl border border-red-300/15 bg-red-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-100/35"
-          }
-        >
-          Production Approve
-        </button>
-      </div>
-    </>
-  );
-})()}
-        </div>
-      ))}
-    </div>
-  ) : null}
 
 {SHOW_DICE_LAB_ADVANCED_TOOLS ? (
   <>

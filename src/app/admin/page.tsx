@@ -101,6 +101,11 @@ export default async function AdminPage() {
     .from("wallet_requests")
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
+  
+  const { count: openSupportCount, error: openSupportError } = await supabase
+  .from("support_conversations")
+  .select("id", { count: "exact", head: true })
+  .eq("status", "open");
 
   const { data: auditLogs, error: auditLogsError } = await supabase
     .from("admin_audit_logs")
@@ -123,10 +128,11 @@ export default async function AdminPage() {
   const errors: string[] = [
     currentRoundError ? `Current round: ${currentRoundError.message}` : null,
     currentBetsError ? `Current bets: ${currentBetsError.message}` : null,
-    pendingWalletRequestError
-      ? `Wallet requests: ${pendingWalletRequestError.message}`
-      : null,
-    auditLogsError ? `Audit logs: ${auditLogsError.message}` : null,
+pendingWalletRequestError
+  ? `Wallet requests: ${pendingWalletRequestError.message}`
+  : null,
+openSupportError ? `Support: ${openSupportError.message}` : null,
+auditLogsError ? `Audit logs: ${auditLogsError.message}` : null,
   ].filter((error): error is string => Boolean(error));
 
   const quickStats = [
@@ -173,6 +179,13 @@ export default async function AdminPage() {
       detail: "Deposit and withdraw request review.",
       stat: `${pendingWalletRequestCount ?? 0}`,
     },
+    {
+  title: "Support Chat",
+  href: "/admin/support",
+  label: "Open",
+  detail: "Read player messages and reply from admin support inbox.",
+  stat: `${openSupportCount ?? 0}`,
+},
     {
       title: "Agents",
       href: "/admin/agents",

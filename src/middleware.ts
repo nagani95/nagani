@@ -7,7 +7,7 @@ const PLAYER_HOSTS = ["naganishweohh.com", "www.naganishweohh.com"];
 const ADMIN_HOST = "admin.naganishweohh.com";
 const AGENT_HOST = "agent.naganishweohh.com";
 
-const PROTECTED_PLAYER_ROUTES = ["/profile", "/cashier", "/six-animal"];
+const PROTECTED_PLAYER_ROUTES = ["/profile", "/cashier", "/six-animal", "/support"];
 
 function isProtectedPlayerRoute(pathname: string) {
   return PROTECTED_PLAYER_ROUTES.some(
