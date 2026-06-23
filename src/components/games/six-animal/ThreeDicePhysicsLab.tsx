@@ -1736,7 +1736,8 @@ setShadowSequenceStatus("idle");
 targetAnimal={
   shadowSmokeResult ||
   targetCorrectionTestEnabled ||
-  targetLaunchRecipeEnabled
+  targetLaunchRecipeEnabled ||
+  (trajectoryRecorderEnabled && !selectedTrajectoryPreview)
     ? activeTargetAnimal
     : null
 }

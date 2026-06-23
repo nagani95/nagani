@@ -4006,5 +4006,6 @@
       "Shape preset: more-round",
       "Collider preset: softer"
     ]
-  }
+  },
+  "loadPath": "/assets/nagani/six-animal/dice/trajectories/dragon/dragon-v1-d1-001.json"
 }

@@ -3628,5 +3628,6 @@
       "Shape preset: more-round",
       "Collider preset: softer"
     ]
-  }
+  },
+  "loadPath": "/assets/nagani/six-animal/dice/trajectories/fish/fish-v1-d3-001.json"
 }

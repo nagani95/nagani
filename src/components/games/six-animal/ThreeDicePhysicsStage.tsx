@@ -337,20 +337,20 @@ const DEV_TRAP_RELEASE_HINGE_Z_OFFSET = 0.41;
 const DEV_TRAP_RELEASE_CLOSED_ANGLE = 0.56;
 const DEV_TRAP_RELEASE_OPEN_ANGLE = 1.12;
 
-const DEV_ROLL_DICE_RESTITUTION = 0.5;
-const DEV_ROLL_DICE_FRICTION = 0.36;
-const DEV_ROLL_DICE_LINEAR_DAMPING = 0.006;
-const DEV_ROLL_DICE_ANGULAR_DAMPING = 0.008;
+const DEV_ROLL_DICE_RESTITUTION = 0.34;
+const DEV_ROLL_DICE_FRICTION = 0.52;
+const DEV_ROLL_DICE_LINEAR_DAMPING = 0.032;
+const DEV_ROLL_DICE_ANGULAR_DAMPING = 0.07;
 
 const DEV_RUNWAY_UPPER_RESTITUTION = 0.28;
 const DEV_RUNWAY_UPPER_FRICTION = 0.3;
 const DEV_RUNWAY_SETTLING_RESTITUTION = 0.14;
 const DEV_RUNWAY_SETTLING_FRICTION = 0.4;
 
-const DEV_DEFLECTOR_RESTITUTION = 0.78;
-const DEV_DEFLECTOR_FRICTION = 0.18;
-const DEV_DEFLECTOR_SHOULDER_RESTITUTION = 0.7;
-const DEV_DEFLECTOR_SHOULDER_FRICTION = 0.22;
+const DEV_DEFLECTOR_RESTITUTION = 0.5;
+const DEV_DEFLECTOR_FRICTION = 0.38;
+const DEV_DEFLECTOR_SHOULDER_RESTITUTION = 0.44;
+const DEV_DEFLECTOR_SHOULDER_FRICTION = 0.42;
 
 function softenVisibleDiceBody(body: RapierRigidBody) {
   const linvel = body.linvel();
@@ -621,88 +621,116 @@ type RecorderReleasePattern = {
 
 const RECORDER_RELEASE_PATTERNS: RecorderReleasePattern[] = [
   {
-    // A — natural forward tumble
-    position: { x: 0, y: 0, z: 0 },
-    rotation: { x: 0.08, y: 0.12, z: -0.06 },
-    linvel: { x: 0.02, y: -0.04, z: 0.22 },
-    angvel: { x: 3.75, y: 0.85, z: 1.65 },
+    // A — soft forward roll
+    position: { x: -0.035, y: 0.004, z: 0.015 },
+    rotation: { x: 0.18, y: 0.32, z: -0.11 },
+    linvel: { x: 0.035, y: -0.045, z: 0.18 },
+    angvel: { x: 2.15, y: 0.82, z: 1.18 },
   },
   {
-    // B — opposite forward tumble
-    position: { x: 0, y: 0, z: 0.02 },
-    rotation: { x: -0.1, y: -0.16, z: 0.08 },
-    linvel: { x: -0.02, y: -0.04, z: 0.24 },
-    angvel: { x: -3.75, y: -0.85, z: -1.65 },
+    // B — reverse soft forward roll
+    position: { x: 0.035, y: 0.004, z: 0.018 },
+    rotation: { x: -0.18, y: -0.32, z: 0.11 },
+    linvel: { x: -0.035, y: -0.045, z: 0.18 },
+    angvel: { x: -2.15, y: -0.82, z: -1.18 },
   },
   {
-    // C — side tumble left
-    position: { x: -0.12, y: 0.01, z: -0.03 },
-    rotation: { x: 0.18, y: 0.62, z: -0.24 },
-    linvel: { x: -0.18, y: -0.05, z: 0.18 },
-    angvel: { x: 1.45, y: 3.35, z: 1.25 },
+    // C — low left shoulder tumble
+    position: { x: -0.105, y: 0.006, z: -0.018 },
+    rotation: { x: 0.42, y: 0.58, z: -0.22 },
+    linvel: { x: -0.095, y: -0.052, z: 0.16 },
+    angvel: { x: 1.36, y: 2.22, z: 0.88 },
   },
   {
-    // D — side tumble right
-    position: { x: 0.12, y: 0.01, z: -0.03 },
-    rotation: { x: -0.18, y: -0.62, z: 0.24 },
-    linvel: { x: 0.18, y: -0.05, z: 0.18 },
-    angvel: { x: -1.45, y: -3.35, z: -1.25 },
+    // D — low right shoulder tumble
+    position: { x: 0.105, y: 0.006, z: -0.018 },
+    rotation: { x: -0.42, y: -0.58, z: 0.22 },
+    linvel: { x: 0.095, y: -0.052, z: 0.16 },
+    angvel: { x: -1.36, y: -2.22, z: -0.88 },
   },
   {
-    // E — crab/elephant front-back flip
-    position: { x: 0.05, y: 0.02, z: 0.05 },
-    rotation: { x: 0.28, y: 0.18, z: 0.74 },
-    linvel: { x: 0.08, y: -0.02, z: 0.28 },
-    angvel: { x: 1.05, y: 0.9, z: 3.85 },
+    // E — gentle Z roll
+    position: { x: 0.055, y: 0.014, z: 0.032 },
+    rotation: { x: 0.2, y: -0.08, z: 0.72 },
+    linvel: { x: 0.055, y: -0.035, z: 0.2 },
+    angvel: { x: 0.76, y: 0.55, z: 2.28 },
   },
   {
-    // F — reverse front-back flip
-    position: { x: -0.05, y: 0.02, z: 0.05 },
-    rotation: { x: -0.28, y: -0.18, z: -0.74 },
-    linvel: { x: -0.08, y: -0.02, z: 0.28 },
-    angvel: { x: -1.05, y: -0.9, z: -3.85 },
+    // F — reverse gentle Z roll
+    position: { x: -0.055, y: 0.014, z: 0.032 },
+    rotation: { x: -0.2, y: 0.08, z: -0.72 },
+    linvel: { x: -0.055, y: -0.035, z: 0.2 },
+    angvel: { x: -0.76, y: -0.55, z: -2.28 },
   },
   {
-    // G — high soft pop
-    position: { x: 0.04, y: 0.045, z: -0.08 },
-    rotation: { x: 0.44, y: -0.36, z: 0.28 },
-    linvel: { x: 0.1, y: 0.04, z: 0.12 },
-    angvel: { x: 2.35, y: -2.45, z: 2.1 },
+    // G — diagonal carpet kiss
+    position: { x: -0.135, y: 0.01, z: 0.038 },
+    rotation: { x: 0.36, y: 0.66, z: 0.18 },
+    linvel: { x: 0.115, y: -0.048, z: 0.22 },
+    angvel: { x: 1.55, y: 1.72, z: 1.28 },
   },
   {
-    // H — opposite high soft pop
-    position: { x: -0.04, y: 0.045, z: -0.08 },
-    rotation: { x: -0.44, y: 0.36, z: -0.28 },
-    linvel: { x: -0.1, y: 0.04, z: 0.12 },
-    angvel: { x: -2.35, y: 2.45, z: -2.1 },
+    // H — opposite diagonal carpet kiss
+    position: { x: 0.135, y: 0.01, z: 0.038 },
+    rotation: { x: -0.36, y: -0.66, z: -0.18 },
+    linvel: { x: -0.115, y: -0.048, z: 0.22 },
+    angvel: { x: -1.55, y: -1.72, z: -1.28 },
   },
   {
-    // I — diagonal deflector kiss
-    position: { x: -0.16, y: 0.015, z: 0.03 },
-    rotation: { x: 0.34, y: 0.74, z: 0.18 },
-    linvel: { x: 0.2, y: -0.04, z: 0.3 },
-    angvel: { x: 2.55, y: 2.65, z: 2.35 },
+    // I — short twist left
+    position: { x: 0.072, y: -0.006, z: 0.062 },
+    rotation: { x: 0.1, y: 0.82, z: -0.36 },
+    linvel: { x: 0.082, y: -0.06, z: 0.15 },
+    angvel: { x: 0.64, y: 2.42, z: -1.22 },
   },
   {
-    // J — opposite diagonal deflector kiss
-    position: { x: 0.16, y: 0.015, z: 0.03 },
-    rotation: { x: -0.34, y: -0.74, z: -0.18 },
-    linvel: { x: -0.2, y: -0.04, z: 0.3 },
-    angvel: { x: -2.55, y: -2.65, z: -2.35 },
+    // J — short twist right
+    position: { x: -0.072, y: -0.006, z: 0.062 },
+    rotation: { x: -0.1, y: -0.82, z: 0.36 },
+    linvel: { x: -0.082, y: -0.06, z: 0.15 },
+    angvel: { x: -0.64, y: -2.42, z: 1.22 },
   },
   {
-    // K — low rolling twist
-    position: { x: 0.07, y: -0.02, z: 0.08 },
-    rotation: { x: 0.16, y: 0.88, z: -0.38 },
-    linvel: { x: 0.14, y: -0.08, z: 0.2 },
-    angvel: { x: 0.95, y: 3.8, z: -2.6 },
+    // K — soft low pop, not high bounce
+    position: { x: 0.028, y: 0.026, z: -0.048 },
+    rotation: { x: 0.52, y: -0.28, z: 0.24 },
+    linvel: { x: 0.06, y: 0.006, z: 0.12 },
+    angvel: { x: 1.48, y: -1.18, z: 1.15 },
   },
   {
-    // L — opposite low rolling twist
-    position: { x: -0.07, y: -0.02, z: 0.08 },
-    rotation: { x: -0.16, y: -0.88, z: 0.38 },
-    linvel: { x: -0.14, y: -0.08, z: 0.2 },
-    angvel: { x: -0.95, y: -3.8, z: 2.6 },
+    // L — reverse soft low pop
+    position: { x: -0.028, y: 0.026, z: -0.048 },
+    rotation: { x: -0.52, y: 0.28, z: -0.24 },
+    linvel: { x: -0.06, y: 0.006, z: 0.12 },
+    angvel: { x: -1.48, y: 1.18, z: -1.15 },
+  },
+  {
+    // M — tiger/fish side catch attempt
+    position: { x: -0.085, y: 0.018, z: 0.006 },
+    rotation: { x: 0.74, y: -0.18, z: 0.48 },
+    linvel: { x: 0.075, y: -0.038, z: 0.19 },
+    angvel: { x: 2.05, y: -0.65, z: 1.62 },
+  },
+  {
+    // N — reverse tiger/fish side catch attempt
+    position: { x: 0.085, y: 0.018, z: 0.006 },
+    rotation: { x: -0.74, y: 0.18, z: -0.48 },
+    linvel: { x: -0.075, y: -0.038, z: 0.19 },
+    angvel: { x: -2.05, y: 0.65, z: -1.62 },
+  },
+  {
+    // O — crab D3 low settling path
+    position: { x: 0.118, y: 0.008, z: -0.034 },
+    rotation: { x: -0.32, y: 0.48, z: 0.64 },
+    linvel: { x: -0.04, y: -0.05, z: 0.17 },
+    angvel: { x: -0.92, y: 1.72, z: 1.92 },
+  },
+  {
+    // P — reverse crab D3 low settling path
+    position: { x: -0.118, y: 0.008, z: -0.034 },
+    rotation: { x: 0.32, y: -0.48, z: -0.64 },
+    linvel: { x: 0.04, y: -0.05, z: 0.17 },
+    angvel: { x: 0.92, y: -1.72, z: -1.92 },
   },
 ];
 
@@ -771,18 +799,29 @@ const table = createTableMeasurements();
 
 const hasShadowLaunchRecipe = Boolean(shadowLaunchRecipe);
 
+const recorderTargetSeed = targetAnimal ? getTargetLaunchSeed(targetAnimal) : 0;
+
+const recorderTargetLaunchRecipeEnabled = false;
+
 const recorderReleaseSeed =
-  trajectoryRecorderRunNonce + resetKey * 101 + activeDieIndex * 1009;
+  trajectoryRecorderRunNonce +
+  resetKey * 101 +
+  activeDieIndex * 1009 +
+  recorderTargetSeed * 409;
 
 const recorderReleaseJitterEnabled =
   trajectoryRecorderEnabled &&
   devPhysicalReleaseEnabled &&
   testMode === "trap" &&
   !targetLaunchRecipeEnabled &&
+  !recorderTargetLaunchRecipeEnabled &&
   !hasShadowLaunchRecipe;
 
 const recorderReleasePatternIndex = recorderReleaseJitterEnabled
-  ? trajectoryRecorderRunNonce + activeDieIndex * 5 + resetKey * 2
+  ? trajectoryRecorderRunNonce * 7 +
+    resetKey * 11 +
+    activeDieIndex * 17 +
+    recorderTargetSeed * 23
   : 0;
 
 const recorderReleasePattern = getRecorderReleasePattern(
@@ -849,6 +888,7 @@ const useKinematicTrapRelease =
   devPhysicalReleaseEnabled &&
   testMode === "trap" &&
   !targetLaunchRecipeEnabled &&
+  !recorderTargetLaunchRecipeEnabled &&
   !hasShadowLaunchRecipe;
 
 const v1TrapReleaseBasePosition = getDevTrapReleaseDicePosition({
@@ -910,7 +950,7 @@ const defaultTrapLaunchAngvel = getDefaultTrapLaunchAngvel({
 });
 
 const targetLaunchRecipe = createTargetAwareLaunchRecipe({
-  enabled: targetLaunchRecipeEnabled,
+  enabled: targetLaunchRecipeEnabled || recorderTargetLaunchRecipeEnabled,
   targetAnimal,
   activeDieIndex,
   resetKey,
@@ -1000,6 +1040,7 @@ body.setAngvel(targetLaunchRecipe.angvel, true);
   targetLaunchRecipe.angvel.y,
   targetLaunchRecipe.angvel.z,
   useKinematicTrapRelease,
+  recorderTargetLaunchRecipeEnabled,
   trajectoryRecorderRunNonce,
 recorderInitialLinvel.x,
 recorderInitialLinvel.y,
@@ -1199,7 +1240,8 @@ onFaceResultChange({
   return;
 }
 
-const shouldUseSoftTargetPerformance = targetPerformanceEnabled;
+const shouldUseSoftTargetPerformance =
+  targetPerformanceEnabled && !trajectoryRecorderEnabled;
 
 if (shouldUseSoftTargetPerformance) {
   applySoftTargetPerformance({
@@ -1212,7 +1254,10 @@ if (shouldUseSoftTargetPerformance) {
 
 const shouldRequireTargetMatch =
   Boolean(targetAnimal) &&
-  (targetPerformanceEnabled || targetLaunchRecipeEnabled || hasShadowLaunchRecipe);
+  (targetPerformanceEnabled ||
+    targetLaunchRecipeEnabled ||
+    recorderTargetLaunchRecipeEnabled ||
+    hasShadowLaunchRecipe);
 
 const visibleFaceMatchesTarget =
   !shouldRequireTargetMatch || visibleResult.label === targetAnimal;
@@ -1414,7 +1459,9 @@ message: createTargetAwareCaptureMessage({
   });
 
 const useV1LiveReleaseMaterial =
-  useKinematicTrapRelease || hasShadowLaunchRecipe;
+  useKinematicTrapRelease ||
+  recorderTargetLaunchRecipeEnabled ||
+  hasShadowLaunchRecipe;
 
   return (
     <RigidBody

@@ -134,13 +134,55 @@ if (missingSlots.length > 0) {
   );
 }
 
+const wrongAnimalCounts = ANIMALS.filter((animal) => counts[animal] !== 9);
+
+if (wrongAnimalCounts.length > 0) {
+  throw new Error(
+    [
+      "Wrong per-animal trajectory counts:",
+      ...wrongAnimalCounts.map(
+        (animal) => `- ${animal}: expected 9, found ${counts[animal]}`
+      ),
+    ].join("\n")
+  );
+}
+
+const wrongDieSlotCounts = [];
+
+for (const animal of ANIMALS) {
+  for (let dieIndex = 0; dieIndex < 3; dieIndex += 1) {
+    const slotCount = entries.filter(
+      (entry) => entry.animal === animal && entry.dieIndex === dieIndex
+    ).length;
+
+    if (slotCount !== 3) {
+      wrongDieSlotCounts.push(
+        `${animal} D${dieIndex + 1}: expected 3, found ${slotCount}`
+      );
+    }
+  }
+}
+
+if (wrongDieSlotCounts.length > 0) {
+  throw new Error(
+    [
+      "Wrong per-die slot trajectory counts:",
+      ...wrongDieSlotCounts.map((slot) => `- ${slot}`),
+    ].join("\n")
+  );
+}
+
+if (entries.length !== 54) {
+  throw new Error(`Expected 54 total trajectory files, found ${entries.length}`);
+}
+
 const manifest = {
   schema: "nagani.sixAnimal.diceTrajectoryManifest.v1",
   version: 1,
   generatedAt: new Date().toISOString(),
   totalFiles: entries.length,
   counts,
-  targetPerAnimal: 10,
+  targetPerAnimal: 9,
   entries: entries.sort(sortEntries),
 };
 

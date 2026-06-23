@@ -30,6 +30,7 @@ const RECORDED_TRAJECTORY_VISUAL_SMOOTHING = 28;
 
 export type RecordedReadableCapture = {
   t: number;
+  frame: DiceTrajectoryFrame;
   result: DiceFaceResult;
 };
 
@@ -344,21 +345,23 @@ export function getRecordedTrajectoryReadableCapture(
         stableSeconds = 0;
       }
 
-      bestReadable = {
-        t: currentFrame.t,
-        result,
-      };
+bestReadable = {
+  t: currentFrame.t,
+  frame: currentFrame,
+  result,
+};
 
       if (stableSeconds >= 0.28) {
-        return {
-          t: currentFrame.t,
-          result: {
-            ...result,
-            message: `Recorded trajectory face readable at ${currentFrame.t.toFixed(
-              1
-            )}s.`,
-          },
-        };
+return {
+  t: currentFrame.t,
+  frame: currentFrame,
+  result: {
+    ...result,
+    message: `Recorded trajectory face readable at ${currentFrame.t.toFixed(
+      1
+    )}s.`,
+  },
+};
       }
     } else {
       stableFaceKey = null;
@@ -366,17 +369,18 @@ export function getRecordedTrajectoryReadableCapture(
     }
   }
 
-  return bestReadable
-    ? {
-        t: bestReadable.t,
-        result: {
-          ...bestReadable.result,
-          message: `Recorded trajectory face readable near ${bestReadable.t.toFixed(
-            1
-          )}s.`,
-        },
-      }
-    : null;
+return bestReadable
+  ? {
+      t: bestReadable.t,
+      frame: bestReadable.frame,
+      result: {
+        ...bestReadable.result,
+        message: `Recorded trajectory face readable near ${bestReadable.t.toFixed(
+          1
+        )}s.`,
+      },
+    }
+  : null;
 }
 
 export function RecordedTrajectoryDice({
@@ -405,6 +409,7 @@ export function RecordedTrajectoryDice({
   const finalCapturedRef = useRef(false);
   const readableCapturedRef = useRef(false);
   const readableCaptureRef = useRef<RecordedReadableCapture | null>(null);
+  const stableHoldFrameRef = useRef<DiceTrajectoryFrame | null>(null);
 
   const table = createTableMeasurements();
   const firstFrame = frames[0] ?? null;
@@ -488,7 +493,11 @@ export function RecordedTrajectoryDice({
     replayStartedAtRef.current = performance.now();
     finalCapturedRef.current = false;
     readableCapturedRef.current = false;
-    readableCaptureRef.current = getRecordedTrajectoryReadableCapture(frames);
+    const readableCapture = getRecordedTrajectoryReadableCapture(frames);
+
+readableCaptureRef.current = readableCapture;
+stableHoldFrameRef.current =
+  readableCapture?.frame ?? frames[frames.length - 1] ?? null;
 
     if (firstFrame) {
       copyHolderReleaseIntroToGroup(0);
@@ -506,6 +515,32 @@ export function RecordedTrajectoryDice({
 
     if (!lastFrame) return;
 
+    const stableHoldFrame = stableHoldFrameRef.current ?? lastFrame;
+
+function copyStableResultHoldPose() {
+  const liveGroup = groupRef.current;
+  if (!liveGroup) return;
+
+  const stableHoldQuaternion = new Quaternion(
+    stableHoldFrame.rotation[0],
+    stableHoldFrame.rotation[1],
+    stableHoldFrame.rotation[2],
+    stableHoldFrame.rotation[3]
+  ).normalize();
+
+  liveGroup.position.set(
+    lastFrame.position[0],
+    lastFrame.position[1],
+    lastFrame.position[2]
+  );
+
+  liveGroup.quaternion.copy(stableHoldQuaternion);
+
+  smoothedPositionRef.current.copy(liveGroup.position);
+  targetPositionRef.current.copy(liveGroup.position);
+  smoothedQuaternionRef.current.copy(liveGroup.quaternion).normalize();
+  targetQuaternionRef.current.copy(liveGroup.quaternion).normalize();
+}
     const replayElapsedSeconds =
       (performance.now() - replayStartedAtRef.current) / 1000;
 
@@ -576,25 +611,27 @@ export function RecordedTrajectoryDice({
       onFaceResultChange(readableCapture.result);
     }
 
-    if (trajectorySeconds >= lastFrame.t && !finalCapturedRef.current) {
-      finalCapturedRef.current = true;
+if (trajectorySeconds >= lastFrame.t && !finalCapturedRef.current) {
+  finalCapturedRef.current = true;
 
-      const finalResult = detectTopDiceFace({
-        x: lastFrame.rotation[0],
-        y: lastFrame.rotation[1],
-        z: lastFrame.rotation[2],
-        w: lastFrame.rotation[3],
-      });
+  const finalResult =
+    readableCaptureRef.current?.result ??
+    detectTopDiceFace({
+      x: stableHoldFrame.rotation[0],
+      y: stableHoldFrame.rotation[1],
+      z: stableHoldFrame.rotation[2],
+      w: stableHoldFrame.rotation[3],
+    });
 
-      onSettledChange(true);
+  onSettledChange(true);
 
-      if (!readableCapturedRef.current) {
-        onFaceResultChange({
-          ...finalResult,
-          message: `Recorded trajectory replay complete. ${finalResult.message}`,
-        });
-      }
-    }
+  if (!readableCapturedRef.current) {
+    onFaceResultChange({
+      ...finalResult,
+      message: `Recorded trajectory replay complete. ${finalResult.message}`,
+    });
+  }
+}
   });
 
   if (frames.length === 0 || !firstFrame) return null;
@@ -628,12 +665,12 @@ export function StaticRecordedTrajectoryDice({
 
   if (!finalFrame) return null;
 
-  const finalQuaternion = new Quaternion(
-    finalFrame.rotation[0],
-    finalFrame.rotation[1],
-    finalFrame.rotation[2],
-    finalFrame.rotation[3]
-  ).normalize();
+const finalQuaternion = new Quaternion(
+  finalFrame.rotation[0],
+  finalFrame.rotation[1],
+  finalFrame.rotation[2],
+  finalFrame.rotation[3]
+).normalize();
 
   const finalEuler = new Euler().setFromQuaternion(finalQuaternion, "XYZ");
 

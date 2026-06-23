@@ -2,8 +2,8 @@
   "schema": "nagani.sixAnimal.diceTrajectory.v1",
   "version": 1,
   "trajectoryId": "elephant-v1-d2-003",
-  "fileName": "elephant-v1-d2-003.json",
-  "publicTargetPath": "public/assets/nagani/six-animal/dice/trajectories/elephant/elephant-v1-d2-003.json",
+  "fileName": "elephant-v1-d2-001.json",
+  "publicTargetPath": "public/assets/nagani/six-animal/dice/trajectories/elephant/elephant-v1-d2-001.json",
   "animal": "Elephant",
   "dieIndex": 1,
   "dieNumber": 2,
@@ -3960,5 +3960,6 @@
       "Shape preset: more-round",
       "Collider preset: softer"
     ]
-  }
+  },
+  "loadPath": "/assets/nagani/six-animal/dice/trajectories/elephant/elephant-v1-d2-001.json"
 }
