@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   NaganiBottomNav,
   NaganiPageShell,
+  NaganiPromoPopup,
   NaganiVideoBackground,
 } from "@/components/nagani-v2";
 import NaganiHomeTopControls from "@/components/nagani-v2/NaganiHomeTopControls";
@@ -35,6 +36,7 @@ export default async function HomePage() {
 
   let walletBalance = 0;
   let memberCode: string | null = null;
+  let promoSeenAt: string | null = null;
 
   if (user) {
     const { data: wallet } = await supabase
@@ -45,12 +47,16 @@ export default async function HomePage() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("member_code")
+      .select("member_code,promo_welcome_recharge_seen_at")
       .eq("id", user.id)
-      .maybeSingle<{ member_code: string | null }>();
+      .maybeSingle<{
+        member_code: string | null;
+        promo_welcome_recharge_seen_at: string | null;
+      }>();
 
     walletBalance = toSafeBalance(wallet?.balance);
     memberCode = profile?.member_code ?? null;
+    promoSeenAt = profile?.promo_welcome_recharge_seen_at ?? null;
   }
 
   const canEnterSixAnimal =
@@ -70,6 +76,25 @@ export default async function HomePage() {
       ? "ကစားပွဲသို့"
       : "ငွေဖြည့်ရန်";
 
+        async function markPromoSeen() {
+    "use server";
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    await supabase
+      .from("profiles")
+      .update({
+        promo_welcome_recharge_seen_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+  }
+
   return (
     <NaganiLobbyBootGate>
       <NaganiPageShell
@@ -79,6 +104,12 @@ export default async function HomePage() {
       >
         <NaganiLobbyBgm />
         <NaganiHomeWelcomeAnnouncement />
+
+        <NaganiPromoPopup
+          isLoggedIn={Boolean(user)}
+          showForLoggedInUser={Boolean(user) && !promoSeenAt}
+          markSeenAction={markPromoSeen}
+        />
 
         <section className="relative h-[100svh] overflow-hidden">
           <div className="absolute left-[1.4%] top-[2.7%] z-30 h-[7.25rem] w-[7.35rem]">

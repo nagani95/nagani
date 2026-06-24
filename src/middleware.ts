@@ -37,6 +37,15 @@ function isAgentRoute(pathname: string) {
   return pathname === "/agent" || pathname.startsWith("/agent/");
 }
 
+function isPlayerSurfaceRoute(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    isProtectedPlayerRoute(pathname)
+  );
+}
+
 function redirectToHost(
   request: NextRequest,
   host: string,
@@ -135,6 +144,25 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (
+    user &&
+    PLAYER_HOSTS.includes(host) &&
+    isPlayerSurfaceRoute(pathname)
+  ) {
+    const { data: isAdmin } = await supabase.rpc("is_nagani_admin");
+
+    if (isAdmin === true) {
+      return redirectToHost(request, ADMIN_HOST, "/admin");
+    }
+
+    const { data: agentRows } = await supabase.rpc("get_my_agent_dashboard_v2");
+    const agent = Array.isArray(agentRows) ? agentRows[0] : null;
+
+    if (agent?.agent_status === "active") {
+      return redirectToHost(request, AGENT_HOST, "/agent");
+    }
+  }
 
   if (isProtectedPlayerRoute(pathname) && !user) {
     const redirectUrl = request.nextUrl.clone();
