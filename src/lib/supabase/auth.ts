@@ -52,19 +52,6 @@ function redirectWithAgentLoginError(message: string): never {
   redirect(`/agent/login?error=${encodeURIComponent(message)}`);
 }
 
-export async function signInAnonymously() {
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signInAnonymously();
-
-  if (error) {
-    console.error("Error signing in anonymously:", error.message);
-    throw new Error(error.message);
-  }
-
-  redirect("/six-animal");
-}
-
 export async function registerWithEmail(formData: FormData) {
 const email = normalizePlayerAuthEmail(getFormString(formData, "email"));
 const referralCode = getFormString(formData, "referralCode").toUpperCase();
@@ -127,11 +114,10 @@ if (profileError) {
 
 if (referralCode) {
   const { error: referralError } = await supabase.rpc(
-    "assign_player_to_agent",
+    "assign_my_referral_by_code",
     {
-      p_player_id: userId,
-      p_referral_code: referralCode,
-    }
+      p_agent_code: referralCode,
+    },
   );
 
   if (referralError) {
