@@ -13,12 +13,17 @@ import { loginWithEmail } from "@/lib/supabase/auth";
 type LoginPageProps = {
   searchParams?: Promise<{
     error?: string;
+    ref?: string;
   }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const errorMessage = params?.error;
+  const referralCode = params?.ref?.trim().toUpperCase() ?? "";
+  const registerHref = referralCode
+    ? `/register?ref=${encodeURIComponent(referralCode)}`
+    : "/register";
 
   return (
     <NaganiPageShell contentClassName="relative z-10 min-h-[100svh]">
@@ -94,7 +99,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 </Link>
 
                 <Link
-                  href="/register"
+                  href={registerHref}
                   className="text-[#ffd77a] active:text-[#fff3d0]"
                 >
                   အကောင့်အသစ်ဖွင့်မည်

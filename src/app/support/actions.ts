@@ -22,6 +22,10 @@ export async function sendPlayerSupportMessageAction(formData: FormData) {
     redirect("/support?error=empty");
   }
 
+    if (message.length > 1000) {
+    redirect("/support?error=too-long");
+  }
+
   const supabase = await createClient();
 
   const {

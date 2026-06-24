@@ -170,6 +170,7 @@ export default function SupportRealtimeChat({
           <textarea
             name="message"
             required
+            maxLength={1000}
             rows={3}
             placeholder="မက်ဆေ့ချ်ရေးပါ..."
             className="w-full resize-none rounded-3xl border border-[#c8a45d]/25 bg-[#2a120c] px-4 py-3 text-sm text-[#fff4cf] outline-none placeholder:text-[#9f875f] focus:border-[#e7c36f]"

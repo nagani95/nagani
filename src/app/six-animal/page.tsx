@@ -1087,33 +1087,16 @@ if (fetchedPlayableWalletBalance < SIX_ANIMAL_RULES.minBet) {
       if (activeRound) {
         await applyLiveRound(activeRound as LiveSixAnimalRound);
       } else {
+        console.error(
+          "[SixAnimal] no active round found; waiting for backend room recovery"
+        );
 
-  const { error } = await supabase.rpc("rotate_six_animal_round", {
-    p_room_id: SIX_ANIMAL_ROOM_UUID,
-  });
+        setPhase("loading");
+        phaseRef.current = "loading";
+        setShowRoomIntro(true);
 
-  if (error) {
-    console.error("[SixAnimal] recovery rotation error:", error);
-    return;
-  }
-
-  const { data: recoveredRound, error: recoveredRoundError } = await supabase
-    .from("six_animal_rounds")
-    .select("*")
-    .eq("room_id", SIX_ANIMAL_ROOM_UUID)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (recoveredRoundError) {
-    console.error("[SixAnimal] recovered round fetch error:", recoveredRoundError);
-  }
-
-  if (recoveredRound) {
-    await applyLiveRound(recoveredRound as LiveSixAnimalRound);
-  }
-}
+        return;
+      }
     };
     
     fetchInitialRoomData();
