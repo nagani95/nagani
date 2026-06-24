@@ -44,9 +44,9 @@ async function assertNoDuplicateAgentIdentity(params: {
     throw new Error(codeError.message);
   }
 
-  if (codeMatch) {
-    throw new Error("Agent code already exists");
-  }
+if (codeMatch) {
+  throw new Error(`Agent code already exists: ${params.agentCode}`);
+}
 
   if (params.cleanPhone) {
     const { data: phoneMatch, error: phoneError } = await supabaseAdmin

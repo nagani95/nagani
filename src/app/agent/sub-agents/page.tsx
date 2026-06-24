@@ -285,9 +285,17 @@ export default async function AgentSubAgentsPage({
           </div>
 
           <form action={createSubAgentAction} className="mt-5 space-y-4">
-            <Field label="Agent code">
-              <TextInput name="agent_code" placeholder="agentb001" />
-            </Field>
+<Field label="Agent code">
+  <input
+    name="agent_code"
+    required
+    autoCapitalize="characters"
+    autoComplete="off"
+    spellCheck={false}
+    placeholder="AGENTB001"
+    className="w-full rounded-2xl border border-amber-300/18 bg-black/35 px-4 py-3 text-base font-black uppercase tracking-[0.08em] text-amber-50 outline-none placeholder:text-amber-100/28 focus:border-amber-300/55"
+  />
+</Field>
 
             <Field label="အမည်">
               <TextInput name="display_name" placeholder="ဥပမာ - Agent B" />

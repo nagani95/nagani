@@ -582,12 +582,15 @@ export default async function AdminAgentsPage({
               <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
                 Agent Code
               </span>
-              <input
-                name="agent_code"
-                required
-                placeholder="agent001"
-                className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
-              />
+<input
+  name="agent_code"
+  required
+  autoCapitalize="characters"
+  autoComplete="off"
+  spellCheck={false}
+  placeholder="AGENT001"
+  className="mt-2 w-full rounded-xl border border-amber-300/15 bg-black/35 px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
+/>
             </label>
 
             <label>
@@ -792,8 +795,8 @@ export default async function AdminAgentsPage({
                   </tr>
                 ) : null}
 
-                {visibleAgents.map((agent) => (
-                  <>
+{visibleAgents.map((agent) => (
+  <tbody key={agent.id}>
                     <tr
                       key={agent.id}
                       tabIndex={0}
@@ -850,8 +853,8 @@ export default async function AdminAgentsPage({
                         <AgentControls agent={agent} />
                       </td>
                     </tr>
-                  </>
-                ))}
+  </tbody>
+))}
               </tbody>
             </table>
           </div>
