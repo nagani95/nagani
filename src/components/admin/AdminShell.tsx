@@ -1,4 +1,4 @@
-//src/components/admin/AdminShell.tsx
+// src/components/admin/AdminShell.tsx
 
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -35,11 +35,11 @@ export default function AdminShell({
   action,
 }: AdminShellProps) {
   return (
-    <main className="min-h-screen bg-[#070101] text-white">
-      <div className="sticky top-0 z-40 border-b border-amber-300/10 bg-[#100303]/95 backdrop-blur-xl">
-        <section className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+    <main className="min-h-screen overflow-x-hidden bg-[#070101] text-white">
+      <div className="sticky top-0 z-40 border-b border-amber-300/10 bg-[#100303]/96 shadow-2xl shadow-black/45 backdrop-blur-xl">
+        <section className="w-full px-4 py-4 sm:px-6 lg:px-8 2xl:px-10">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-[0.3em] text-amber-200/45">
                 {eyebrow}
               </p>
@@ -49,13 +49,13 @@ export default function AdminShell({
               </h1>
 
               {description ? (
-                <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-amber-100/45">
+                <p className="mt-1 max-w-5xl text-sm font-semibold leading-6 text-amber-100/45">
                   {description}
                 </p>
               ) : null}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               {action}
 
               <Link
@@ -76,7 +76,7 @@ export default function AdminShell({
             </div>
           </div>
 
-          <nav className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          <nav className="mt-4 flex w-full gap-2 overflow-x-auto pb-2 xl:flex-wrap xl:overflow-visible">
             {adminNavItems.map((item) => (
               <Link
                 key={item.href}
@@ -90,7 +90,7 @@ export default function AdminShell({
         </section>
       </div>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
+      <section className="w-full px-4 py-5 sm:px-6 lg:px-8 2xl:px-10">
         {children}
       </section>
     </main>

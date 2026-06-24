@@ -7,6 +7,14 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 25;
+
+type AdminUsersPageProps = {
+  searchParams?: Promise<{
+    page?: string;
+  }>;
+};
+
 type ProfileRow = {
   id: string;
   username: string | null;
@@ -15,28 +23,31 @@ type ProfileRow = {
 };
 
 type WalletRow = {
+  id: string;
   profile_id: string;
   balance: number | string;
+  bonus_balance: number | string | null;
   updated_at: string | null;
 };
 
-type AgentJoin = {
-  agent_code: string;
-  display_name: string;
-  status: "active" | "paused" | "disabled";
+type WalletTransactionRow = {
+  wallet_id: string;
+  transaction_type: string | null;
+  amount: number | string;
+  description: string | null;
 };
 
-type ActiveReferralRow = {
-  player_id: string;
-  agent_code_snapshot: string;
-  status: "active" | "removed";
-  agent_profiles: AgentJoin | AgentJoin[] | null;
+type BetRow = {
+  profile_id: string;
+  amount: number | string;
+  cash_amount: number | string | null;
+  bonus_amount: number | string | null;
+  settled: boolean | null;
 };
 
-function formatMMK(amount: number | string | null | undefined) {
+function formatAmount(amount: number | string | null | undefined) {
   const safeAmount = Number(amount ?? 0);
-
-  return `${new Intl.NumberFormat("en-US").format(safeAmount)} MMK`;
+  return new Intl.NumberFormat("en-US").format(safeAmount);
 }
 
 function formatMemberId(profile: ProfileRow) {
@@ -55,38 +66,43 @@ function formatTime(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-function normalizeAgent(agentProfiles: ActiveReferralRow["agent_profiles"]) {
-  if (Array.isArray(agentProfiles)) {
-    return agentProfiles[0] ?? null;
-  }
-
-  return agentProfiles;
+function getSafePage(value: string | undefined) {
+  const page = Number(value ?? 1);
+  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
 }
 
-function getAgentStatusClass(status: AgentJoin["status"] | null | undefined) {
-  if (status === "active") {
-    return "border-emerald-400/20 bg-emerald-400/10 text-emerald-100";
-  }
+function isWinTransaction(transaction: WalletTransactionRow) {
+  const text = `${transaction.transaction_type ?? ""} ${
+    transaction.description ?? ""
+  }`.toLowerCase();
 
-  if (status === "paused") {
-    return "border-amber-400/20 bg-amber-400/10 text-amber-100";
-  }
-
-  if (status === "disabled") {
-    return "border-red-400/20 bg-red-400/10 text-red-100";
-  }
-
-  return "border-white/10 bg-white/[0.03] text-white/40";
+  return (
+    text.includes("win") ||
+    text.includes("payout") ||
+    text.includes("settle") ||
+    text.includes("reward")
+  );
 }
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: AdminUsersPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const page = getSafePage(resolvedSearchParams?.page);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
   const supabase = await createClient();
 
-  const { data: profiles, error: profilesError } = await supabase
+  const {
+    data: profiles,
+    error: profilesError,
+    count: profileCount,
+  } = await supabase
     .from("profiles")
-    .select("id, username, member_code, created_at")
+    .select("id, username, member_code, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
-    .limit(50)
+    .range(from, to)
     .returns<ProfileRow[]>();
 
   const profileIds = (profiles ?? []).map((profile) => profile.id);
@@ -95,73 +111,89 @@ export default async function AdminUsersPage() {
     profileIds.length > 0
       ? await supabase
           .from("wallets")
-          .select("profile_id, balance, updated_at")
+          .select("id, profile_id, balance, bonus_balance, updated_at")
           .in("profile_id", profileIds)
           .returns<WalletRow[]>()
       : { data: [], error: null };
 
-  const { data: activeReferrals, error: referralsError } =
+  const walletIds = (wallets ?? []).map((wallet) => wallet.id);
+
+  const { data: walletTransactions, error: walletTransactionsError } =
+    walletIds.length > 0
+      ? await supabase
+          .from("wallet_transactions")
+          .select("wallet_id, transaction_type, amount, description")
+          .in("wallet_id", walletIds)
+          .returns<WalletTransactionRow[]>()
+      : { data: [], error: null };
+
+  const { data: settledBets, error: settledBetsError } =
     profileIds.length > 0
       ? await supabase
-          .from("player_referrals")
-          .select(
-            `
-            player_id,
-            agent_code_snapshot,
-            status,
-            agent_profiles (
-              agent_code,
-              display_name,
-              status
-            )
-          `
-          )
-          .eq("status", "active")
-          .in("player_id", profileIds)
-          .returns<ActiveReferralRow[]>()
+          .from("six_animal_bets")
+          .select("profile_id, amount, cash_amount, bonus_amount, settled")
+          .in("profile_id", profileIds)
+          .eq("settled", true)
+          .returns<BetRow[]>()
       : { data: [], error: null };
 
   const walletByProfileId = new Map(
     (wallets ?? []).map((wallet) => [wallet.profile_id, wallet])
   );
 
-  const referralByProfileId = new Map(
-    (activeReferrals ?? []).map((referral) => [
-      referral.player_id,
-      {
-        ...referral,
-        agent: normalizeAgent(referral.agent_profiles),
-      },
-    ])
-  );
+  const winByWalletId = new Map<string, number>();
+  for (const transaction of walletTransactions ?? []) {
+    if (!isWinTransaction(transaction)) continue;
+
+    winByWalletId.set(
+      transaction.wallet_id,
+      (winByWalletId.get(transaction.wallet_id) ?? 0) +
+        Math.abs(Number(transaction.amount ?? 0))
+    );
+  }
+
+  const lossByProfileId = new Map<string, number>();
+  for (const bet of settledBets ?? []) {
+    lossByProfileId.set(
+      bet.profile_id,
+      (lossByProfileId.get(bet.profile_id) ?? 0) + Number(bet.amount ?? 0)
+    );
+  }
 
   const loadedCount = profiles?.length ?? 0;
+  const totalPlayers = profileCount ?? loadedCount;
+  const totalPages = Math.max(1, Math.ceil(totalPlayers / PAGE_SIZE));
   const walletCount = wallets?.length ?? 0;
-  const referralCount = activeReferrals?.length ?? 0;
-  const totalLoadedBalance = (wallets ?? []).reduce(
+
+  const totalCashBalance = (wallets ?? []).reduce(
     (sum, wallet) => sum + Number(wallet.balance ?? 0),
     0
   );
 
+  const totalBonusBalance = (wallets ?? []).reduce(
+    (sum, wallet) => sum + Number(wallet.bonus_balance ?? 0),
+    0
+  );
+
+  const totalLoadedBalance = totalCashBalance + totalBonusBalance;
+
   const errors = [
     profilesError ? `Profiles: ${profilesError.message}` : null,
     walletsError ? `Wallets: ${walletsError.message}` : null,
-    referralsError ? `Referrals: ${referralsError.message}` : null,
+    walletTransactionsError
+      ? `Wallet transactions: ${walletTransactionsError.message}`
+      : null,
+    settledBetsError ? `Six animal bets: ${settledBetsError.message}` : null,
   ].filter((error): error is string => Boolean(error));
+
+  const previousPage = Math.max(1, page - 1);
+  const nextPage = Math.min(totalPages, page + 1);
 
   return (
     <AdminShell
       title="Users"
       eyebrow="Member Records"
-      description="Latest registered members with wallet balance, member code, referral assignment, and safe admin navigation."
-      action={
-        <Link
-          href="/admin/referrals"
-          className="rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black text-amber-100/80 transition hover:bg-amber-300 hover:text-black"
-        >
-          Referral Assignment
-        </Link>
-      }
+      description="Latest registered players with clear wallet, bonus, win, lose, and paged admin navigation."
     >
       {errors.length > 0 ? (
         <section className="rounded-2xl border border-red-400/25 bg-red-950/25 p-4">
@@ -179,166 +211,218 @@ export default async function AdminUsersPage() {
         </section>
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-4">
+      <section className="grid gap-3 md:grid-cols-4">
+        <div className="rounded-2xl border border-amber-300/15 bg-amber-300/10 p-4 text-center">
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100/55">
-            Loaded Members
+            Players
           </p>
           <p className="mt-2 text-2xl font-black text-amber-100">
-            {loadedCount}
+            {formatAmount(totalPlayers)}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-4">
+        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-4 text-center">
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-100/55">
-            Wallets Found
+            Cash
           </p>
           <p className="mt-2 text-2xl font-black text-emerald-100">
-            {walletCount}
+            {formatAmount(totalCashBalance)}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-sky-300/15 bg-sky-400/10 p-4">
+        <div className="rounded-2xl border border-sky-300/15 bg-sky-400/10 p-4 text-center">
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-100/55">
-            Assigned Agents
+            Bonus
           </p>
           <p className="mt-2 text-2xl font-black text-sky-100">
-            {referralCount}
+            {formatAmount(totalBonusBalance)}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/40">
-            Loaded Balance
+            Total Loaded
           </p>
           <p className="mt-2 truncate text-2xl font-black text-amber-100">
-            {formatMMK(totalLoadedBalance)}
+            {formatAmount(totalLoadedBalance)}
           </p>
         </div>
       </section>
 
       <section className="mt-4 rounded-2xl border border-amber-300/12 bg-black/35 p-4">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.28em] text-white/35">
-              Latest Loaded Members
+              Loaded Players
             </p>
             <h2 className="mt-1 text-xl font-black text-amber-100">
-              Member List
+              Player List
             </h2>
           </div>
 
-          <p className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-black text-white/45">
-            Showing latest {loadedCount}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-black text-white/50">
+              Page {page} / {totalPages}
+            </p>
+
+            <p className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-black text-white/50">
+              Showing {loadedCount} of {totalPlayers}
+            </p>
+          </div>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
-<div className="hidden border-b border-white/10 bg-white/[0.03] px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/35 xl:grid xl:grid-cols-[150px_1.2fr_160px_160px_150px_150px]">
-  <p>Member</p>
-  <p>Phone / Login</p>
-  <p>Balance</p>
-  <p>Agent</p>
-  <p>Joined</p>
-  <p>Controls</p>
+<div className="mt-4 overflow-hidden rounded-xl border border-amber-300/15 bg-[#050202] shadow-[0_0_0_1px_rgba(251,191,36,0.04)]">
+  <div className="overflow-x-auto">
+    <table className="w-full min-w-[1180px] border-collapse text-sm">
+      <colgroup>
+        <col className="w-[130px]" />
+        <col className="w-[170px]" />
+        <col className="w-[135px]" />
+        <col className="w-[135px]" />
+        <col className="w-[145px]" />
+        <col className="w-[135px]" />
+        <col className="w-[135px]" />
+        <col className="w-[150px]" />
+        <col className="w-[105px]" />
+      </colgroup>
+
+      <thead>
+        <tr className="bg-[#24100b] text-[10px] font-black uppercase tracking-[0.16em] text-amber-100/70">
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+            Player
+          </th>
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+            Phone
+          </th>
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+            Cash
+          </th>
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+            Bonus
+          </th>
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+            Total
+          </th>
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+            Win
+          </th>
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+            Bet/Lose
+          </th>
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+            Joined
+          </th>
+          <th className="border-b border-amber-300/15 px-4 py-4 text-center">
+            Control
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {loadedCount === 0 ? (
+          <tr>
+            <td
+              colSpan={9}
+              className="px-4 py-8 text-center text-sm font-bold text-white/45"
+            >
+              No players found.
+            </td>
+          </tr>
+        ) : null}
+
+        {(profiles ?? []).map((profile) => {
+          const wallet = walletByProfileId.get(profile.id);
+          const cashBalance = Number(wallet?.balance ?? 0);
+          const bonusBalance = Number(wallet?.bonus_balance ?? 0);
+          const totalBalance = cashBalance + bonusBalance;
+          const totalWin = wallet ? winByWalletId.get(wallet.id) ?? 0 : 0;
+          const totalLoss = lossByProfileId.get(profile.id) ?? 0;
+
+          return (
+            <tr
+              key={profile.id}
+              tabIndex={0}
+              aria-label={`Select player ${formatMemberId(profile)}`}
+              className="group cursor-pointer border-b border-white/[0.06] bg-black/[0.16] outline-none transition hover:bg-amber-300/[0.045] focus:bg-amber-300/[0.09] active:bg-amber-300/[0.12]"
+            >
+              <td className="border-r border-white/[0.05] px-4 py-3 text-left font-black text-amber-100 group-focus:text-white">
+                {formatMemberId(profile)}
+              </td>
+
+              <td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/70 group-focus:text-amber-50">
+                <span className="break-all">{profile.username || "—"}</span>
+              </td>
+
+              <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-emerald-100">
+                {formatAmount(cashBalance)}
+              </td>
+
+              <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-sky-100">
+                {formatAmount(bonusBalance)}
+              </td>
+
+              <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-amber-100">
+                {formatAmount(totalBalance)}
+              </td>
+
+              <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-lime-100">
+                {formatAmount(totalWin)}
+              </td>
+
+              <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-red-100/90">
+                {formatAmount(totalLoss)}
+              </td>
+
+              <td className="border-r border-white/[0.05] px-4 py-3 text-center font-bold tabular-nums text-white/48 group-focus:text-white/75">
+                {formatTime(profile.created_at)}
+              </td>
+
+              <td className="px-4 py-3 text-center">
+                <Link
+                  href="/admin/wallet-requests"
+                  className="inline-flex items-center justify-center rounded-md border border-amber-300/20 bg-black/30 px-3 py-2 text-xs font-black text-amber-100/85 transition hover:border-amber-300/45 hover:bg-amber-300/15 hover:text-amber-50"
+                >
+                  Open
+                </Link>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
 </div>
 
-          {loadedCount === 0 ? (
-            <div className="px-4 py-5 text-sm font-bold text-white/45">
-              No members found.
-            </div>
-          ) : null}
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-center text-xs font-bold text-white/40 sm:text-left">
+            Wallets found on this page: {walletCount}
+          </p>
 
-          {(profiles ?? []).map((profile) => {
-            const wallet = walletByProfileId.get(profile.id);
-            const referral = referralByProfileId.get(profile.id);
-            const agent = referral?.agent ?? null;
+          <div className="flex items-center justify-center gap-2">
+            <Link
+              href={`/admin/users?page=${previousPage}`}
+              aria-disabled={page <= 1}
+              className={`rounded-full border px-4 py-2 text-xs font-black transition ${
+                page <= 1
+                  ? "pointer-events-none border-white/10 bg-white/[0.02] text-white/20"
+                  : "border-amber-300/20 bg-amber-300/10 text-amber-100 hover:bg-amber-300 hover:text-black"
+              }`}
+            >
+              Previous
+            </Link>
 
-            return (
-              <div
-                key={profile.id}
-                className="grid gap-3 border-b border-white/10 px-4 py-4 text-sm last:border-b-0 xl:grid-cols-[150px_1.2fr_160px_160px_150px_150px] xl:items-center"
-              >
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
-                    Member
-                  </p>
-                  <p className="font-black text-amber-100">
-                    {formatMemberId(profile)}
-                  </p>
-                </div>
-
-<div className="min-w-0">
-  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
-    Phone / Login
-  </p>
-  <p className="break-all text-base font-black text-amber-100">
-    {profile.username || "—"}
-  </p>
-  <p className="mt-1 break-all text-[10px] font-semibold text-white/25">
-    ID: {profile.id.slice(0, 8).toUpperCase()}
-  </p>
-</div>
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
-                    Balance
-                  </p>
-                  <p className="font-black text-emerald-100">
-                    {formatMMK(wallet?.balance)}
-                  </p>
-                  <p className="mt-1 text-[11px] font-semibold text-white/30">
-                    {formatTime(wallet?.updated_at)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
-                    Agent
-                  </p>
-
-                  <span
-                    className={`inline-flex max-w-full rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] ${getAgentStatusClass(
-                      agent?.status
-                    )}`}
-                  >
-                    {agent?.display_name ?? "No Agent"}
-                  </span>
-
-                  {agent ? (
-                    <p className="mt-1 text-[11px] font-bold text-white/35">
-                      {agent.agent_code}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/30 xl:hidden">
-                    Joined
-                  </p>
-                  <p className="font-bold text-white/50">
-                    {formatTime(profile.created_at)}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2 xl:justify-end">
-                  <Link
-                    href="/admin/wallet-requests"
-                    className="rounded-full border border-emerald-300/15 bg-emerald-400/10 px-3 py-2 text-xs font-black text-emerald-100/80 transition hover:bg-emerald-300 hover:text-black"
-                  >
-                    Balance
-                  </Link>
-
-                  <Link
-                    href="/admin/referrals"
-                    className="rounded-full border border-amber-300/15 bg-amber-300/10 px-3 py-2 text-xs font-black text-amber-100/80 transition hover:bg-amber-300 hover:text-black"
-                  >
-                    Referral
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
+            <Link
+              href={`/admin/users?page=${nextPage}`}
+              aria-disabled={page >= totalPages}
+              className={`rounded-full border px-4 py-2 text-xs font-black transition ${
+                page >= totalPages
+                  ? "pointer-events-none border-white/10 bg-white/[0.02] text-white/20"
+                  : "border-amber-300/20 bg-amber-300/10 text-amber-100 hover:bg-amber-300 hover:text-black"
+              }`}
+            >
+              Next
+            </Link>
+          </div>
         </div>
       </section>
     </AdminShell>

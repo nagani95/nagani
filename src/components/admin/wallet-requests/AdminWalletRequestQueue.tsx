@@ -179,14 +179,14 @@ function StatCard({
   return (
     <div
       className={cx(
-        "rounded-2xl border p-4",
+        "rounded-2xl border p-4 text-center",
         tone === "amber" && "border-amber-300/15 bg-amber-300/10",
         tone === "emerald" && "border-emerald-300/15 bg-emerald-400/10",
         tone === "sky" && "border-sky-300/15 bg-sky-400/10",
         tone === "neutral" && "border-white/10 bg-white/[0.03]"
       )}
     >
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
         {label}
       </p>
       <p className="mt-2 truncate text-xl font-black text-amber-100">
@@ -220,20 +220,38 @@ function FilterPill({
   );
 }
 
+function StatusBadge({ status }: { status: AdminWalletRequestStatus }) {
+  return (
+    <span
+      className={cx(
+        "inline-flex rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em]",
+        getStatusClass(status)
+      )}
+    >
+      {formatRequestStatus(status)}
+    </span>
+  );
+}
+
+function TypeBadge({ type }: { type: AdminWalletRequestType }) {
+  return (
+    <span
+      className={cx(
+        "inline-flex rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em]",
+        getTypeClass(type)
+      )}
+    >
+      {formatRequestType(type)}
+    </span>
+  );
+}
+
 function RequestActionCell({ request }: { request: AdminWalletRequestItem }) {
   if (request.status !== "pending") {
     return (
-      <div className="flex flex-col gap-1">
-        <p
-          className={cx(
-            "w-fit rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.14em]",
-            getStatusClass(request.status)
-          )}
-        >
-          {formatRequestStatus(request.status)}
-        </p>
-
-        <p className="text-xs font-bold text-white/35">
+      <div className="flex flex-col items-center justify-center gap-1">
+        <StatusBadge status={request.status} />
+        <p className="text-[10px] font-bold text-white/35">
           {formatTime(request.reviewed_at)}
         </p>
       </div>
@@ -241,166 +259,45 @@ function RequestActionCell({ request }: { request: AdminWalletRequestItem }) {
   }
 
   return (
-    <div className="grid gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       <form action={approveWalletRequest}>
         <input type="hidden" name="requestId" value={request.id} />
         <input type="hidden" name="adminNote" value="" />
 
         <button
           type="submit"
-          className="w-full rounded-full border border-emerald-300/30 bg-emerald-400/15 px-4 py-2 text-xs font-black text-emerald-100 transition hover:bg-emerald-300 hover:text-black"
+          className="rounded-md border border-emerald-300/25 bg-emerald-400/12 px-3 py-2 text-xs font-black text-emerald-100 transition hover:bg-emerald-300 hover:text-black"
         >
           Approve
         </button>
       </form>
 
-      <details className="rounded-2xl border border-red-300/20 bg-red-500/5 p-2">
-        <summary className="cursor-pointer text-center text-xs font-black text-red-100/80">
-          Reject / Note
+      <details className="group/reject">
+        <summary className="cursor-pointer list-none rounded-md border border-red-300/20 bg-red-500/8 px-3 py-2 text-xs font-black text-red-100/85 transition hover:bg-red-300 hover:text-black">
+          Reject
         </summary>
 
-        <form action={rejectWalletRequest} className="mt-2 grid gap-2">
+        <form
+          action={rejectWalletRequest}
+          className="mt-2 grid min-w-[190px] gap-2 rounded-xl border border-red-300/20 bg-[#120504] p-2"
+        >
           <input type="hidden" name="requestId" value={request.id} />
 
           <input
             name="adminNote"
             placeholder="Reject reason"
-            className="w-full rounded-xl border border-red-300/15 bg-black/35 px-3 py-2 text-xs font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-red-300/40"
+            className="w-full rounded-lg border border-red-300/15 bg-black/35 px-3 py-2 text-xs font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-red-300/40"
           />
 
           <button
             type="submit"
-            className="w-full rounded-full border border-red-300/30 bg-red-500/15 px-4 py-2 text-xs font-black text-red-100 transition hover:bg-red-300 hover:text-black"
+            className="rounded-md border border-red-300/30 bg-red-500/15 px-3 py-2 text-xs font-black text-red-100 transition hover:bg-red-300 hover:text-black"
           >
-            Confirm Reject
+            Confirm
           </button>
         </form>
       </details>
     </div>
-  );
-}
-
-function RequestRow({ request }: { request: AdminWalletRequestItem }) {
-  const memberId = formatMemberId(
-    request.profile_id,
-    request.profile?.member_code
-  );
-  const phoneLabel = request.profile?.username || "Phone not saved";
-  const shortProfileId = request.profile_id.slice(0, 8).toUpperCase();
-  const providerLabel = getPaymentProviderLabel(request);
-  const playerNote = request.note?.trim() || "No player note";
-
-  return (
-    <article className="overflow-hidden rounded-2xl border border-amber-300/12 bg-[#0b0302]">
-      <div className="grid gap-3 p-3 xl:grid-cols-[110px_1.2fr_105px_145px_150px_1.3fr_190px] xl:items-center">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/28">
-            Time
-          </p>
-          <p className="mt-1 text-xs font-bold text-white/55">
-            {formatTime(request.created_at)}
-          </p>
-        </div>
-
-        <div className="min-w-0">
-          <p className="truncate text-base font-black text-amber-100">
-            {memberId}
-          </p>
-          <p className="mt-1 truncate text-sm font-black text-[#ffe6a3]">
-            {phoneLabel}
-          </p>
-          <p className="mt-1 text-[10px] font-semibold text-white/25">
-            ID: {shortProfileId}
-          </p>
-        </div>
-
-        <p
-          className={cx(
-            "w-fit rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.14em]",
-            getTypeClass(request.request_type)
-          )}
-        >
-          {formatRequestType(request.request_type)}
-        </p>
-
-        <p
-          className={cx(
-            "text-base font-black",
-            request.request_type === "deposit"
-              ? "text-emerald-100"
-              : "text-sky-100"
-          )}
-        >
-          {formatMMK(request.amount)}
-        </p>
-
-        <div className="min-w-0">
-          <p className="truncate text-xs font-black text-white/65">
-            {providerLabel}
-          </p>
-          {request.payment_account_number ? (
-            <p className="mt-1 truncate text-[11px] font-bold text-white/35">
-              {request.payment_account_number}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/28">
-            Note / Last 6
-          </p>
-          <p className="mt-1 truncate text-sm font-black text-amber-100/85">
-            {playerNote}
-          </p>
-        </div>
-
-        <RequestActionCell request={request} />
-      </div>
-
-      <details className="border-t border-white/10 px-3 py-2">
-        <summary className="cursor-pointer text-xs font-black uppercase tracking-[0.18em] text-white/35 transition hover:text-amber-100">
-          More Detail
-        </summary>
-
-        <div className="mt-3 grid gap-3 rounded-xl border border-white/10 bg-black/25 p-3 md:grid-cols-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/25">
-              Receiver
-            </p>
-            <p className="mt-1 break-words text-sm font-black text-emerald-100">
-              {providerLabel}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/25">
-              Account Name
-            </p>
-            <p className="mt-1 break-words text-sm font-black text-amber-100">
-              {request.payment_account_name || "—"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/25">
-              Account Number
-            </p>
-            <p className="mt-1 break-words text-sm font-black text-amber-100">
-              {request.payment_account_number || "—"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/25">
-              Admin Note
-            </p>
-            <p className="mt-1 break-words text-sm font-semibold text-white/55">
-              {request.admin_note || "—"}
-            </p>
-          </div>
-        </div>
-      </details>
-    </article>
   );
 }
 
@@ -412,7 +309,10 @@ export default function AdminWalletRequestQueue({
   filters,
   requests,
 }: AdminWalletRequestQueueProps) {
-  const totalPages = Math.max(1, Math.ceil(filters.totalCount / filters.pageSize));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filters.totalCount / filters.pageSize)
+  );
   const hasPreviousPage = filters.page > 1;
   const hasNextPage = filters.page < totalPages;
 
@@ -483,11 +383,11 @@ export default function AdminWalletRequestQueue({
         <StatCard label="Current View" value={summary.viewCount} />
       </section>
 
-      <section className="rounded-3xl border border-amber-300/12 bg-black/35 p-4">
+      <section className="rounded-2xl border border-amber-300/12 bg-black/35 p-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.28em] text-amber-200/45">
-              Cashier Queue
+              Cashier Control
             </p>
             <h2 className="mt-1 text-xl font-black text-amber-100">
               Wallet Operation
@@ -505,7 +405,7 @@ export default function AdminWalletRequestQueue({
               name="q"
               defaultValue={filters.q}
               placeholder="Search member, phone, last 6, provider..."
-              className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/35 px-4 py-2 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/35"
+              className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/45 px-4 py-2 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/35"
             />
 
             <button
@@ -554,38 +454,163 @@ export default function AdminWalletRequestQueue({
         </div>
       </section>
 
-      <section className="rounded-3xl border border-amber-300/12 bg-black/25 p-3">
-        <div className="hidden border-b border-white/10 px-3 pb-3 text-[10px] font-black uppercase tracking-[0.18em] text-white/30 xl:grid xl:grid-cols-[110px_1.2fr_105px_145px_150px_1.3fr_190px]">
-          <p>Time</p>
-          <p>Player</p>
-          <p>Type</p>
-          <p>Amount</p>
-          <p>Provider</p>
-          <p>Note / Last 6</p>
-          <p>Action</p>
-        </div>
+      <section className="rounded-2xl border border-amber-300/12 bg-black/30 p-4">
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-white/35">
+              Request Ledger
+            </p>
+            <h3 className="mt-1 text-lg font-black text-amber-100">
+              Cashier Queue
+            </h3>
+          </div>
 
-        <div className="mt-3 grid gap-3">
-          {requests.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-6 text-center">
-              <p className="text-sm font-black text-white/45">
-                No wallet requests match this view.
-              </p>
-            </div>
-          ) : null}
-
-          {requests.map((request) => (
-            <RequestRow key={request.id} request={request} />
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs font-bold text-white/40">
-            Page {filters.page} of {totalPages} · {filters.totalCount} result
+          <p className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-black text-white/50">
+            Page {filters.page} / {totalPages} · {filters.totalCount} result
             {filters.totalCount === 1 ? "" : "s"}
           </p>
+        </div>
 
-          <div className="flex gap-2">
+        <div className="overflow-hidden rounded-xl border border-amber-300/15 bg-[#050202]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1280px] border-collapse text-sm">
+              <colgroup>
+                <col className="w-[135px]" />
+                <col className="w-[135px]" />
+                <col className="w-[150px]" />
+                <col className="w-[110px]" />
+                <col className="w-[150px]" />
+                <col className="w-[180px]" />
+                <col className="w-[180px]" />
+                <col className="w-[155px]" />
+                <col className="w-[210px]" />
+              </colgroup>
+
+              <thead>
+                <tr className="bg-[#24100b] text-[10px] font-black uppercase tracking-[0.16em] text-amber-100/70">
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+                    Time
+                  </th>
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+                    Player
+                  </th>
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+                    Phone
+                  </th>
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+                    Type
+                  </th>
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+                    Amount
+                  </th>
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+                    Provider
+                  </th>
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+                    Account
+                  </th>
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+                    Note / Last 6
+                  </th>
+                  <th className="border-b border-amber-300/15 px-4 py-4 text-center">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {requests.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-4 py-8 text-center text-sm font-bold text-white/45"
+                    >
+                      No wallet requests match this view.
+                    </td>
+                  </tr>
+                ) : null}
+
+                {requests.map((request) => {
+                  const memberId = formatMemberId(
+                    request.profile_id,
+                    request.profile?.member_code
+                  );
+                  const phoneLabel = request.profile?.username || "—";
+                  const providerLabel = getPaymentProviderLabel(request);
+                  const accountName = request.payment_account_name || "—";
+                  const accountNumber = request.payment_account_number || "—";
+                  const playerNote = request.note?.trim() || "—";
+                  const isDeposit = request.request_type === "deposit";
+
+                  return (
+                    <tr
+                      key={request.id}
+                      tabIndex={0}
+                      aria-label={`Select wallet request ${memberId}`}
+                      className="group cursor-pointer border-b border-white/[0.06] bg-black/[0.16] outline-none transition hover:bg-amber-300/[0.045] focus:bg-amber-300/[0.09] focus-within:bg-amber-300/[0.09] active:bg-amber-300/[0.12]"
+                    >
+                      <td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold tabular-nums text-white/52 group-focus:text-white/75">
+                        {formatTime(request.created_at)}
+                      </td>
+
+                      <td className="border-r border-white/[0.05] px-4 py-3 text-left">
+                        <p className="font-black text-amber-100">{memberId}</p>
+                        <p className="mt-0.5 text-[10px] font-semibold text-white/25">
+                          ID: {request.profile_id.slice(0, 8).toUpperCase()}
+                        </p>
+                      </td>
+
+                      <td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/70">
+                        <span className="break-all">{phoneLabel}</span>
+                      </td>
+
+                      <td className="border-r border-white/[0.05] px-4 py-3 text-center">
+                        <TypeBadge type={request.request_type} />
+                      </td>
+
+                      <td
+                        className={cx(
+                          "border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums",
+                          isDeposit ? "text-emerald-100" : "text-sky-100"
+                        )}
+                      >
+                        {formatMMK(request.amount)}
+                      </td>
+
+                      <td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/65">
+                        <span className="break-all">{providerLabel}</span>
+                      </td>
+
+                      <td className="border-r border-white/[0.05] px-4 py-3 text-left">
+                        <p className="break-all font-black text-amber-100/85">
+                          {accountNumber}
+                        </p>
+                        <p className="mt-0.5 break-all text-[11px] font-bold text-white/38">
+                          {accountName}
+                        </p>
+                      </td>
+
+                      <td className="border-r border-white/[0.05] px-4 py-3 text-left font-black text-amber-100/80">
+                        <span className="break-all">{playerNote}</span>
+                      </td>
+
+                      <td className="px-4 py-3 text-center">
+                        <RequestActionCell request={request} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-center text-xs font-bold text-white/40 sm:text-left">
+            Showing page {filters.page} of {totalPages}
+          </p>
+
+          <div className="flex items-center justify-center gap-2">
             {hasPreviousPage ? (
               <Link
                 href={buildHref(filters, { page: filters.page - 1 })}
