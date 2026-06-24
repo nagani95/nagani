@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import AdminWalletRequestsAutoRefresh from "@/components/admin/wallet-requests/AdminWalletRequestsAutoRefresh";
 import AdminShell from "@/components/admin/AdminShell";
 import AdminWalletRequestQueue, {
   type AdminWalletRequestItem,
@@ -18,12 +19,20 @@ const SEARCH_LOAD_LIMIT = 300;
 const WALLET_REQUEST_SELECT =
   "id, profile_id, request_type, amount, note, status, admin_note, reviewed_at, created_at, wallet_address_id, payment_provider_key, payment_provider_name, payment_account_name, payment_account_number";
 
-type WalletRequestRow = Omit<AdminWalletRequestItem, "profile">;
+type WalletRequestRow = Omit<
+  AdminWalletRequestItem,
+  "profile" | "current_balance"
+>;
 
 type ProfileRow = {
   id: string;
   username: string | null;
   member_code: string | null;
+};
+
+type WalletRow = {
+  profile_id: string;
+  balance: number | string | null;
 };
 
 type AdminWalletRequestsPageProps = {
@@ -192,6 +201,19 @@ export default async function AdminWalletRequestsPage({
     (profiles ?? []).map((profile) => [profile.id, profile])
   );
 
+  const { data: wallets, error: walletsError } =
+  profileIds.length > 0
+    ? await supabase
+        .from("wallets")
+        .select("profile_id, balance")
+        .in("profile_id", profileIds)
+        .returns<WalletRow[]>()
+    : { data: [], error: null };
+
+const walletBalanceByProfileId = new Map(
+  (wallets ?? []).map((wallet) => [wallet.profile_id, wallet.balance])
+);
+
   const matchedRows = searchTerm
     ? requestRows.filter((request) =>
         matchesRequestSearch(
@@ -219,14 +241,16 @@ export default async function AdminWalletRequestsPage({
     .filter((request) => request.request_type === "withdraw")
     .reduce((sum, request) => sum + Number(request.amount ?? 0), 0);
 
-  const requests: AdminWalletRequestItem[] = visibleRows.map((request) => ({
-    ...request,
-    profile: profileById.get(request.profile_id) ?? null,
-  }));
+const requests: AdminWalletRequestItem[] = visibleRows.map((request) => ({
+  ...request,
+  current_balance: walletBalanceByProfileId.get(request.profile_id) ?? 0,
+  profile: profileById.get(request.profile_id) ?? null,
+}));
 
   const errors = [
     requestResult.error ? `Wallet requests: ${requestResult.error.message}` : null,
     profilesError ? `Profiles: ${profilesError.message}` : null,
+    walletsError ? `Wallets: ${walletsError.message}` : null,
     allCountResult.error ? `All count: ${allCountResult.error.message}` : null,
     pendingCountResult.error
       ? `Pending count: ${pendingCountResult.error.message}`
@@ -256,6 +280,7 @@ export default async function AdminWalletRequestsPage({
         </Link>
       }
     >
+      <AdminWalletRequestsAutoRefresh />
       <AdminWalletRequestQueue
         successMessage={successMessage}
         errorMessage={errorMessage}

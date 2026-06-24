@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import AdminAgentWithdrawsAutoRefresh from "@/components/admin/agent-withdraws/AdminAgentWithdrawsAutoRefresh";
 import AdminShell from "@/components/admin/AdminShell";
 import { createClient } from "@/lib/supabase/server";
 import { reviewAgentWithdrawAction } from "./actions";
@@ -549,6 +550,7 @@ export default async function AdminAgentWithdrawsPage({
         </Link>
       }
     >
+      <AdminAgentWithdrawsAutoRefresh />
       {params.success ? (
         <section className="rounded-2xl border border-emerald-400/25 bg-emerald-950/25 p-4">
           <p className="text-sm font-black text-emerald-100">

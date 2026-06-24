@@ -3,7 +3,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import CashierHero from "@/components/cashier/CashierHero";
 import CashierRequestForm from "@/components/cashier/CashierRequestForm";
@@ -45,6 +45,7 @@ function CashierPageContent() {
 
   const [supabase] = useState(() => createClient());
   const [walletBalance, setWalletBalance] = useState(0);
+const [isRefreshingWallet, setIsRefreshingWallet] = useState(false);
 const [withdrawalUnlocked, setWithdrawalUnlocked] = useState(false);
   const [walletAddresses, setWalletAddresses] = useState<WalletAddressRow[]>(
     []
@@ -85,62 +86,64 @@ const canSubmitWalletRequest =
     return activeTab === "deposit" ? "ငွေသွင်း တင်မည်" : "ငွေထုတ် တင်မည်";
   }, [activeTab]);
 
-  useEffect(() => {
-    let isMounted = true;
+const fetchCashierData = useCallback(async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    async function fetchCashierData() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  if (!user) {
+    router.replace("/login");
+    return;
+  }
 
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("profile_id", user.id)
+    .maybeSingle<{ balance: number | string | null }>();
 
-      const { data: wallet } = await supabase
-        .from("wallets")
-        .select("balance")
-        .eq("profile_id", user.id)
-        .maybeSingle<{ balance: number | string | null }>();
-      
-      const { data: profile } = await supabase
-  .from("profiles")
-  .select("withdrawal_unlocked")
-  .eq("id", user.id)
-  .maybeSingle<{ withdrawal_unlocked: boolean | null }>();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("withdrawal_unlocked")
+    .eq("id", user.id)
+    .maybeSingle<{ withdrawal_unlocked: boolean | null }>();
 
-      const { data: addresses } = await supabase
-        .from("wallet_addresses")
-        .select(
-          "id, provider_key, provider_name, account_name, account_number, qr_asset_path, minimum_deposit, minimum_withdraw, admin_note, sort_order, is_active"
-        )
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
+  const { data: addresses } = await supabase
+    .from("wallet_addresses")
+    .select(
+      "id, provider_key, provider_name, account_name, account_number, qr_asset_path, minimum_deposit, minimum_withdraw, admin_note, sort_order, is_active"
+    )
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
 
-      if (!isMounted) return;
+  const activeAddresses = (addresses ?? []) as WalletAddressRow[];
 
-      const activeAddresses = (addresses ?? []) as WalletAddressRow[];
+  setWalletBalance(toSafeAmount(wallet?.balance));
+  setWithdrawalUnlocked(Boolean(profile?.withdrawal_unlocked));
+  setWalletAddresses(activeAddresses);
 
-      setWalletBalance(toSafeAmount(wallet?.balance));
-setWithdrawalUnlocked(Boolean(profile?.withdrawal_unlocked));
-setWalletAddresses(activeAddresses);
-
-      setSelectedWalletAddressId((currentId) => {
-        if (activeAddresses.some((item) => item.id === currentId)) {
-          return currentId;
-        }
-
-        return activeAddresses[0]?.id ?? "";
-      });
+  setSelectedWalletAddressId((currentId) => {
+    if (activeAddresses.some((item) => item.id === currentId)) {
+      return currentId;
     }
 
-    void fetchCashierData();
+    return activeAddresses[0]?.id ?? "";
+  });
+}, [router, supabase]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [router, supabase, successMessage]);
+useEffect(() => {
+  void fetchCashierData();
+}, [fetchCashierData, successMessage]);
+
+async function handleRefreshWallet() {
+  setIsRefreshingWallet(true);
+
+  try {
+    await fetchCashierData();
+  } finally {
+    setIsRefreshingWallet(false);
+  }
+}
 
   function handleTabChange(tab: CashierTab) {
     setActiveTab(tab);
@@ -226,10 +229,12 @@ setWalletAddresses(activeAddresses);
       contentClassName="relative z-10 min-h-screen"
     >
       <main className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+7.45rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)]">
-        <CashierHero
-          balanceLabel={`${formatMMK(walletBalance)} ကျပ်`}
-          historyHref="/cashier/history"
-        />
+<CashierHero
+  balanceLabel={`${formatMMK(walletBalance)} ကျပ်`}
+  historyHref="/cashier/history"
+  onRefresh={handleRefreshWallet}
+  isRefreshing={isRefreshingWallet}
+/>
 
         {(successMessage || errorMessage) && (
           <div className="pointer-events-none fixed inset-x-5 top-[calc(env(safe-area-inset-top)+3.25rem)] z-30 mx-auto max-w-md">

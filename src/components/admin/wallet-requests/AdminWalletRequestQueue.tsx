@@ -26,6 +26,7 @@ export type AdminWalletRequestItem = {
   profile_id: string;
   request_type: AdminWalletRequestType;
   amount: number | string;
+  current_balance: number | string | null;
   note: string | null;
   status: AdminWalletRequestStatus;
   admin_note: string | null;
@@ -473,18 +474,20 @@ export default function AdminWalletRequestQueue({
 
         <div className="overflow-hidden rounded-xl border border-amber-300/15 bg-[#050202]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1280px] border-collapse text-sm">
-              <colgroup>
-                <col className="w-[135px]" />
-                <col className="w-[135px]" />
-                <col className="w-[150px]" />
-                <col className="w-[110px]" />
-                <col className="w-[150px]" />
-                <col className="w-[180px]" />
-                <col className="w-[180px]" />
-                <col className="w-[155px]" />
-                <col className="w-[210px]" />
-              </colgroup>
+            <table className="w-full min-w-[1580px] border-collapse text-sm">
+<colgroup>
+  <col className="w-[135px]" />
+  <col className="w-[135px]" />
+  <col className="w-[150px]" />
+  <col className="w-[110px]" />
+  <col className="w-[145px]" />
+  <col className="w-[145px]" />
+  <col className="w-[155px]" />
+  <col className="w-[170px]" />
+  <col className="w-[170px]" />
+  <col className="w-[150px]" />
+  <col className="w-[210px]" />
+</colgroup>
 
               <thead>
                 <tr className="bg-[#24100b] text-[10px] font-black uppercase tracking-[0.16em] text-amber-100/70">
@@ -500,12 +503,18 @@ export default function AdminWalletRequestQueue({
                   <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
                     Type
                   </th>
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
-                    Amount
-                  </th>
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
-                    Provider
-                  </th>
+<th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+  Request
+</th>
+<th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+  Current
+</th>
+<th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+  After Approve
+</th>
+<th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+  Provider
+</th>
                   <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
                     Account
                   </th>
@@ -522,7 +531,7 @@ export default function AdminWalletRequestQueue({
                 {requests.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={11}
                       className="px-4 py-8 text-center text-sm font-bold text-white/45"
                     >
                       No wallet requests match this view.
@@ -541,6 +550,15 @@ export default function AdminWalletRequestQueue({
                   const accountNumber = request.payment_account_number || "—";
                   const playerNote = request.note?.trim() || "—";
                   const isDeposit = request.request_type === "deposit";
+                  const requestAmount = Number(request.amount ?? 0);
+const currentBalance = Number(request.current_balance ?? 0);
+const afterApproveBalance = isDeposit
+  ? currentBalance + requestAmount
+  : currentBalance - requestAmount;
+const isInsufficientWithdraw =
+  request.status === "pending" &&
+  request.request_type === "withdraw" &&
+  currentBalance < requestAmount;
 
                   return (
                     <tr
@@ -568,16 +586,37 @@ export default function AdminWalletRequestQueue({
                         <TypeBadge type={request.request_type} />
                       </td>
 
-                      <td
-                        className={cx(
-                          "border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums",
-                          isDeposit ? "text-emerald-100" : "text-sky-100"
-                        )}
-                      >
-                        {formatMMK(request.amount)}
-                      </td>
+<td
+  className={cx(
+    "border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums",
+    isDeposit ? "text-emerald-100" : "text-sky-100"
+  )}
+>
+  {formatMMK(request.amount)}
+</td>
 
-                      <td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/65">
+<td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-amber-100">
+  {formatMMK(currentBalance)}
+</td>
+
+<td
+  className={cx(
+    "border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums",
+    isInsufficientWithdraw
+      ? "bg-red-400/[0.08] text-red-100"
+      : isDeposit
+        ? "text-emerald-100"
+        : "text-amber-100"
+  )}
+>
+  {isInsufficientWithdraw
+    ? "Insufficient"
+    : request.status === "pending"
+      ? formatMMK(afterApproveBalance)
+      : "Reviewed"}
+</td>
+
+<td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/65">
                         <span className="break-all">{providerLabel}</span>
                       </td>
 

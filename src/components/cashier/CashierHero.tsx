@@ -1,15 +1,21 @@
 // src/components/cashier/CashierHero.tsx
 
+"use client";
+
 import Link from "next/link";
 
 type CashierHeroProps = {
   balanceLabel: string;
   historyHref?: string;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 };
 
 export default function CashierHero({
   balanceLabel,
   historyHref = "/cashier/history",
+  onRefresh,
+  isRefreshing = false,
 }: CashierHeroProps) {
   return (
     <section className="relative mt-1 overflow-hidden rounded-[1.45rem] border border-[#d6a84f]/42 bg-[linear-gradient(145deg,rgba(72,13,6,0.98),rgba(13,2,1,0.99),rgba(92,18,8,0.94))] px-5 py-4 shadow-[0_18px_42px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,215,122,0.18)]">
@@ -23,12 +29,26 @@ export default function CashierHero({
             ပိုက်ဆံအိတ်
           </p>
 
-          <Link
-            href={historyHref}
-            className="shrink-0 rounded-full border border-[#d6a84f]/34 bg-[linear-gradient(145deg,rgba(34,8,4,0.84),rgba(0,0,0,0.38))] px-3 py-1 text-[10px] font-black text-[#ffd77a] shadow-inner shadow-black/45 active:scale-[0.98]"
-          >
-            မှတ်တမ်း
-          </Link>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {onRefresh ? (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                aria-label="Refresh wallet balance"
+                className="grid size-7 place-items-center rounded-full border border-[#d6a84f]/34 bg-[linear-gradient(145deg,rgba(34,8,4,0.84),rgba(0,0,0,0.38))] text-[13px] font-black text-[#ffd77a] shadow-inner shadow-black/45 active:scale-[0.96] disabled:opacity-55"
+              >
+                <span className={isRefreshing ? "animate-spin" : ""}>↻</span>
+              </button>
+            ) : null}
+
+            <Link
+              href={historyHref}
+              className="rounded-full border border-[#d6a84f]/34 bg-[linear-gradient(145deg,rgba(34,8,4,0.84),rgba(0,0,0,0.38))] px-3 py-1 text-[10px] font-black text-[#ffd77a] shadow-inner shadow-black/45 active:scale-[0.98]"
+            >
+              မှတ်တမ်း
+            </Link>
+          </div>
         </div>
 
         <p className="mt-2 whitespace-nowrap text-[2.4rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_5px_16px_rgba(0,0,0,0.9)]">
