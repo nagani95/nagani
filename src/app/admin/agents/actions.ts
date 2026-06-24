@@ -86,6 +86,18 @@ function redirectWithStatus(type: "success" | "error", message: string): never {
   redirect(`${ADMIN_AGENTS_PATH}?${type}=${encodeURIComponent(message)}`);
 }
 
+async function assertAdminAction() {
+  const supabase = await createClient();
+
+  const { data: isAdmin, error } = await supabase.rpc("is_nagani_admin");
+
+  if (error || isAdmin !== true) {
+    throw new Error("Admin only");
+  }
+
+  return supabase;
+}
+
 async function createAgentAuthUser(params: {
   phoneNumber: string;
   password: string;
@@ -130,12 +142,14 @@ async function createAgentAuthUser(params: {
 }
 
 export async function createAgentAction(formData: FormData) {
-  const supabase = await createClient();
-  const supabaseAdmin = createAdminClient();
   let createdAuthUserId: string | null = null;
   let errorMessage: string | null = null;
+  let supabaseAdmin: ReturnType<typeof createAdminClient> | null = null;
 
   try {
+    const supabase = await assertAdminAction();
+    supabaseAdmin = createAdminClient();
+
     const agentCode = normalizeAgentCode(getText(formData, "agent_code"));
     const displayName = getText(formData, "display_name");
     const commissionRate = getCommissionDecimal(formData);
@@ -189,7 +203,7 @@ createdAuthUserId = await createAgentAuthUser({
       throw new Error(linkError.message);
     }
   } catch (error) {
-    if (createdAuthUserId) {
+    if (createdAuthUserId && supabaseAdmin) {
       await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
     }
 
@@ -206,11 +220,14 @@ createdAuthUserId = await createAgentAuthUser({
 }
 
 export async function createAgentLoginAction(formData: FormData) {
-  const supabaseAdmin = createAdminClient();
   let createdAuthUserId: string | null = null;
   let errorMessage: string | null = null;
+  let supabaseAdmin: ReturnType<typeof createAdminClient> | null = null;
 
   try {
+    await assertAdminAction();
+    supabaseAdmin = createAdminClient();
+
     const agentId = getText(formData, "agent_id");
     const agentCode = normalizeAgentCode(getText(formData, "agent_code"));
     const existingAuthUserId = getText(formData, "auth_user_id");
@@ -284,7 +301,7 @@ if (existingAuthUserId) {
       }
     }
   } catch (error) {
-    if (createdAuthUserId) {
+    if (createdAuthUserId && supabaseAdmin) {
       await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
     }
 

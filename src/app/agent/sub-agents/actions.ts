@@ -96,6 +96,26 @@ function redirectWithStatus(type: "success" | "error", message: string): never {
   redirect(`${AGENT_SUB_AGENTS_PATH}?${type}=${encodeURIComponent(message)}`);
 }
 
+async function assertActivePrimaryAgentAction() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("get_my_agent_dashboard_v2");
+
+  const agent = Array.isArray(data) ? data[0] : null;
+
+  if (
+    error ||
+    !agent ||
+    agent.agent_status !== "active" ||
+    agent.agent_level !== 1 ||
+    agent.can_create_sub_agents !== true
+  ) {
+    throw new Error("Active primary agent only");
+  }
+
+  return supabase;
+}
+
 async function createAgentAuthUser(params: {
   phoneNumber: string;
   password: string;
@@ -140,13 +160,14 @@ async function createAgentAuthUser(params: {
 }
 
 export async function createSubAgentAction(formData: FormData) {
-  const supabase = await createClient();
-  const supabaseAdmin = createAdminClient();
-
   let createdAuthUserId: string | null = null;
   let errorMessage: string | null = null;
+  let supabaseAdmin: ReturnType<typeof createAdminClient> | null = null;
 
   try {
+    const supabase = await assertActivePrimaryAgentAction();
+    supabaseAdmin = createAdminClient();
+
     const agentCode = normalizeAgentCode(getText(formData, "agent_code"));
     const displayName = getText(formData, "display_name");
     const phoneNumber = getText(formData, "phone_number");
@@ -195,7 +216,7 @@ createdAuthUserId = await createAgentAuthUser({
       throw new Error("Sub agent profile was not created");
     }
   } catch (error) {
-    if (createdAuthUserId) {
+    if (createdAuthUserId && supabaseAdmin) {
       await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
     }
 

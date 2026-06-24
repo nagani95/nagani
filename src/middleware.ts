@@ -144,6 +144,52 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  if (isAdminRoute(pathname) && pathname !== "/admin/login") {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/login";
+      redirectUrl.searchParams.set("next", pathname);
+
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    const { data: isAdmin, error: adminError } = await supabase.rpc(
+      "is_nagani_admin",
+    );
+
+    if (adminError || isAdmin !== true) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/login";
+      redirectUrl.searchParams.delete("next");
+
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  if (isAgentRoute(pathname) && pathname !== "/agent/login") {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/agent/login";
+      redirectUrl.searchParams.set("next", pathname);
+
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    const { data: agentRows, error: agentError } = await supabase.rpc(
+      "get_my_agent_dashboard_v2",
+    );
+
+    const agent = Array.isArray(agentRows) ? agentRows[0] : null;
+
+    if (agentError || !agent || agent.agent_status !== "active") {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/agent/login";
+      redirectUrl.searchParams.delete("next");
+
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   return response;
 }
 
