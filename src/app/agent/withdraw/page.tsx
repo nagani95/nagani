@@ -16,6 +16,15 @@ type AgentDashboardRow = {
   pending_withdraw_amount: number | string | null;
 };
 
+type AgentLiveEstimateRow = {
+  estimate_month: string | null;
+  estimated_cash_bet: number | string | null;
+  estimated_cash_payout: number | string | null;
+  estimated_group_net_loss: number | string | null;
+  estimated_eligible_net_loss: number | string | null;
+  estimated_commission_amount: number | string | null;
+};
+
 type WithdrawRow = {
   id: string;
   amount: number | string;

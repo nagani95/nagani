@@ -46,6 +46,15 @@ type AgentDashboardRow = {
   paid_at: string | null;
 };
 
+type AgentLiveEstimateRow = {
+  estimate_month: string | null;
+  estimated_cash_bet: number | string | null;
+  estimated_cash_payout: number | string | null;
+  estimated_group_net_loss: number | string | null;
+  estimated_eligible_net_loss: number | string | null;
+  estimated_commission_amount: number | string | null;
+};
+
 function formatMMK(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
 
@@ -140,7 +149,12 @@ export default async function AgentDashboardPage() {
     .rpc("get_my_agent_dashboard_v2")
     .maybeSingle();
 
+  const { data: liveEstimateData } = await supabase
+    .rpc("get_my_agent_live_estimate_v1")
+    .maybeSingle();
+
   const agent = data as AgentDashboardRow | null;
+  const liveEstimate = liveEstimateData as AgentLiveEstimateRow | null;
 
   async function logoutAgent() {
     "use server";
@@ -188,6 +202,17 @@ const commissionEarnedAmount = Math.max(
   totalEarnedAmount - bonusEarnedAmount - overrideEarnedAmount,
   0,
 );
+
+const estimatedCommissionAmount = Number(
+  liveEstimate?.estimated_commission_amount ?? 0,
+);
+
+const estimatedGroupNetLoss = Number(
+  liveEstimate?.estimated_group_net_loss ?? 0,
+);
+
+const estimatedCashBet = Number(liveEstimate?.estimated_cash_bet ?? 0);
+const estimatedCashPayout = Number(liveEstimate?.estimated_cash_payout ?? 0);
 
   return (
     <main className="min-h-dvh bg-[radial-gradient(circle_at_top,rgba(245,190,90,0.18),transparent_34%),linear-gradient(180deg,#260502,#070101)] px-4 py-4 text-amber-50">
@@ -253,6 +278,58 @@ const commissionEarnedAmount = Math.max(
             <span className="rounded-full border border-amber-300/18 bg-black/25 px-3 py-2 text-center text-amber-100/65">
               {getStatusLabel(agent.settlement_status)}
             </span>
+          </div>
+        </section>
+
+                <section className="rounded-[1.7rem] border border-amber-300/22 bg-[linear-gradient(145deg,rgba(72,11,5,0.97),rgba(13,1,1,0.99))] p-4 shadow-2xl shadow-black/55">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black tracking-[0.22em] text-amber-100/42">
+                LIVE ESTIMATE
+              </p>
+              <h2 className="mt-1 text-lg font-black text-amber-50">
+                ယခုလ ခန့်မှန်းကော်မရှင်
+              </h2>
+            </div>
+
+            <span className="rounded-full border border-amber-300/18 bg-black/25 px-3 py-1 text-[11px] font-black text-amber-100/60">
+              မထုတ်ယူနိုင်သေး
+            </span>
+          </div>
+
+          <div className="mt-3 rounded-[1.35rem] border border-amber-300/14 bg-black/25 p-4">
+            <p className="text-sm font-bold text-amber-100/55">
+              ခန့်မှန်းရရှိငွေ
+            </p>
+
+            <p className="mt-2 text-3xl font-black leading-none text-amber-50">
+              {formatMMK(estimatedCommissionAmount)} MMK
+            </p>
+
+            <p className="mt-2 text-[11px] font-bold leading-5 text-amber-100/45">
+              ဤငွေသည် လက်ရှိလအတွက် ခန့်မှန်းတွက်ချက်ထားခြင်းသာ ဖြစ်ပြီး
+              လစာထုတ်ရက် မှသာ ထုတ်ယူနိုင်ပါသည်။
+            </p>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <MiniStat
+              label="Cash Bet"
+              value={formatMMK(estimatedCashBet)}
+              sub="Bonus မပါ"
+            />
+
+            <MiniStat
+              label="Payout"
+              value={formatMMK(estimatedCashPayout)}
+              sub="Cash အခြေခံ"
+            />
+
+            <MiniStat
+              label="Net"
+              value={formatMMK(estimatedGroupNetLoss)}
+              sub="ခန့်မှန်း"
+            />
           </div>
         </section>
 
