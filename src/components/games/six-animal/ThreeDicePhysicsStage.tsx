@@ -795,6 +795,25 @@ function createRecordedDiceAudioCues(
     },
   ];
 
+  const bounceCueCount = Math.max(
+    1,
+    Math.min(3, Math.floor(rollWindowMs / 900))
+  );
+
+  for (let index = 0; index < bounceCueCount; index += 1) {
+    const delayMs =
+      dropDelayMs + 180 + index * Math.max(520, rollWindowMs / 3);
+
+    if (delayMs < settleDelayMs - 420) {
+      cues.push({
+        type: "dice-bounce",
+        delayMs,
+        intensity: MathUtils.clamp(0.64 - index * 0.12, 0.28, 0.64),
+        movementSpeed: MathUtils.clamp(1.9 - index * 0.42, 0.48, 1.9),
+      });
+    }
+  }
+
   const rollCueCount = Math.max(
     1,
     Math.min(5, Math.floor(rollWindowMs / 520))
