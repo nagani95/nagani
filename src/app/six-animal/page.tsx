@@ -3,7 +3,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import SixAnimalBettingSheet from "@/components/games/six-animal/SixAnimalBettingSheet";
 import ThreeDiceSequenceController from "@/components/games/six-animal/ThreeDiceSequenceController";
@@ -148,6 +148,9 @@ const [settlementWaitingRoundId, setSettlementWaitingRoundId] =
   const [isWaitingForNextRound, setIsWaitingForNextRound] = useState(false);
 const [isQuitting, setIsQuitting] = useState(false);
 const [joinedRoundId, setJoinedRoundId] = useState<string | null>(null);
+const [isBetSubmitting, setIsBetSubmitting] = useState(false);
+const [isBetCoolingDown, setIsBetCoolingDown] = useState(false);
+const betCooldownTimerRef = useRef<number | null>(null);
 
 const resultRevealTimerRef = useRef<number | null>(null);
 const settlementMomentTimerRef = useRef<number | null>(null);
@@ -674,6 +677,8 @@ const maxPlayableBetAmount = Math.min(
 const canAffordMinBet = maxPlayableBetAmount >= SIX_ANIMAL_RULES.minBet;
 
 const isBetValid =
+  !isBetSubmitting &&
+  !isBetCoolingDown &&
   canEditBet &&
   canAffordMinBet &&
   Number.isFinite(numericBetAmount) &&
@@ -1138,6 +1143,36 @@ async function handleLobbyClick() {
   router.push("/");
 }
 
+const fetchAndSyncPlayableWalletBalance = useCallback(async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    router.replace("/login");
+    return 0;
+  }
+
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance, bonus_balance")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  const nextBalance = Number(wallet?.balance ?? 0);
+  const nextBonusBalance = Number(wallet?.bonus_balance ?? 0);
+
+  const safeBalance = Number.isFinite(nextBalance) ? nextBalance : 0;
+  const safeBonusBalance = Number.isFinite(nextBonusBalance)
+    ? nextBonusBalance
+    : 0;
+
+  setWalletBalance(safeBalance);
+  setWalletBonusBalance(safeBonusBalance);
+
+  return safeBalance + safeBonusBalance;
+}, [router, supabase]);
+
 async function fetchCurrentUserBetsForRound(roundIdToCheck: string) {
   if (!roundIdToCheck) return [];
 
@@ -1284,6 +1319,42 @@ if (fetchedPlayableWalletBalance < SIX_ANIMAL_RULES.minBet) {
       supabase.removeChannel(channel);
     };
   }, [supabase]);
+
+  useEffect(() => {
+  if (showRoomIntro) return;
+  if (isWaitingForNextRound) return;
+  if (isQuitting) return;
+  if (phase !== "betting") return;
+  if (activeBets.length > 0) return;
+
+  let cancelled = false;
+
+  const enforcePlayableBalanceForNextRound = async () => {
+    const latestPlayableWalletBalance =
+      await fetchAndSyncPlayableWalletBalance();
+
+    if (cancelled) return;
+
+    if (latestPlayableWalletBalance < SIX_ANIMAL_RULES.minBet) {
+      router.replace("/cashier");
+    }
+  };
+
+  void enforcePlayableBalanceForNextRound();
+
+  return () => {
+    cancelled = true;
+  };
+}, [
+  phase,
+  roundId,
+  activeBets.length,
+  showRoomIntro,
+  isWaitingForNextRound,
+  isQuitting,
+  router,
+  fetchAndSyncPlayableWalletBalance,
+]);
 
 useEffect(() => {
   let cancelled = false;
@@ -1481,6 +1552,10 @@ useEffect(() => {
   return () => {
     diceSoundDirector.stopAll();
     stopCrowdBed();
+
+    if (betCooldownTimerRef.current) {
+      window.clearTimeout(betCooldownTimerRef.current);
+    }
 
     if (resultRevealTimerRef.current) {
       window.clearTimeout(resultRevealTimerRef.current);
@@ -1790,11 +1865,32 @@ function handleDecreaseBetAmount() {
   setSafeBetAmount(numericBetAmount - BET_AMOUNT_STEP);
 }
 
+function finishBetSubmit(startCooldown = false) {
+  isSubmittingBetRef.current = false;
+  setIsBetSubmitting(false);
+
+  if (!startCooldown) return;
+
+  setIsBetCoolingDown(true);
+
+  if (betCooldownTimerRef.current) {
+    window.clearTimeout(betCooldownTimerRef.current);
+  }
+
+  betCooldownTimerRef.current = window.setTimeout(() => {
+    setIsBetCoolingDown(false);
+    betCooldownTimerRef.current = null;
+  }, 900);
+}
+
 async function handlePlaceBet() {
   if (isSubmittingBetRef.current) return;
+  if (isBetSubmitting) return;
+  if (isBetCoolingDown) return;
   if (!isBetValid || !roundId) return;
 
   isSubmittingBetRef.current = true;
+  setIsBetSubmitting(true);
 
   const placedAmount = numericBetAmount;
 
@@ -1803,7 +1899,7 @@ async function handlePlaceBet() {
 
   if (isPairBetMode) {
     if (selectedPairOptions.length !== 2) {
-      isSubmittingBetRef.current = false;
+      finishBetSubmit();
       return;
     }
 
@@ -1823,13 +1919,13 @@ async function handlePlaceBet() {
       animal?: SixAnimalKey;
       animal_2?: SixAnimalKey | null;
       new_balance?: number;
-new_bonus_balance?: number;
-total_pair_amount?: number;
+      new_bonus_balance?: number;
+      total_pair_amount?: number;
     } | null;
 
     if (error || response?.success === false) {
       console.error("Pair bet rejected:", error?.message || response?.error);
-      isSubmittingBetRef.current = false;
+      finishBetSubmit();
       return;
     }
 
@@ -1844,13 +1940,11 @@ total_pair_amount?: number;
     );
 
     if (!normalizedAnimalOne || !normalizedAnimalTwo) {
-      isSubmittingBetRef.current = false;
+      finishBetSubmit();
       return;
     }
 
-    const nextPairAmount = Number(
-      response?.total_pair_amount ?? placedAmount
-    );
+    const nextPairAmount = Number(response?.total_pair_amount ?? placedAmount);
 
     setActiveBets((currentBets) => {
       const pairKey = getPairKey(
@@ -1894,20 +1988,20 @@ total_pair_amount?: number;
 
     playRoomSound("bet-locked");
 
-if (response?.new_balance !== undefined) {
-  setWalletBalance(response.new_balance);
-}
+    if (response?.new_balance !== undefined) {
+      setWalletBalance(response.new_balance);
+    }
 
-if (response?.new_bonus_balance !== undefined) {
-  setWalletBonusBalance(response.new_bonus_balance);
-}
+    if (response?.new_bonus_balance !== undefined) {
+      setWalletBonusBalance(response.new_bonus_balance);
+    }
 
-    isSubmittingBetRef.current = false;
+    finishBetSubmit(true);
     return;
   }
 
   if (!selectedOption) {
-    isSubmittingBetRef.current = false;
+    finishBetSubmit();
     return;
   }
 
@@ -1923,13 +2017,13 @@ if (response?.new_bonus_balance !== undefined) {
     success?: boolean;
     error?: string;
     new_balance?: number;
-new_bonus_balance?: number;
-total_animal_amount?: number;
+    new_bonus_balance?: number;
+    total_animal_amount?: number;
   } | null;
 
   if (error || response?.success === false) {
     console.error("Bet rejected:", error?.message || response?.error);
-    isSubmittingBetRef.current = false;
+    finishBetSubmit();
     return;
   }
 
@@ -1967,14 +2061,15 @@ total_animal_amount?: number;
 
   playRoomSound("bet-locked");
 
-if (response?.new_balance !== undefined) {
-  setWalletBalance(response.new_balance);
-}
+  if (response?.new_balance !== undefined) {
+    setWalletBalance(response.new_balance);
+  }
 
-if (response?.new_bonus_balance !== undefined) {
-  setWalletBonusBalance(response.new_bonus_balance);
-}
-  isSubmittingBetRef.current = false;
+  if (response?.new_bonus_balance !== undefined) {
+    setWalletBonusBalance(response.new_bonus_balance);
+  }
+
+  finishBetSubmit(true);
 }
 
 function handleInvalidBetButtonClick() {
