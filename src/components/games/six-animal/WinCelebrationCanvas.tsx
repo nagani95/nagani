@@ -42,11 +42,14 @@ export default function WinCelebrationCanvas({
   useEffect(() => {
     if (!enabled) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+const activeCanvas = canvasRef.current;
+if (!activeCanvas) return;
 
-    const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) return;
+const drawingContext = activeCanvas.getContext("2d", { alpha: true });
+if (!drawingContext) return;
+
+const canvas: HTMLCanvasElement = activeCanvas;
+const ctx: CanvasRenderingContext2D = drawingContext;
 
     let width = 0;
     let height = 0;
