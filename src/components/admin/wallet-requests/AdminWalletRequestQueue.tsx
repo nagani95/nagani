@@ -38,8 +38,8 @@ export type AdminWalletRequestItem = {
   payment_account_name: string | null;
   payment_account_number: string | null;
   profile: {
+    username: string | null;
     member_code: string | null;
-    phone: string | null;
   } | null;
 };
 
@@ -90,8 +90,8 @@ function formatTime(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-function formatMemberId(memberCode?: string | null) {
-  return memberCode || "—";
+function formatMemberId(profileId: string, memberCode?: string | null) {
+  return memberCode || `NG-${profileId.slice(0, 8).toUpperCase()}`;
 }
 
 function formatRequestType(type: AdminWalletRequestType) {
@@ -566,8 +566,11 @@ export default function AdminWalletRequestQueue({
                 ) : null}
 
                 {requests.map((request) => {
-                  const memberId = formatMemberId(request.profile?.member_code);
-                  const phoneLabel = request.profile?.phone || "—";
+                  const memberId = formatMemberId(
+                    request.profile_id,
+                    request.profile?.member_code
+                  );
+                  const phoneLabel = request.profile?.username || "—";
 const withdrawNoteFields = readWithdrawNoteFields(request.note);
 const isDeposit = request.request_type === "deposit";
 

@@ -26,8 +26,8 @@ type WalletRequestRow = Omit<
 
 type ProfileRow = {
   id: string;
+  username: string | null;
   member_code: string | null;
-  phone: string | null;
 };
 
 type WalletRow = {
@@ -91,7 +91,7 @@ function matchesRequestSearch(
     request.id,
     request.profile_id,
     profile?.member_code,
-    profile?.phone,
+    profile?.username,
     request.request_type,
     request.status,
     String(request.amount),
@@ -186,7 +186,7 @@ export default async function AdminWalletRequestsPage({
     profileIds.length > 0
       ? await supabase
           .from("profiles")
-          .select("id, member_code, phone")
+          .select("id, username, member_code")
           .in("id", profileIds)
           .returns<ProfileRow[]>()
       : { data: [], error: null };
