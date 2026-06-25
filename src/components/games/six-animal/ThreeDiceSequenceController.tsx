@@ -9,6 +9,7 @@ import ThreeDicePhysicsStage, {
   type CapturedDiceResult,
   type DiceAnimalLabel,
   type DiceFaceResult,
+  type DiceTableAudioEvent,
   type HeldRecordedTrajectoryDice,
   type MountedDiceRackMode,
   type ThreeDiceRoundPayload,
@@ -38,6 +39,10 @@ type ThreeDiceSequenceControllerProps = {
     visualRoundId?: string | null
   ) => void;
   onDiceDrop?: (dieNumber: number, visualRoundId?: string | null) => void;
+    onDiceAudioEvent?: (
+    event: DiceTableAudioEvent,
+    visualRoundId?: string | null
+  ) => void;
   visualRoundId?: string | null;
   className?: string;
   showInternalResultStrip?: boolean;
@@ -115,6 +120,7 @@ export default function ThreeDiceSequenceController({
   onComplete,
   onProgress,
   onDiceDrop,
+  onDiceAudioEvent,
   visualRoundId = null,
   className = "",
   showInternalResultStrip = true,
@@ -157,6 +163,7 @@ export default function ThreeDiceSequenceController({
   const onProgressRef = useRef(onProgress);
   const onCompleteRef = useRef(onComplete);
   const onDiceDropRef = useRef(onDiceDrop);
+  const onDiceAudioEventRef = useRef(onDiceAudioEvent);
   const lastDiceDropSoundKeyRef = useRef<string | null>(null);
 
   function clearTimers() {
@@ -307,6 +314,18 @@ return {
     onDiceDropRef.current = onDiceDrop;
   }, [onDiceDrop]);
 
+    useEffect(() => {
+    onDiceAudioEventRef.current = onDiceAudioEvent;
+  }, [onDiceAudioEvent]);
+
+  const handleDiceAudioEvent = useCallback((event: DiceTableAudioEvent) => {
+    const ownerRoundId = activeVisualRoundIdRef.current;
+
+    if (!ownerRoundId) return;
+
+    onDiceAudioEventRef.current?.(event, ownerRoundId);
+  }, []);
+
   useEffect(() => {
     return () => {
       clearTimers();
@@ -405,7 +424,10 @@ return {
     if (capturedDieNumbersRef.current.has(dieNumber)) return;
 
     lastDiceDropSoundKeyRef.current = soundKey;
-    onDiceDropRef.current?.(dieNumber, ownerRoundId);
+
+    if (!onDiceAudioEventRef.current) {
+      onDiceDropRef.current?.(dieNumber, ownerRoundId);
+    }
   }, [
     visualSequenceAllowed,
     sequenceRunning,
@@ -570,7 +592,8 @@ const heldRecordedTrajectoryDice: HeldRecordedTrajectoryDice[] = [];
         recordedTrajectoryFrames={stageRecordedFrames}
 recordedTrajectoryReplayKey={resetKey}
 heldRecordedTrajectoryDice={heldRecordedTrajectoryDice}
-enableV1PhysicalRelease={false}
+        enableV1PhysicalRelease={false}
+        onDiceAudioEvent={handleDiceAudioEvent}
       />
 
       <div className="pointer-events-none absolute inset-x-6 bottom-12 z-10 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/35 to-transparent" />

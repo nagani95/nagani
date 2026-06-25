@@ -37,6 +37,26 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
+function readWithdrawNoteFields(note: string) {
+  const lines = note.split("\n");
+
+  const readLine = (label: string) => {
+    const prefix = `${label}:`;
+    return (
+      lines
+        .find((line) => line.trim().startsWith(prefix))
+        ?.replace(prefix, "")
+        .trim() ?? ""
+    );
+  };
+
+  return {
+    paymentType: readLine("ငွေလက်ခံမည့်အမျိုးအစား"),
+    accountPhone: readLine("အကောင့်/ဖုန်းနံပါတ်"),
+    holderName: readLine("အကောင့်ပိုင်ရှင်အမည်"),
+  };
+}
+
 function CashierPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -56,6 +76,8 @@ const [withdrawalUnlocked, setWithdrawalUnlocked] = useState(false);
   const [activeTab, setActiveTab] = useState<CashierTab>("deposit");
   const [amount, setAmount] = useState("10000");
   const [note, setNote] = useState("");
+  const [withdrawPassword, setWithdrawPassword] = useState("");
+  const [formErrorMessage, setFormErrorMessage] = useState("");
 
   const walletAddress =
     walletAddresses.find((item) => item.id === selectedWalletAddressId) ??
@@ -81,6 +103,8 @@ const isValidAmount =
 
 const canSubmitWalletRequest =
   isValidAmount && (activeTab === "deposit" || withdrawalUnlocked);
+
+  const displayErrorMessage = formErrorMessage || errorMessage;
 
   const actionLabel = useMemo(() => {
     return activeTab === "deposit" ? "ငွေသွင်း တင်မည်" : "ငွေထုတ် တင်မည်";
@@ -149,6 +173,8 @@ async function handleRefreshWallet() {
     setActiveTab(tab);
     setCopyStatus("");
     setNote("");
+    setWithdrawPassword("");
+    setFormErrorMessage("");
   }
 
   function handleAmountChange(value: string) {
@@ -191,6 +217,41 @@ async function handleRefreshWallet() {
     const cleanNote = note.trim();
     const isDeposit = activeTab === "deposit";
 
+    if (!isDeposit) {
+      const withdrawFields = readWithdrawNoteFields(cleanNote);
+
+      if (
+        !withdrawFields.paymentType ||
+        !withdrawFields.accountPhone ||
+        !withdrawFields.holderName
+      ) {
+        setFormErrorMessage("ငွေလက်ခံမည့်အချက်အလက် ပြည့်စုံစွာထည့်ပါ");
+        return;
+      }
+
+      if (!withdrawPassword.trim()) {
+        setFormErrorMessage("ငွေထုတ်ရန် အကောင့်စကားဝှက် ထည့်ပါ");
+        return;
+      }
+
+      if (!user.email) {
+        setFormErrorMessage("အကောင့်ပြန်ဝင်ရန် လိုအပ်ပါသည်");
+        return;
+      }
+
+      const { error: passwordError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: withdrawPassword,
+      });
+
+      if (passwordError) {
+        setFormErrorMessage("စကားဝှက် မှားနေပါသည်");
+        return;
+      }
+    }
+
+    setFormErrorMessage("");
+
     const { error } = await supabase.from("wallet_requests").insert({
       profile_id: user.id,
       request_type: activeTab,
@@ -220,6 +281,8 @@ async function handleRefreshWallet() {
 
     setAmount("10000");
     setNote("");
+    setWithdrawPassword("");
+    setFormErrorMessage("");
     router.replace("/cashier?message=1");
   }
 
@@ -236,7 +299,7 @@ async function handleRefreshWallet() {
   isRefreshing={isRefreshingWallet}
 />
 
-        {(successMessage || errorMessage) && (
+        {(successMessage || displayErrorMessage) && (
           <div className="pointer-events-none fixed inset-x-5 top-[calc(env(safe-area-inset-top)+3.25rem)] z-30 mx-auto max-w-md">
             {successMessage ? (
               <div className="rounded-full border border-[#d6a84f]/32 bg-[linear-gradient(145deg,rgba(40,24,8,0.92),rgba(10,5,2,0.94))] px-4 py-2 text-center text-xs font-bold text-[#ffd77a] shadow-xl shadow-black/45 backdrop-blur">
@@ -244,9 +307,9 @@ async function handleRefreshWallet() {
               </div>
             ) : null}
 
-            {errorMessage ? (
+            {displayErrorMessage ? (
               <div className="rounded-full border border-red-300/25 bg-[linear-gradient(145deg,rgba(70,10,10,0.9),rgba(18,3,3,0.94))] px-4 py-2 text-center text-xs font-bold text-red-100 shadow-xl shadow-black/45 backdrop-blur">
-                တင်သွင်းမှု မအောင်မြင်ပါ။ ပြန်စစ်ပါ။
+                {formErrorMessage || "တင်သွင်းမှု မအောင်မြင်ပါ။ ပြန်စစ်ပါ။"}
               </div>
             ) : null}
           </div>
@@ -259,9 +322,11 @@ async function handleRefreshWallet() {
           amountLabel={formatMMK(numericAmount)}
           actionLabel={actionLabel}
           isValidAmount={canSubmitWalletRequest}
+          withdrawPassword={withdrawPassword}
           onTabChange={handleTabChange}
           onAmountChange={handleAmountChange}
           onNoteChange={handleNoteChange}
+          onWithdrawPasswordChange={setWithdrawPassword}
           onSubmitRequest={handleSubmitRequest}
         />
 
@@ -383,9 +448,9 @@ async function handleRefreshWallet() {
     ငွေထုတ်ရန် အချက်အလက်
   </p>
 <p className="relative mt-1.5 text-xs font-bold leading-5 text-[#fff1c2]/82">
-  {withdrawalUnlocked
-    ? "အကောင့်အမည် / ဖုန်းနံပါတ်ကို မှတ်ချက်ထဲတွင် ထည့်ပါ။"
-    : "၃,၀၀၀ ကျပ်မှစ၍ ငွေဖြည့်ပြီး ၁ ပွဲကစားပြီးမှ ငွေထုတ်နိုင်ပါသည်။"}
+{withdrawalUnlocked
+  ? "ငွေလက်ခံမည့်အမျိုးအစား၊ ဖုန်းနံပါတ်၊ အမည်နှင့် စကားဝှက်ကို ဖြည့်ပါ။"
+  : "၃,၀၀၀ ကျပ်မှစ၍ ငွေဖြည့်ပြီး ၁ ပွဲကစားပြီးမှ ငွေထုတ်နိုင်ပါသည်။"}
 </p>
 </section>
         )}

@@ -92,6 +92,20 @@ export type ThreeDiceRoundPayload = {
   results: DiceAnimalLabel[];
 };
 
+export type DiceTableAudioEventType =
+  | "dice-drop"
+  | "dice-bounce"
+  | "dice-roll"
+  | "dice-settle";
+
+export type DiceTableAudioEvent = {
+  type: DiceTableAudioEventType;
+  dieIndex: number;
+  intensity: number;
+  rollAgeMs: number;
+  movementSpeed: number;
+};
+
 export type HeldRecordedTrajectoryDice = {
   dieIndex: number;
   frames: DiceTrajectoryFrame[];
@@ -740,6 +754,76 @@ function getRecorderReleasePattern(index: number): RecorderReleasePattern {
   ];
 }
 
+type RecordedDiceAudioCue = {
+  type: DiceTableAudioEventType;
+  delayMs: number;
+  intensity: number;
+  movementSpeed: number;
+};
+
+function createRecordedDiceAudioCues(
+  frames: DiceTrajectoryFrame[]
+): RecordedDiceAudioCue[] {
+  const finalFrame = frames[frames.length - 1];
+
+  if (!finalFrame) return [];
+
+  const firstContactFrame = frames.find(
+    (frame, index) => index > 2 && frame.position[1] <= 0.82
+  );
+
+  const dropDelayMs = MathUtils.clamp(
+    Math.round((firstContactFrame?.t ?? 0.42) * 1000),
+    180,
+    1450
+  );
+
+  const settleDelayMs = MathUtils.clamp(
+    Math.round(finalFrame.t * 1000),
+    dropDelayMs + 520,
+    11800
+  );
+
+  const rollWindowMs = settleDelayMs - dropDelayMs;
+
+  const cues: RecordedDiceAudioCue[] = [
+    {
+      type: "dice-drop",
+      delayMs: dropDelayMs,
+      intensity: 0.72,
+      movementSpeed: 2.4,
+    },
+  ];
+
+  const rollCueCount = Math.max(
+    1,
+    Math.min(5, Math.floor(rollWindowMs / 520))
+  );
+
+  for (let index = 0; index < rollCueCount; index += 1) {
+    const delayMs =
+      dropDelayMs + 260 + index * Math.max(220, rollWindowMs / rollCueCount);
+
+    if (delayMs < settleDelayMs - 220) {
+      cues.push({
+        type: "dice-roll",
+        delayMs,
+        intensity: MathUtils.clamp(0.38 - index * 0.045, 0.16, 0.38),
+        movementSpeed: MathUtils.clamp(1.15 - index * 0.12, 0.35, 1.15),
+      });
+    }
+  }
+
+  cues.push({
+    type: "dice-settle",
+    delayMs: settleDelayMs,
+    intensity: 0.34,
+    movementSpeed: 0.12,
+  });
+
+  return cues;
+}
+
 function DiceCube({
   resetKey,
   onSettledChange,
@@ -759,6 +843,7 @@ shadowLaunchRecipe = null,
 trajectoryRecorderEnabled = false,
 trajectoryRecorderRunNonce = 0,
 onTrajectoryRecorderComplete = null,
+onDiceAudioEvent = null,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -780,6 +865,7 @@ hideActiveDiceFaces?: boolean;
   | ((recording: DiceTrajectoryRecorderComplete) => void)
   | null;
 trajectoryRecorderRunNonce?: number;
+onDiceAudioEvent?: ((event: DiceTableAudioEvent) => void) | null;
 }) {
 const bodyRef = useRef<RapierRigidBody | null>(null);
 const stillTimeRef = useRef(0);
@@ -792,10 +878,44 @@ const softHoldStartedAtRef = useRef<number | null>(null);
 const trajectoryFramesRef = useRef<DiceTrajectoryFrame[]>([]);
 const trajectoryLastSampleSecondRef = useRef(-1);
 const trajectoryCompletedRef = useRef(false);
+const lastCollisionAudioAtRef = useRef(0);
+const firstImpactAudioPlayedRef = useRef(false);
+const lastRollAudioAtRef = useRef(0);
+const lastSettleAudioAtRef = useRef(0);
 
 const collider = getDiceColliderConfig(diceColliderPreset);
 const activeDieX = DICE_HOLDER_X_POSITIONS[activeDieIndex] ?? 0;
 const table = createTableMeasurements();
+
+function emitDiceAudioEvent(
+  type: DiceTableAudioEventType,
+  intensity: number,
+  movementSpeed: number
+) {
+  if (!onDiceAudioEvent) return;
+
+  onDiceAudioEvent({
+    type,
+    dieIndex: activeDieIndex,
+    intensity: MathUtils.clamp(intensity, 0, 1),
+    rollAgeMs: Math.max(0, performance.now() - rollStartedAtRef.current),
+    movementSpeed: Math.max(0, movementSpeed),
+  });
+}
+
+function emitDiceSettleAudio(movementSpeed: number) {
+  const now = performance.now();
+
+  if (now - lastSettleAudioAtRef.current < 420) return;
+
+  lastSettleAudioAtRef.current = now;
+
+  emitDiceAudioEvent(
+    "dice-settle",
+    MathUtils.clamp(0.24 + movementSpeed * 0.12, 0.22, 0.48),
+    movementSpeed
+  );
+}
 
 const hasShadowLaunchRecipe = Boolean(shadowLaunchRecipe);
 
@@ -987,6 +1107,11 @@ trajectoryFramesRef.current = [];
 trajectoryLastSampleSecondRef.current = -1;
 trajectoryCompletedRef.current = false;
 
+lastCollisionAudioAtRef.current = 0;
+firstImpactAudioPlayedRef.current = false;
+lastRollAudioAtRef.current = 0;
+lastSettleAudioAtRef.current = 0;
+
 onSettledChange(false);
 onFaceResultChange(null);
 
@@ -1172,6 +1297,25 @@ const movementSpeed =
       Math.abs(angvel.y) * 0.15 +
       Math.abs(angvel.z) * 0.15;
 
+const position = body.translation();
+const audioNow = performance.now();
+
+if (
+  !settledRef.current &&
+  rollAgeMs > 340 &&
+  position.y < 0.86 &&
+  movementSpeed > 0.58 &&
+  audioNow - lastRollAudioAtRef.current > 230
+) {
+  lastRollAudioAtRef.current = audioNow;
+
+  emitDiceAudioEvent(
+    "dice-roll",
+    MathUtils.clamp(movementSpeed / 4.2, 0.14, 0.42),
+    movementSpeed
+  );
+}
+
       if (settledRef.current) {
   const holdAgeMs = softHoldStartedAtRef.current
     ? performance.now() - softHoldStartedAtRef.current
@@ -1221,6 +1365,7 @@ stillTimeRef.current = 999;
 softHoldStartedAtRef.current = performance.now();
 
 softenVisibleDiceBody(body);
+emitDiceSettleAudio(movementSpeed);
 
 completeTrajectoryRecording({
   body,
@@ -1383,6 +1528,7 @@ stillTimeRef.current = 999;
 softHoldStartedAtRef.current = performance.now();
 
 softenVisibleDiceBody(body);
+emitDiceSettleAudio(movementSpeed);
 
 const defaultMessage = hasStableVisibleFace
   ? "Stable visible dice face captured and held."
@@ -1423,6 +1569,7 @@ if (stillTimeRef.current > 1.35 && !settledRef.current) {
 
   softHoldStartedAtRef.current = performance.now();
 softenVisibleDiceBody(body);
+emitDiceSettleAudio(movementSpeed);
 
 const rawCapturedResult = strictReadableResultGate
   ? createStrictReadableVisibleResult(visibleResult)
@@ -1464,9 +1611,41 @@ const useV1LiveReleaseMaterial =
   hasShadowLaunchRecipe;
 
   return (
-    <RigidBody
-      ref={bodyRef}
-      key={resetKey}
+<RigidBody
+  ref={bodyRef}
+  key={resetKey}
+  onCollisionEnter={() => {
+    const body = bodyRef.current;
+
+    if (!body || settledRef.current) return;
+
+    const now = performance.now();
+
+    if (now - lastCollisionAudioAtRef.current < 90) return;
+
+    const linvel = body.linvel();
+    const angvel = body.angvel();
+
+    const impactSpeed =
+      Math.abs(linvel.y) * 1.15 +
+      (Math.abs(linvel.x) + Math.abs(linvel.z)) * 0.38 +
+      (Math.abs(angvel.x) + Math.abs(angvel.y) + Math.abs(angvel.z)) * 0.045;
+
+    if (impactSpeed < 0.46) return;
+
+    lastCollisionAudioAtRef.current = now;
+
+    const eventType: DiceTableAudioEventType =
+      firstImpactAudioPlayedRef.current ? "dice-bounce" : "dice-drop";
+
+    firstImpactAudioPlayedRef.current = true;
+
+    emitDiceAudioEvent(
+      eventType,
+      MathUtils.clamp(impactSpeed / 4.2, 0.18, 1),
+      impactSpeed
+    );
+  }}
       colliders={false}
       ccd
 position={activeHolderStartPosition}
@@ -1676,6 +1855,7 @@ shadowLaunchRecipe = null,
 trajectoryRecorderEnabled = false,
 trajectoryRecorderRunNonce = 0,
 onTrajectoryRecorderComplete = null,
+onDiceAudioEvent = null,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -1707,6 +1887,7 @@ trajectoryRecorderRunNonce?: number;
 onTrajectoryRecorderComplete?:
   | ((recording: DiceTrajectoryRecorderComplete) => void)
   | null;
+  onDiceAudioEvent?: ((event: DiceTableAudioEvent) => void) | null;
 }) {
   const hasShadowLaunchRecipe = Boolean(shadowLaunchRecipe);
 
@@ -1725,6 +1906,35 @@ onTrajectoryRecorderComplete?:
     const activeDevPhysicalReleaseEnabled =
   devPhysicalReleaseEnabled && testMode === "trap" && !hasRecordedTrajectory;
   
+useEffect(() => {
+  if (!shouldRenderRecordedDice || !recordedTrajectoryFrames || !onDiceAudioEvent) {
+    return;
+  }
+
+  const cues = createRecordedDiceAudioCues(recordedTrajectoryFrames);
+
+  const timers = cues.map((cue) =>
+    window.setTimeout(() => {
+      onDiceAudioEvent({
+        type: cue.type,
+        dieIndex: activeDieIndex,
+        intensity: cue.intensity,
+        rollAgeMs: cue.delayMs,
+        movementSpeed: cue.movementSpeed,
+      });
+    }, cue.delayMs)
+  );
+
+  return () => {
+    timers.forEach((timer) => window.clearTimeout(timer));
+  };
+}, [
+  activeDieIndex,
+  onDiceAudioEvent,
+  recordedTrajectoryFrames,
+  recordedTrajectoryReplayKey,
+  shouldRenderRecordedDice,
+]);
 
   return (
     <>
@@ -1819,6 +2029,7 @@ devPhysicalReleaseEnabled={activeDevPhysicalReleaseEnabled}
   trajectoryRecorderEnabled={trajectoryRecorderEnabled}
   trajectoryRecorderRunNonce={trajectoryRecorderRunNonce}
   onTrajectoryRecorderComplete={onTrajectoryRecorderComplete}
+  onDiceAudioEvent={onDiceAudioEvent}
 />
 ) : null}
       </Physics>
@@ -1871,6 +2082,7 @@ shadowLaunchRecipe = null,
 trajectoryRecorderEnabled = false,
 trajectoryRecorderRunNonce = 0,
 onTrajectoryRecorderComplete = null,
+onDiceAudioEvent = null,
 }: {
   resetKey: number;
   onSettledChange: (settled: boolean) => void;
@@ -1902,6 +2114,7 @@ trajectoryRecorderRunNonce?: number;
 onTrajectoryRecorderComplete?:
   | ((recording: DiceTrajectoryRecorderComplete) => void)
   | null;
+  onDiceAudioEvent?: ((event: DiceTableAudioEvent) => void) | null;
 }) {
 const effectiveDiceShapePreset: DiceShapePreset =
   variant === "lab" ? diceShapePreset : PRODUCTION_DICE_SHAPE_PRESET;
@@ -1967,6 +2180,7 @@ devPhysicalReleaseEnabled={devPhysicalReleaseEnabled}
   trajectoryRecorderEnabled={trajectoryRecorderEnabled}
   trajectoryRecorderRunNonce={trajectoryRecorderRunNonce}
   onTrajectoryRecorderComplete={onTrajectoryRecorderComplete}
+  onDiceAudioEvent={onDiceAudioEvent}
 />
     </Canvas>
   );

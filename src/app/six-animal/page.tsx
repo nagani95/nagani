@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import SixAnimalBettingSheet from "@/components/games/six-animal/SixAnimalBettingSheet";
 import ThreeDiceSequenceController from "@/components/games/six-animal/ThreeDiceSequenceController";
 import type {
+  DiceTableAudioEvent,
   MountedDiceRackMode,
   ThreeDiceRoundPayload,
 } from "@/components/games/six-animal/ThreeDicePhysicsStage";
@@ -68,6 +69,38 @@ const ROYAL_CHAMBER_WALLPAPER_SRC =
 
 const ROYAL_CHAMBER_VIDEO_SRC =
   "/assets/nagani/six-animal/room/royal-chamber-loop-v1.mp4";
+
+type RoomAtmosphereSoundKey =
+  | "crowdBed"
+  | "crowdReactionSoft1"
+  | "crowdReactionSoft2"
+  | "resultCelebrateSmall"
+  | "resultCelebrateBig"
+  | "resultCalm";
+
+const ROOM_ATMOSPHERE_SOUND_SRC: Record<RoomAtmosphereSoundKey, string> = {
+  crowdBed:
+    "/assets/nagani/sounds/six-animal/room/crowd-bed-soft-v1.mp3",
+  crowdReactionSoft1:
+    "/assets/nagani/sounds/six-animal/room/crowd-reaction-soft-01.mp3",
+  crowdReactionSoft2:
+    "/assets/nagani/sounds/six-animal/room/crowd-reaction-soft-02.mp3",
+  resultCelebrateSmall:
+    "/assets/nagani/sounds/six-animal/room/result-celebrate-small-v1.mp3",
+  resultCelebrateBig:
+    "/assets/nagani/sounds/six-animal/room/result-celebrate-big-v1.mp3",
+  resultCalm:
+    "/assets/nagani/sounds/six-animal/room/result-calm-v1.mp3",
+};
+
+const ROOM_ATMOSPHERE_VOLUME: Record<RoomAtmosphereSoundKey, number> = {
+  crowdBed: 0.075,
+  crowdReactionSoft1: 0.14,
+  crowdReactionSoft2: 0.12,
+  resultCelebrateSmall: 0.28,
+  resultCelebrateBig: 0.38,
+  resultCalm: 0.18,
+};
 
 export default function SixAnimalPage() {
   const router = useRouter();
@@ -130,6 +163,12 @@ const roomAudioPoolRef = useRef<
 const resultAnimalAudioPoolRef = useRef<
   Partial<Record<SixAnimalKey, HTMLAudioElement>>
 >({});
+const roomAtmosphereAudioPoolRef = useRef<
+  Partial<Record<RoomAtmosphereSoundKey, HTMLAudioElement>>
+>({});
+const crowdBedAudioRef = useRef<HTMLAudioElement | null>(null);
+const crowdReactionTimerRef = useRef<number | null>(null);
+const lastCrowdReactionAtRef = useRef(0);
 const lastPhaseSoundKeyRef = useRef<string | null>(null);
 const lastUrgentCountdownSecondRef = useRef<number | null>(null);
 const {
@@ -886,6 +925,105 @@ function playResultAnimalSoundByNameMm(nameMm: string) {
   playResultAnimalSound(animal.key);
 }
 
+function getRoomAtmosphereAudio(soundKey: RoomAtmosphereSoundKey) {
+  const existingAudio = roomAtmosphereAudioPoolRef.current[soundKey];
+
+  if (existingAudio) {
+    return existingAudio;
+  }
+
+  const audio = new Audio(ROOM_ATMOSPHERE_SOUND_SRC[soundKey]);
+  audio.preload = "auto";
+  audio.volume = ROOM_ATMOSPHERE_VOLUME[soundKey];
+
+  roomAtmosphereAudioPoolRef.current[soundKey] = audio;
+
+  return audio;
+}
+
+function playRoomAtmosphereSound(
+  soundKey: RoomAtmosphereSoundKey,
+  volumeBoost = 1
+) {
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+
+  const audio = getRoomAtmosphereAudio(soundKey);
+
+  try {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = Math.min(
+      0.5,
+      ROOM_ATMOSPHERE_VOLUME[soundKey] * volumeBoost
+    );
+
+    void audio.play().catch(() => {
+      // Browser may still block audio on some devices.
+    });
+  } catch {
+    // Atmosphere audio must never block game flow.
+  }
+}
+
+function startCrowdBed() {
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+
+  const existingCrowdBed = crowdBedAudioRef.current;
+
+  if (existingCrowdBed && !existingCrowdBed.paused) {
+    return;
+  }
+
+  const audio = getRoomAtmosphereAudio("crowdBed");
+
+  crowdBedAudioRef.current = audio;
+
+  audio.loop = true;
+  audio.volume = ROOM_ATMOSPHERE_VOLUME.crowdBed;
+
+  void audio.play().catch(() => {
+    // Keep silent fail.
+  });
+}
+
+function stopCrowdBed() {
+  const audio = crowdBedAudioRef.current;
+
+  if (!audio) return;
+
+  try {
+    audio.pause();
+    audio.currentTime = 0;
+  } catch {
+    // Safe cleanup.
+  }
+}
+
+function scheduleSoftCrowdReaction(delayMs = 900) {
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+
+  if (crowdReactionTimerRef.current) {
+    window.clearTimeout(crowdReactionTimerRef.current);
+  }
+
+  crowdReactionTimerRef.current = window.setTimeout(() => {
+    crowdReactionTimerRef.current = null;
+
+    const now = performance.now();
+
+    if (now - lastCrowdReactionAtRef.current < 2800) return;
+
+    lastCrowdReactionAtRef.current = now;
+
+    playRoomAtmosphereSound(
+      Math.random() > 0.45 ? "crowdReactionSoft1" : "crowdReactionSoft2"
+    );
+  }, delayMs);
+}
+
 function playNewResultAnimalSounds(resultNames: string[]) {
   if (resultNames.length <= lastDiceSoundCountRef.current) return;
 
@@ -969,6 +1107,20 @@ function unlockRoomAudio() {
     getResultAnimalAudio(animalKey).load();
   }
 );
+
+  (Object.keys(ROOM_ATMOSPHERE_SOUND_SRC) as RoomAtmosphereSoundKey[]).forEach(
+    (soundKey) => {
+      getRoomAtmosphereAudio(soundKey).load();
+    }
+  );
+
+  if (
+    !showRoomIntroRef.current &&
+    !isWaitingForNextRoundRef.current &&
+    !isQuittingRef.current
+  ) {
+    startCrowdBed();
+  }
 
   playCurrentPhaseSound();
   syncBackgroundMusic();
@@ -1319,11 +1471,16 @@ const phaseSoundEvent: SixAnimalSoundEvent | null =
 
   lastPhaseSoundKeyRef.current = soundKey;
   playRoomSound(phaseSoundEvent);
+
+  if (phaseSoundEvent === "bets-closed") {
+    scheduleSoftCrowdReaction(650);
+  }
 }, [phase, roundId, isWaitingForNextRound, gameSoundEnabled]);
 
 useEffect(() => {
   return () => {
     diceSoundDirector.stopAll();
+    stopCrowdBed();
 
     if (resultRevealTimerRef.current) {
       window.clearTimeout(resultRevealTimerRef.current);
@@ -1332,8 +1489,30 @@ useEffect(() => {
     if (settlementMomentTimerRef.current) {
       window.clearTimeout(settlementMomentTimerRef.current);
     }
+
+    if (crowdReactionTimerRef.current) {
+      window.clearTimeout(crowdReactionTimerRef.current);
+    }
   };
 }, []);
+
+useEffect(() => {
+  if (!gameSoundEnabled) return;
+
+  if (
+    roomAudioUnlockedRef.current &&
+    !showRoomIntro &&
+    !isWaitingForNextRound &&
+    !isQuitting
+  ) {
+    startCrowdBed();
+    return;
+  }
+
+  if (showRoomIntro || isQuitting) {
+    stopCrowdBed();
+  }
+}, [gameSoundEnabled, showRoomIntro, isWaitingForNextRound, isQuitting]);
 
 function hasWinningSettlementResult(resultNames: string[]) {
   if (activeBets.length === 0) return false;
@@ -1350,14 +1529,49 @@ function hasWinningSettlementResult(resultNames: string[]) {
   });
 }
 
-function playSettlementResultSound(resultNames: string[]) {
-  if (activeBets.length === 0) return;
+function getSettlementProfitFromResultNames(resultNames: string[]) {
+  return activeBets.reduce((sum, bet) => {
+    if (bet.betType === "pair" && bet.animalNameMm2) {
+      const isPairWin =
+        resultNames.includes(bet.animalNameMm) &&
+        resultNames.includes(bet.animalNameMm2);
 
-  playRoomSound(
-    hasWinningSettlementResult(resultNames)
-      ? "settlement-win"
-      : "settlement-lose"
+      return sum + (isPairWin ? bet.amount * 4 : 0);
+    }
+
+    const matchCount = resultNames.filter(
+      (nameMm) => nameMm === bet.animalNameMm
+    ).length;
+
+    return sum + bet.amount * matchCount;
+  }, 0);
+}
+
+function playSettlementResultSound(resultNames: string[]) {
+  if (activeBets.length === 0) {
+    playRoomAtmosphereSound("resultCalm");
+    return;
+  }
+
+  const isWinningResult = hasWinningSettlementResult(resultNames);
+
+  playRoomSound(isWinningResult ? "settlement-win" : "settlement-lose");
+
+  if (!isWinningResult) {
+    playRoomAtmosphereSound("resultCalm");
+    scheduleSoftCrowdReaction(520);
+    return;
+  }
+
+  const totalProfit = getSettlementProfitFromResultNames(resultNames);
+
+  playRoomAtmosphereSound(
+    totalProfit >= totalActiveBetAmount * 2
+      ? "resultCelebrateBig"
+      : "resultCelebrateSmall"
   );
+
+  scheduleSoftCrowdReaction(420);
 }
 
 function handleThreeDiceComplete(
@@ -1457,6 +1671,24 @@ function handleDiceDrop(
   }
 
   diceSoundDirector.startDie(dieNumber);
+}
+
+function handleDiceTableAudioEvent(
+  event: DiceTableAudioEvent,
+  payloadRoundId?: string | null
+) {
+  if (
+    !payloadRoundId ||
+    payloadRoundId !== visualActiveRoundIdRef.current ||
+    payloadRoundId !== roundIdRef.current
+  ) {
+    return;
+  }
+
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+
+  diceSoundDirector.handleTableAudioEvent(event);
 }
 
 function handleThreeDiceProgress(
@@ -1890,6 +2122,7 @@ style={{
   onComplete={handleThreeDiceComplete}
                   onProgress={handleThreeDiceProgress}
                   onDiceDrop={handleDiceDrop}
+                  onDiceAudioEvent={handleDiceTableAudioEvent}
                   className="h-full min-h-[500px] w-full"
                   showInternalResultStrip={false}
                   mountedDiceRackMode={effectiveMountedDiceRackMode}

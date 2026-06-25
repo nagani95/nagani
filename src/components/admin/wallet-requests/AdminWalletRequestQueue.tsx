@@ -106,6 +106,32 @@ function formatRequestStatus(status: AdminWalletRequestStatus) {
   return "Pending";
 }
 
+type WithdrawNoteFields = {
+  paymentType: string;
+  accountPhone: string;
+  holderName: string;
+};
+
+function readWithdrawNoteFields(note: string | null): WithdrawNoteFields {
+  const lines = (note ?? "").split("\n");
+
+  const readLine = (label: string) => {
+    const prefix = `${label}:`;
+    return (
+      lines
+        .find((line) => line.trim().startsWith(prefix))
+        ?.replace(prefix, "")
+        .trim() ?? ""
+    );
+  };
+
+  return {
+    paymentType: readLine("ငွေလက်ခံမည့်အမျိုးအစား"),
+    accountPhone: readLine("အကောင့်/ဖုန်းနံပါတ်"),
+    holderName: readLine("အကောင့်ပိုင်ရှင်အမည်"),
+  };
+}
+
 function getStatusClass(status: AdminWalletRequestStatus) {
   if (status === "approved") {
     return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
@@ -545,11 +571,31 @@ export default function AdminWalletRequestQueue({
                     request.profile?.member_code
                   );
                   const phoneLabel = request.profile?.username || "—";
-                  const providerLabel = getPaymentProviderLabel(request);
-                  const accountName = request.payment_account_name || "—";
-                  const accountNumber = request.payment_account_number || "—";
-                  const playerNote = request.note?.trim() || "—";
-                  const isDeposit = request.request_type === "deposit";
+const withdrawNoteFields = readWithdrawNoteFields(request.note);
+const isDeposit = request.request_type === "deposit";
+
+const providerLabel = isDeposit
+  ? getPaymentProviderLabel(request)
+  : request.payment_provider_name ||
+    request.payment_provider_key ||
+    withdrawNoteFields.paymentType ||
+    "—";
+
+const accountNumber = isDeposit
+  ? request.payment_account_number || "—"
+  : request.payment_account_number ||
+    withdrawNoteFields.accountPhone ||
+    "—";
+
+const accountName = isDeposit
+  ? request.payment_account_name || "—"
+  : request.payment_account_name ||
+    withdrawNoteFields.holderName ||
+    "—";
+
+const playerNote = isDeposit
+  ? request.note?.trim() || "—"
+  : "ငွေထုတ်အချက်အလက် စစ်ဆေးပါ";
                   const requestAmount = Number(request.amount ?? 0);
 const currentBalance = Number(request.current_balance ?? 0);
 const afterApproveBalance = isDeposit
