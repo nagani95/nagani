@@ -22,6 +22,7 @@ import SixAnimalLeavingRoomOverlay from "@/components/games/six-animal/SixAnimal
 import SixAnimalBettingCommandPanel from "@/components/games/six-animal/SixAnimalBettingCommandPanel";
 import SixAnimalRoomWaitLayer from "@/components/games/six-animal/SixAnimalRoomWaitLayer";
 import SixAnimalRoomBootGate from "@/components/games/six-animal/SixAnimalRoomBootGate";
+import WinCelebrationCanvas from "@/components/games/six-animal/WinCelebrationCanvas";
 import { SIX_ANIMAL_OPTIONS, SIX_ANIMAL_RULES } from "@/lib/gameRules";
 import { createClient } from "@/lib/supabase/client";
 import type { SixAnimalKey } from "@/types/games";
@@ -2132,6 +2133,11 @@ style={{
   onFullscreenToggle={handleFullscreenToggle}
 />
 ) : null}
+
+<WinCelebrationCanvas
+  enabled={showSettlementSheet && isResultWin}
+  effectKey={roundId}
+/>
 
 {showExitConfirm ? (
   <SixAnimalExitConfirm
