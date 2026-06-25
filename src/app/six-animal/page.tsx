@@ -1412,7 +1412,18 @@ function playSettlementResultSound(resultNames: string[]) {
   const isWinningResult = hasWinningSettlementResult(resultNames);
 
   if (isWinningResult) {
-    sixAnimalAudioEngine.playSettlementWin();
+    const totalProfit = getSettlementProfitFromResultNames(resultNames);
+    const hasPairWin = activeBets.some(
+      (bet) =>
+        bet.betType === "pair" &&
+        bet.animalNameMm2 &&
+        resultNames.includes(bet.animalNameMm) &&
+        resultNames.includes(bet.animalNameMm2)
+    );
+
+    sixAnimalAudioEngine.playSettlementWin({
+      bigWin: hasPairWin || totalProfit >= totalActiveBetAmount * 2,
+    });
     return;
   }
 

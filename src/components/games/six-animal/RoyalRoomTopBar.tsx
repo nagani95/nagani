@@ -127,18 +127,32 @@ title={isBackgroundMusicMuted ? "တေးသံ ပိတ်ထားသည်"
                 )}
               </button>
 
-              <button
-                type="button"
-                onClick={onFullscreenToggle}
-                disabled={!canUseFullscreen}
-                aria-label={isFullscreenMode ? "မျက်နှာပြင်အပြည့်မှ ထွက်ရန်" : "မျက်နှာပြင်အပြည့် ဖွင့်ရန်"}
-title={isFullscreenMode ? "မျက်နှာပြင်အပြည့်မှ ထွက်ရန်" : "မျက်နှာပြင်အပြည့်"}
-                className={`group relative flex h-[38px] w-[38px] items-center justify-center rounded-full border shadow-[0_0_14px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-200 active:scale-[0.94] disabled:opacity-35 ${
-                  isFullscreenMode
-                    ? "border-[#ffe1a3]/34 bg-[linear-gradient(135deg,rgba(120,70,18,0.96),rgba(214,168,79,0.92),rgba(94,54,15,0.98))] text-[#fff7e3]"
-                    : "border-[#d6a84f]/26 bg-[linear-gradient(135deg,rgba(58,22,8,0.96),rgba(92,40,14,0.90),rgba(42,15,6,0.98))] text-[#f1d89b]"
-                }`}
-              >
+<button
+  type="button"
+  onClick={onFullscreenToggle}
+  disabled={!canUseFullscreen}
+  aria-label={
+    isFullscreenMode
+      ? "မျက်နှာပြင်အပြည့်မှ ထွက်ရန်"
+      : "မျက်နှာပြင်အပြည့် ဖွင့်ရန်"
+  }
+  title={
+    isFullscreenMode
+      ? "မျက်နှာပြင်အပြည့်မှ ထွက်ရန်"
+      : "မျက်နှာပြင်အပြည့်"
+  }
+  style={{
+    animation:
+      canUseFullscreen && !isFullscreenMode
+        ? "naganiFullscreenHint 1.65s ease-in-out infinite"
+        : undefined,
+  }}
+  className={`group relative flex h-[38px] w-[38px] items-center justify-center rounded-full border shadow-[0_0_14px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-200 active:scale-[0.94] disabled:opacity-35 ${
+    isFullscreenMode
+      ? "border-[#ffe1a3]/34 bg-[linear-gradient(135deg,rgba(120,70,18,0.96),rgba(214,168,79,0.92),rgba(94,54,15,0.98))] text-[#fff7e3]"
+      : "border-[#ffe1a3]/48 bg-[linear-gradient(135deg,rgba(92,40,14,0.98),rgba(204,138,38,0.96),rgba(74,26,8,0.98))] text-[#fff7e3]"
+  }`}
+>
                 {isFullscreenMode ? (
                   <svg
                     viewBox="0 0 24 24"
@@ -177,6 +191,30 @@ title={isFullscreenMode ? "မျက်နှာပြင်အပြည့်�
           ) : null}
         </div>
       </div>
+
+            <style jsx global>{`
+        @keyframes naganiFullscreenHint {
+          0%,
+          100% {
+            transform: rotateY(0deg) scale(1);
+            box-shadow:
+              0 0 14px rgba(0, 0, 0, 0.3),
+              0 0 0 rgba(255, 215, 122, 0);
+          }
+
+          38% {
+            transform: rotateY(180deg) scale(1.08);
+            box-shadow:
+              0 0 18px rgba(255, 215, 122, 0.42),
+              0 0 26px rgba(255, 215, 122, 0.26);
+          }
+
+          62% {
+            transform: rotateY(360deg) scale(1.03);
+          }
+        }
+      `}</style>
+      
     </header>
   );
 }

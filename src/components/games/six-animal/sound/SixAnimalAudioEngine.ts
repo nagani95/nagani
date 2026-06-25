@@ -14,10 +14,12 @@ import {
 import type { SixAnimalKey } from "@/types/games";
 
 type RoomAudioKey =
+  | "roomBgm"
   | "crowdBed"
   | "crowdOhh01"
   | "crowdOhh02"
-  | "settlementWinCrowd";
+  | "settlementWinSmall"
+  | "settlementWinBig";
 
 type DiceAudioKey =
   | "release"
@@ -42,21 +44,28 @@ type ActiveLoop = {
   gain: GainNode;
 };
 
-const BACKGROUND_MUTED_STORAGE_KEY = "nagani-six-animal-crowd-muted";
+const BACKGROUND_MUTED_STORAGE_KEY = "nagani-six-animal-room-bgm-muted";
 
 const ROOM_AUDIO_SRC: Record<RoomAudioKey, string> = {
+  roomBgm: "/assets/nagani/sounds/six-animal/room-bgm.mp3",
   crowdBed: "/assets/nagani/sounds/six-animal/room/crowd-bed-soft-v1.mp3",
-  crowdOhh01: "/assets/nagani/sounds/six-animal/room/crowd-ohh-01.mp3",
-  crowdOhh02: "/assets/nagani/sounds/six-animal/room/crowd-ohh-02.mp3",
-  settlementWinCrowd:
-    "/assets/nagani/sounds/six-animal/room/settlement-win-crowd.mp3",
+  crowdOhh01:
+    "/assets/nagani/sounds/six-animal/room/crowd-reaction-soft-01.mp3",
+  crowdOhh02:
+    "/assets/nagani/sounds/six-animal/room/crowd-reaction-soft-02.mp3",
+  settlementWinSmall:
+    "/assets/nagani/sounds/six-animal/room/result-celebrate-small-v1.mp3",
+  settlementWinBig:
+    "/assets/nagani/sounds/six-animal/room/result-celebrate-big-v1.mp3",
 };
 
 const ROOM_AUDIO_VOLUME: Record<RoomAudioKey, number> = {
-  crowdBed: 0.18,
-  crowdOhh01: 0.42,
-  crowdOhh02: 0.38,
-  settlementWinCrowd: 0.82,
+  roomBgm: 0.16,
+  crowdBed: 0.42,
+  crowdOhh01: 0.68,
+  crowdOhh02: 0.62,
+  settlementWinSmall: 0.72,
+  settlementWinBig: 0.88,
 };
 
 const DICE_AUDIO_SRC: Record<DiceAudioKey, string> = {
@@ -76,6 +85,17 @@ const DICE_AUDIO_VOLUME: Record<DiceAudioKey, number> = {
 };
 
 const DICE_MASTER_VOLUME = 1.12;
+const ACTIVE_LEGACY_UI_SOUND_KEYS: LegacyRoomUiSoundKey[] = [
+  "loading",
+  "betting-round",
+  "bets-closed",
+  "countdown-hit",
+  "settlement-lose",
+  "bet-locked",
+  "exit-button",
+  "bet-invalid",
+  "ui-click",
+];
 
 function getAudioContextConstructor() {
   if (typeof window === "undefined") return null;
@@ -97,6 +117,7 @@ class SixAnimalAudioEngine {
   private isBackgroundMuted = false;
 
   private htmlAudioPool = new Map<string, HTMLAudioElement>();
+  private hasPreloadedHtmlAudio = false;
 
   private audioContext: AudioContext | null = null;
   private diceBuffers = new Map<DiceAudioKey, AudioBuffer>();
@@ -129,38 +150,28 @@ class SixAnimalAudioEngine {
       await this.audioContext.resume().catch(() => undefined);
     }
 
-    this.preloadHtmlAudio();
+    if (!this.hasPreloadedHtmlAudio) {
+      this.preloadHtmlAudio();
+      this.hasPreloadedHtmlAudio = true;
+    }
+
     void this.preloadDiceAudio();
   }
 
   startBackground() {
     if (!ROOM_SOUND_ENABLED) return;
     if (!this.isUnlocked) return;
-    if (this.isBackgroundMuted) return;
 
-    const audio = this.getHtmlAudio(ROOM_AUDIO_SRC.crowdBed);
+    this.startLoopingRoomSound("crowdBed");
 
-    audio.loop = true;
-    audio.volume = ROOM_AUDIO_VOLUME.crowdBed;
-
-    if (!audio.paused) return;
-
-    void audio.play().catch(() => {
-      // Audio must never block room flow.
-    });
+    if (!this.isBackgroundMuted) {
+      this.startLoopingRoomSound("roomBgm");
+    }
   }
 
   stopBackground() {
-    const audio = this.htmlAudioPool.get(ROOM_AUDIO_SRC.crowdBed);
-
-    if (!audio) return;
-
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-    } catch {
-      // Safe cleanup.
-    }
+    this.stopLoopingRoomSound("crowdBed");
+    this.stopLoopingRoomSound("roomBgm");
   }
 
   setBackgroundMuted(nextMuted: boolean) {
@@ -168,11 +179,11 @@ class SixAnimalAudioEngine {
     this.writeBackgroundMutedPreference(nextMuted);
 
     if (nextMuted) {
-      this.stopBackground();
+      this.stopLoopingRoomSound("roomBgm");
       return;
     }
 
-    this.startBackground();
+    this.startLoopingRoomSound("roomBgm");
   }
 
   toggleBackground() {
@@ -209,14 +220,15 @@ class SixAnimalAudioEngine {
     this.playCrowdOhh();
   }
 
-  playSettlementWin() {
+  playSettlementWin(options?: { bigWin?: boolean }) {
     if (!ROOM_SOUND_ENABLED) return;
     if (!this.isUnlocked) return;
 
-    this.playHtmlOneShot(
-      ROOM_AUDIO_SRC.settlementWinCrowd,
-      ROOM_AUDIO_VOLUME.settlementWinCrowd
-    );
+    const soundKey: RoomAudioKey = options?.bigWin
+      ? "settlementWinBig"
+      : "settlementWinSmall";
+
+    this.playHtmlOneShot(ROOM_AUDIO_SRC[soundKey], ROOM_AUDIO_VOLUME[soundKey]);
   }
 
   playSettlementLose() {
@@ -230,13 +242,9 @@ class SixAnimalAudioEngine {
     if (!ROOM_SOUND_ENABLED) return;
     if (!this.isUnlocked) return;
 
-    void this.unlockAudio();
-
     const intensity = clamp(event.intensity, 0.05, 1);
 
-    if (event.type === "dice-drop") {
-      this.playDiceOneShot("release", 0.72, 140);
-
+        if (event.type === "dice-drop") {
       const impactKey: DiceAudioKey =
         event.rollAgeMs < 720 ? "deflectorHit" : "trayImpact";
 
@@ -299,8 +307,8 @@ class SixAnimalAudioEngine {
       this.getHtmlAudio(src).load();
     });
 
-    Object.values(SIX_ANIMAL_SOUND_SRC).forEach((src) => {
-      this.getHtmlAudio(src).load();
+    ACTIVE_LEGACY_UI_SOUND_KEYS.forEach((soundKey) => {
+      this.getHtmlAudio(SIX_ANIMAL_SOUND_SRC[soundKey]).load();
     });
   }
 
@@ -366,6 +374,32 @@ class SixAnimalAudioEngine {
       });
     } catch {
       // Audio must never block game flow.
+    }
+  }
+
+    private startLoopingRoomSound(soundKey: RoomAudioKey) {
+    const audio = this.getHtmlAudio(ROOM_AUDIO_SRC[soundKey]);
+
+    audio.loop = true;
+    audio.volume = ROOM_AUDIO_VOLUME[soundKey];
+
+    if (!audio.paused) return;
+
+    void audio.play().catch(() => {
+      // Audio must never block room flow.
+    });
+  }
+
+  private stopLoopingRoomSound(soundKey: RoomAudioKey) {
+    const audio = this.htmlAudioPool.get(ROOM_AUDIO_SRC[soundKey]);
+
+    if (!audio) return;
+
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch {
+      // Safe cleanup.
     }
   }
 

@@ -425,9 +425,7 @@ return {
 
     lastDiceDropSoundKeyRef.current = soundKey;
 
-    if (!onDiceAudioEventRef.current) {
-      onDiceDropRef.current?.(dieNumber, ownerRoundId);
-    }
+    onDiceDropRef.current?.(dieNumber, ownerRoundId);
   }, [
     visualSequenceAllowed,
     sequenceRunning,

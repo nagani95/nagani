@@ -87,12 +87,21 @@ export default function RoomIntroOverlay({
           </button>
 
           {canUseFullscreen ? (
-            <button
-              type="button"
-              onClick={onFullscreenToggle}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d6a84f]/30 bg-black/38 text-sm font-black text-[#ffd77a] shadow-lg shadow-black/60 backdrop-blur-md active:scale-[0.96]"
-              aria-label="မျက်နှာပြင်အပြည့်"
-            >
+<button
+  type="button"
+  onClick={onFullscreenToggle}
+  style={{
+    animation: !isFullscreenMode
+      ? "naganiFullscreenHint 1.65s ease-in-out infinite"
+      : undefined,
+  }}
+  className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-black shadow-lg shadow-black/60 backdrop-blur-md active:scale-[0.96] ${
+    isFullscreenMode
+      ? "border-[#d6a84f]/30 bg-black/38 text-[#ffd77a]"
+      : "border-[#ffe1a3]/48 bg-[#9b651d]/70 text-[#fff7e3]"
+  }`}
+  aria-label="မျက်နှာပြင်အပြည့်"
+>
               {isFullscreenMode ? "×" : "⛶"}
             </button>
           ) : null}
@@ -139,6 +148,26 @@ export default function RoomIntroOverlay({
 
           100% {
             transform: translateX(260%);
+          }
+        }
+                  @keyframes naganiFullscreenHint {
+          0%,
+          100% {
+            transform: rotateY(0deg) scale(1);
+            box-shadow:
+              0 0 14px rgba(0, 0, 0, 0.3),
+              0 0 0 rgba(255, 215, 122, 0);
+          }
+
+          38% {
+            transform: rotateY(180deg) scale(1.08);
+            box-shadow:
+              0 0 18px rgba(255, 215, 122, 0.42),
+              0 0 26px rgba(255, 215, 122, 0.26);
+          }
+
+          62% {
+            transform: rotateY(360deg) scale(1.03);
           }
         }
       `}</style>
