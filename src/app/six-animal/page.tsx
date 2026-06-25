@@ -2137,6 +2137,7 @@ style={{
 <WinCelebrationCanvas
   enabled={showSettlementSheet && isResultWin}
   effectKey={roundId}
+  amountLabel={`${formatMMK(displayPayoutAmount)} ကျပ်`}
 />
 
 {showExitConfirm ? (
