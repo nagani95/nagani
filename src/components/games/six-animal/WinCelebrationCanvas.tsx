@@ -34,7 +34,6 @@ function easeOutCubic(value: number) {
 export default function WinCelebrationCanvas({
   enabled,
   effectKey,
-  amountLabel,
 }: WinCelebrationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -362,24 +361,6 @@ const ctx: CanvasRenderingContext2D = drawingContext;
         aria-hidden="true"
       />
 
-      <div className="nagani-win-cinema-title absolute inset-x-0 top-[16%] mx-auto flex max-w-[420px] flex-col items-center px-6 text-center">
-        <p className="text-[10px] font-black tracking-[0.32em] text-[#f7d277]/72 drop-shadow-[0_2px_14px_rgba(0,0,0,0.8)]">
-          နဂါးနီ ရွှေအိုး
-        </p>
-
-        <h2 className="mt-2 bg-[linear-gradient(180deg,#fff7d7_0%,#f7d277_42%,#b66b20_100%)] bg-clip-text text-[34px] font-black leading-none text-transparent drop-shadow-[0_5px_22px_rgba(0,0,0,0.88)]">
-          အနိုင်ရပါသည်
-        </h2>
-
-        {amountLabel ? (
-          <div className="mt-3 rounded-full border border-[#fff3d0]/34 bg-[linear-gradient(135deg,rgba(255,243,208,0.24),rgba(247,210,119,0.14),rgba(74,22,7,0.32))] px-6 py-2 shadow-[0_16px_42px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,243,208,0.2)] backdrop-blur-[2px]">
-            <p className="text-[19px] font-black tracking-[0.02em] text-[#fff3d0] drop-shadow-[0_2px_12px_rgba(0,0,0,0.82)]">
-              {amountLabel}
-            </p>
-          </div>
-        ) : null}
-      </div>
-
       <style>{`
         @keyframes naganiWinCinemaVignette {
           0% {
@@ -395,40 +376,14 @@ const ctx: CanvasRenderingContext2D = drawingContext;
           }
         }
 
-        @keyframes naganiWinCinemaTitle {
-          0% {
-            opacity: 0;
-            transform: translateY(18px) scale(0.92);
-            filter: blur(5px);
-          }
-
-          34% {
-            opacity: 1;
-            transform: translateY(0) scale(1.04);
-            filter: blur(0);
-          }
-
-          58% {
-            transform: translateY(0) scale(1);
-          }
-
-          100% {
-            opacity: 0.96;
-            transform: translateY(0) scale(1);
-          }
-        }
-
         .nagani-win-cinema-vignette {
           animation: naganiWinCinemaVignette 3.6s ease-out both;
           background:
-            radial-gradient(circle at 50% 42%, rgba(255, 217, 122, 0.08), transparent 32%),
-            radial-gradient(circle at 50% 50%, transparent 0%, transparent 44%, rgba(0, 0, 0, 0.34) 100%),
-            linear-gradient(180deg, rgba(9, 2, 2, 0.12), rgba(9, 2, 2, 0.34));
+            radial-gradient(circle at 50% 42%, rgba(255, 217, 122, 0.12), transparent 36%),
+            radial-gradient(circle at 50% 50%, transparent 0%, transparent 52%, rgba(0, 0, 0, 0.18) 100%),
+            linear-gradient(180deg, rgba(9, 2, 2, 0.04), rgba(9, 2, 2, 0.14));
         }
 
-        .nagani-win-cinema-title {
-          animation: naganiWinCinemaTitle 1.25s cubic-bezier(0.18, 0.92, 0.22, 1) both;
-        }
       `}</style>
     </div>
   );
