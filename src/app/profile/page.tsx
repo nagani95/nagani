@@ -69,7 +69,7 @@ export default async function ProfilePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_7%,rgba(255,215,122,0.12),transparent_31%),radial-gradient(circle_at_50%_100%,rgba(86,13,6,0.72),transparent_50%)]" />
       </div>
 
-      <div className="fixed inset-0 z-10 mx-auto flex w-full max-w-md flex-col overflow-hidden px-5 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-md flex-col overflow-x-hidden px-5 pb-[calc(env(safe-area-inset-bottom)+6.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <header className="flex h-8 shrink-0 items-center justify-between">
           <Link href="/" className="text-sm font-bold text-[#ffd77a]">
             မူလသို့
@@ -80,7 +80,7 @@ export default async function ProfilePage() {
           </div>
         </header>
 
-        <section className="relative mt-2 overflow-hidden rounded-[1.45rem] border border-[#d6a84f]/38 bg-[linear-gradient(145deg,rgba(58,10,5,0.96),rgba(8,1,1,0.99),rgba(70,13,6,0.94))] p-4 shadow-[0_22px_65px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(255,215,122,0.16)]">
+        <section className="relative mt-2 shrink-0 overflow-hidden rounded-[1.45rem] border border-[#d6a84f]/38 bg-[linear-gradient(145deg,rgba(58,10,5,0.96),rgba(8,1,1,0.99),rgba(70,13,6,0.94))] p-4 shadow-[0_22px_65px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(255,215,122,0.16)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.15),transparent_38%)]" />
           <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/65 to-transparent" />
 
@@ -104,7 +104,7 @@ export default async function ProfilePage() {
             </div>
           </div>
 
-          <div className="relative mt-4 rounded-[1.05rem] border border-[#ffd77a]/24 bg-[linear-gradient(180deg,rgba(0,0,0,0.5),rgba(45,7,3,0.62))] px-4 py-3 shadow-inner shadow-black/60">
+          <div className="relative mt-4 min-h-[6.15rem] shrink-0 rounded-[1.05rem] border border-[#ffd77a]/24 bg-[linear-gradient(180deg,rgba(0,0,0,0.5),rgba(45,7,3,0.62))] px-4 py-3 shadow-inner shadow-black/60">
             <p className="text-xs font-bold text-[#f7dfaa]/62">လက်ကျန်ငွေ</p>
             <div className="mt-1 flex items-end gap-2">
               <span className="text-[2.15rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_3px_12px_rgba(0,0,0,0.9)]">
@@ -117,7 +117,7 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        <section className="mt-3 overflow-hidden rounded-[1.3rem] border border-[#d6a84f]/34 bg-[linear-gradient(180deg,rgba(16,3,2,0.94),rgba(40,8,4,0.94))] shadow-xl shadow-black/55">
+        <section className="mt-3 shrink-0 overflow-hidden rounded-[1.3rem] border border-[#d6a84f]/34 bg-[linear-gradient(180deg,rgba(16,3,2,0.94),rgba(40,8,4,0.94))] shadow-xl shadow-black/55">
           <div className="border-b border-[#d6a84f]/14 px-4 py-3">
             <h2 className="text-sm font-black text-[#ffd77a]">
               အကောင့် မှတ်တမ်း
@@ -154,7 +154,7 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        <section className="mt-3 rounded-[1.3rem] border border-[#d6a84f]/34 bg-[linear-gradient(180deg,rgba(54,9,5,0.96),rgba(10,1,1,0.98))] p-3 shadow-xl shadow-black/55">
+        <section className="mt-3 shrink-0 rounded-[1.3rem] border border-[#d6a84f]/34 bg-[linear-gradient(180deg,rgba(54,9,5,0.96),rgba(10,1,1,0.98))] p-3 shadow-xl shadow-black/55">
           <h2 className="px-1 text-sm font-black text-[#ffd77a]">
             အကောင့် လုပ်ဆောင်ချက်များ
           </h2>
