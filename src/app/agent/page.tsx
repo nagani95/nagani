@@ -462,6 +462,8 @@ const estimatedCashPayout = Number(liveEstimate?.estimated_cash_payout ?? 0);
           </section>
         ) : null}
 
+        <AgentChangePasswordButton />
+
         <form action={logoutAgent}>
           <button
             type="submit"
