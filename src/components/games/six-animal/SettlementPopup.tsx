@@ -27,6 +27,114 @@ function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
 
+function WinCelebrationStickerEffect() {
+  const sparkles = [
+    ["left-[7%] top-[18%]", "0ms", "10px"],
+    ["left-[18%] top-[6%]", "120ms", "7px"],
+    ["right-[10%] top-[14%]", "80ms", "11px"],
+    ["right-[22%] top-[3%]", "210ms", "8px"],
+    ["left-[9%] bottom-[16%]", "260ms", "8px"],
+    ["right-[8%] bottom-[20%]", "180ms", "9px"],
+    ["left-[46%] -top-3", "40ms", "12px"],
+    ["right-[44%] -bottom-2", "300ms", "7px"],
+  ];
+
+  return (
+    <>
+      <div className="pointer-events-none absolute -inset-x-8 -inset-y-10 z-20">
+        <div className="nagani-win-aura absolute inset-0 rounded-[2rem]" />
+
+        <div className="nagani-win-sticker absolute left-1/2 top-[-18px] -translate-x-1/2 rounded-full border border-[#fff3d0]/70 bg-[radial-gradient(circle_at_50%_18%,#fff3d0_0%,#f7d277_32%,#b66b20_72%,#5a1808_100%)] px-5 py-2 text-[13px] font-black tracking-[0.16em] text-[#4b1607] shadow-[0_14px_34px_rgba(0,0,0,0.62),0_0_28px_rgba(247,210,119,0.55)]">
+          နိုင်ပြီ
+        </div>
+
+        {sparkles.map(([positionClass, delay, size], index) => (
+          <span
+            key={`${positionClass}-${index}`}
+            className={`nagani-win-spark absolute ${positionClass}`}
+            style={{
+              animationDelay: delay,
+              height: size,
+              width: size,
+            }}
+          />
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes naganiWinAura {
+          0% {
+            opacity: 0;
+            transform: scale(0.82);
+            box-shadow: 0 0 0 rgba(247, 210, 119, 0);
+          }
+          22% {
+            opacity: 1;
+            transform: scale(1.04);
+            box-shadow: 0 0 46px rgba(247, 210, 119, 0.42);
+          }
+          100% {
+            opacity: 0.38;
+            transform: scale(1);
+            box-shadow: 0 0 24px rgba(247, 210, 119, 0.22);
+          }
+        }
+
+        @keyframes naganiWinSticker {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(12px) scale(0.72) rotate(-8deg);
+          }
+          48% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1.12) rotate(4deg);
+          }
+          72% {
+            transform: translateX(-50%) translateY(0) scale(0.96) rotate(-2deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1) rotate(0deg);
+          }
+        }
+
+        @keyframes naganiWinSpark {
+          0% {
+            opacity: 0;
+            transform: translateY(10px) scale(0.25) rotate(0deg);
+          }
+          38% {
+            opacity: 1;
+            transform: translateY(-8px) scale(1.2) rotate(120deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-28px) scale(0.35) rotate(220deg);
+          }
+        }
+
+        .nagani-win-aura {
+          animation: naganiWinAura 1.7s ease-out both;
+          background:
+            radial-gradient(circle at 50% 42%, rgba(255, 243, 208, 0.16), transparent 38%),
+            radial-gradient(circle at 50% 50%, rgba(247, 210, 119, 0.20), transparent 58%);
+        }
+
+        .nagani-win-sticker {
+          animation: naganiWinSticker 1.15s cubic-bezier(0.2, 0.9, 0.22, 1.15) both;
+        }
+
+        .nagani-win-spark {
+          animation: naganiWinSpark 1.35s ease-out both;
+          background: radial-gradient(circle, #fff8d8 0%, #f7d277 38%, #b66b20 72%, transparent 74%);
+          border-radius: 9999px;
+          box-shadow: 0 0 16px rgba(247, 210, 119, 0.82);
+        }
+      `}</style>
+    </>
+  );
+}
+
 export default function SettlementPopup({
   settlementBets,
   totalBetAmount,
@@ -49,6 +157,7 @@ export default function SettlementPopup({
 
   return (
     <div className="nagani-settlement-board-shell pointer-events-none absolute inset-x-4 top-1/2 z-50 mx-auto max-w-[360px] -translate-y-1/2">
+      {isResultWin ? <WinCelebrationStickerEffect /> : null}
       <div className="nagani-settlement-board-bg relative overflow-hidden rounded-[1.55rem] border border-[#f7d277]/45 bg-[linear-gradient(145deg,#7a3515_0%,#3b1609_34%,#120403_58%,#8a3c18_100%)] p-[5px] shadow-[0_28px_76px_rgba(0,0,0,0.88),inset_0_1px_0_rgba(255,230,170,0.28)]">
         <div className="pointer-events-none absolute inset-0 opacity-45 bg-[linear-gradient(90deg,rgba(255,225,145,0.10)_0%,transparent_13%,rgba(0,0,0,0.20)_31%,transparent_54%,rgba(255,210,120,0.08)_73%,transparent_100%)]" />
         <div className="pointer-events-none absolute inset-[5px] rounded-[1.28rem] border border-[#6b3f16]/70 shadow-[inset_0_0_22px_rgba(0,0,0,0.72)]" />
