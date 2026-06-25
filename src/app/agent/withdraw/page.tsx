@@ -299,6 +299,15 @@ export default async function AgentWithdrawPage({
               />
             </Field>
 
+            <Field label="လက်ရှိစကားဝှက်">
+              <TextInput
+                name="current_password"
+                type="password"
+                placeholder="••••••••"
+                disabled={!canWithdraw}
+              />
+            </Field>
+
             <input name="note" type="hidden" value="" />
 
             <button

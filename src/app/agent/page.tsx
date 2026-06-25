@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AgentChangePasswordButton } from "@/components/agent/AgentChangePasswordButton";
 import { CopyInviteButton } from "@/components/agent/CopyInviteButton";
 import { createClient } from "@/lib/supabase/server";
 
@@ -177,14 +178,16 @@ export default async function AgentDashboardPage() {
               Login အကောင့်ရှိသော်လည်း Agent profile နှင့် မချိတ်ဆက်ရသေးပါ။
             </p>
 
-            <form action={logoutAgent} className="mt-5">
-              <button
-                type="submit"
-                className="w-full rounded-2xl border border-amber-300/25 bg-black/35 px-5 py-3 text-sm font-bold text-amber-100"
-              >
-                ထွက်ရန်
-              </button>
-            </form>
+        <AgentChangePasswordButton />
+
+        <form action={logoutAgent}>
+          <button
+            type="submit"
+            className="w-full rounded-2xl border border-amber-300/25 bg-black/35 px-5 py-3 text-sm font-bold text-amber-100"
+          >
+            ထွက်ရန်
+          </button>
+        </form>
           </section>
         </div>
       </main>

@@ -50,7 +50,30 @@ export async function createAgentWithdrawAction(formData: FormData) {
     const providerKey = getText(formData, "payment_provider_key");
     const accountName = getText(formData, "payment_account_name");
     const accountNumber = getText(formData, "payment_account_number");
+    const currentPassword = getText(formData, "current_password");
     const note = getText(formData, "note") || null;
+
+    if (!currentPassword) {
+      throw new Error("လက်ရှိစကားဝှက် ရိုက်ပါ။");
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user?.email) {
+      throw new Error("Agent login ပြန်ဝင်ပါ။");
+    }
+
+    const { error: passwordError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+
+    if (passwordError) {
+      throw new Error("လက်ရှိစကားဝှက် မှားနေပါသည်။");
+    }
 
     if (!providerKey) {
       throw new Error("Payment method is required");
@@ -93,5 +116,5 @@ export async function createAgentWithdrawAction(formData: FormData) {
 
   revalidatePath("/agent");
   revalidatePath(AGENT_WITHDRAW_PATH);
-  redirectWithStatus("success", "Withdraw request submitted");
+  redirectWithStatus("success", "ငွေထုတ်တောင်းဆိုမှု ပို့ပြီးပါပြီ။");
 }
