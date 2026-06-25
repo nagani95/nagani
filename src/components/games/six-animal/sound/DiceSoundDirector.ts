@@ -25,56 +25,56 @@ const DICE_SOUND_VARIANTS: DiceSoundVariant[] = [
   {
     key: "release",
     src: "/assets/nagani/sounds/six-animal/dice/release-01.wav",
-    volume: 0.32,
+    volume: 0.46,
   },
   {
     key: "deflectorHit",
     src: "/assets/nagani/sounds/six-animal/dice/deflector-hit-01.wav",
-    volume: 0.52,
+    volume: 0.92,
   },
   {
     key: "deflectorHit",
     src: "/assets/nagani/sounds/six-animal/dice/deflector-hit-02.wav",
-    volume: 0.48,
+    volume: 0.84,
   },
   {
     key: "trayImpact",
     src: "/assets/nagani/sounds/six-animal/dice/tray-impact-01.wav",
-    volume: 0.82,
+    volume: 1.35,
   },
   {
     key: "trayImpact",
     src: "/assets/nagani/sounds/six-animal/dice/tray-impact-02.wav",
-    volume: 0.76,
+    volume: 1.24,
   },
   {
     key: "rollLoop",
     src: "/assets/nagani/sounds/six-animal/dice/roll-loop-soft.wav",
-    volume: 0.28,
+    volume: 0.72,
   },
   {
     key: "tap",
     src: "/assets/nagani/sounds/six-animal/dice/tap-01.wav",
-    volume: 0.38,
+    volume: 0.78,
   },
   {
     key: "tap",
     src: "/assets/nagani/sounds/six-animal/dice/tap-02.wav",
-    volume: 0.34,
+    volume: 0.7,
   },
   {
     key: "tap",
     src: "/assets/nagani/sounds/six-animal/dice/tap-03.wav",
-    volume: 0.3,
+    volume: 0.62,
   },
   {
     key: "settle",
     src: "/assets/nagani/sounds/six-animal/dice/settle-01.wav",
-    volume: 0.44,
+    volume: 0.68,
   },
 ];
 
-const MASTER_VOLUME = 0.72;
+const MASTER_VOLUME = 1.18;
 
 function getAudioContextConstructor() {
   if (typeof window === "undefined") return null;
@@ -182,8 +182,8 @@ class DiceSoundDirector {
 
       this.playOneShotLimited(
         impactKey,
-        0.48 + intensity * 0.74,
-        95
+        0.78 + intensity * 1.05,
+        80
       );
 
       return;
@@ -197,21 +197,21 @@ class DiceSoundDirector {
 
       this.playOneShotLimited(
         bounceKey,
-        0.3 + intensity * 0.58,
-        80
+        0.58 + intensity * 0.88,
+        65
       );
 
       return;
     }
 
     if (event.type === "dice-roll") {
-      this.pulseRollLoop(0.14 + intensity * 0.5, 460);
+      this.pulseRollLoop(0.34 + intensity * 0.85, 620);
       return;
     }
 
     if (event.type === "dice-settle") {
       this.fadeOutRollLoop(360);
-      this.playOneShotLimited("settle", 0.42 + intensity * 0.62, 220);
+      this.playOneShotLimited("settle", 0.62 + intensity * 0.82, 180);
     }
   }
 
@@ -369,7 +369,7 @@ class DiceSoundDirector {
 
     if (!audioContext || audioContext.state !== "running") return;
 
-    const targetVolume = clamp(volume, 0.05, 0.42);
+    const targetVolume = clamp(volume, 0.16, 0.95);
 
     if (this.activeRollLoop) {
       const { gain } = this.activeRollLoop;

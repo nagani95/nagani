@@ -95,12 +95,12 @@ const ROOM_ATMOSPHERE_SOUND_SRC: Record<RoomAtmosphereSoundKey, string> = {
 };
 
 const ROOM_ATMOSPHERE_VOLUME: Record<RoomAtmosphereSoundKey, number> = {
-  crowdBed: 0.075,
-  crowdReactionSoft1: 0.14,
-  crowdReactionSoft2: 0.12,
-  resultCelebrateSmall: 0.28,
-  resultCelebrateBig: 0.38,
-  resultCalm: 0.18,
+  crowdBed: 0.18,
+  crowdReactionSoft1: 0.36,
+  crowdReactionSoft2: 0.32,
+  resultCelebrateSmall: 0.52,
+  resultCelebrateBig: 0.72,
+  resultCalm: 0.28,
 };
 
 export default function SixAnimalPage() {
@@ -960,7 +960,7 @@ function playRoomAtmosphereSound(
     audio.pause();
     audio.currentTime = 0;
     audio.volume = Math.min(
-      0.5,
+      0.85,
       ROOM_ATMOSPHERE_VOLUME[soundKey] * volumeBoost
     );
 
@@ -1020,7 +1020,7 @@ function scheduleSoftCrowdReaction(delayMs = 900) {
 
     const now = performance.now();
 
-    if (now - lastCrowdReactionAtRef.current < 2800) return;
+    if (now - lastCrowdReactionAtRef.current < 850) return;
 
     lastCrowdReactionAtRef.current = now;
 
@@ -1030,7 +1030,20 @@ function scheduleSoftCrowdReaction(delayMs = 900) {
   }, delayMs);
 }
 
+function playDiceRevealCrowdReaction(revealIndex: number) {
+  if (!gameSoundEnabled) return;
+  if (!roomAudioUnlockedRef.current) return;
+
+  window.setTimeout(() => {
+    playRoomAtmosphereSound(
+      Math.random() > 0.45 ? "crowdReactionSoft1" : "crowdReactionSoft2",
+      revealIndex >= 2 ? 1.28 : 1.05
+    );
+  }, 260);
+}
+
 function playNewResultAnimalSounds(resultNames: string[]) {
+  
   if (resultNames.length <= lastDiceSoundCountRef.current) return;
 
   const newlyRevealedResultNames = resultNames.slice(
@@ -1038,8 +1051,11 @@ function playNewResultAnimalSounds(resultNames: string[]) {
   );
 
   newlyRevealedResultNames.forEach((nameMm, index) => {
+    const revealIndex = lastDiceSoundCountRef.current + index;
+
     window.setTimeout(() => {
       playResultAnimalSoundByNameMm(nameMm);
+      playDiceRevealCrowdReaction(revealIndex);
     }, index * 180);
   });
 
