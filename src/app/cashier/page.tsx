@@ -159,6 +159,16 @@ useEffect(() => {
   void fetchCashierData();
 }, [fetchCashierData, successMessage]);
 
+useEffect(() => {
+  if (!successMessage && !errorMessage) return;
+
+  const timer = window.setTimeout(() => {
+    router.replace("/cashier", { scroll: false });
+  }, 2400);
+
+  return () => window.clearTimeout(timer);
+}, [successMessage, errorMessage, router]);
+
 async function handleRefreshWallet() {
   setIsRefreshingWallet(true);
 
