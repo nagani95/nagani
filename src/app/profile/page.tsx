@@ -69,7 +69,7 @@ export default async function ProfilePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_7%,rgba(255,215,122,0.12),transparent_31%),radial-gradient(circle_at_50%_100%,rgba(86,13,6,0.72),transparent_50%)]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-md flex-col overflow-x-hidden px-5 pb-[calc(env(safe-area-inset-bottom)+6.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+      <div className="fixed inset-0 z-10 mx-auto flex h-[100svh] w-full max-w-md flex-col overflow-y-auto overflow-x-hidden overscroll-none px-5 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <header className="flex h-8 shrink-0 items-center justify-between">
           <Link href="/" className="text-sm font-bold text-[#ffd77a]">
             မူလသို့
