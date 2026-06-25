@@ -26,8 +26,8 @@ type WalletRequestRow = Omit<
 
 type ProfileRow = {
   id: string;
-  username: string | null;
   member_code: string | null;
+  phone: string | null;
 };
 
 type WalletRow = {
@@ -78,10 +78,6 @@ function parsePage(value?: string) {
   return Math.floor(parsedPage);
 }
 
-function formatMemberId(profileId: string, memberCode?: string | null) {
-  return memberCode || `NG-${profileId.slice(0, 8).toUpperCase()}`;
-}
-
 function matchesRequestSearch(
   request: WalletRequestRow,
   profile: ProfileRow | undefined,
@@ -94,10 +90,8 @@ function matchesRequestSearch(
   const searchableText = [
     request.id,
     request.profile_id,
-    request.profile_id.slice(0, 8).toUpperCase(),
-    formatMemberId(request.profile_id, profile?.member_code),
-    profile?.username,
     profile?.member_code,
+    profile?.phone,
     request.request_type,
     request.status,
     String(request.amount),
@@ -192,7 +186,7 @@ export default async function AdminWalletRequestsPage({
     profileIds.length > 0
       ? await supabase
           .from("profiles")
-          .select("id, username, member_code")
+          .select("id, member_code, phone")
           .in("id", profileIds)
           .returns<ProfileRow[]>()
       : { data: [], error: null };
@@ -202,17 +196,17 @@ export default async function AdminWalletRequestsPage({
   );
 
   const { data: wallets, error: walletsError } =
-  profileIds.length > 0
-    ? await supabase
-        .from("wallets")
-        .select("profile_id, balance")
-        .in("profile_id", profileIds)
-        .returns<WalletRow[]>()
-    : { data: [], error: null };
+    profileIds.length > 0
+      ? await supabase
+          .from("wallets")
+          .select("profile_id, balance")
+          .in("profile_id", profileIds)
+          .returns<WalletRow[]>()
+      : { data: [], error: null };
 
-const walletBalanceByProfileId = new Map(
-  (wallets ?? []).map((wallet) => [wallet.profile_id, wallet.balance])
-);
+  const walletBalanceByProfileId = new Map(
+    (wallets ?? []).map((wallet) => [wallet.profile_id, wallet.balance])
+  );
 
   const matchedRows = searchTerm
     ? requestRows.filter((request) =>
@@ -241,11 +235,17 @@ const walletBalanceByProfileId = new Map(
     .filter((request) => request.request_type === "withdraw")
     .reduce((sum, request) => sum + Number(request.amount ?? 0), 0);
 
-const requests: AdminWalletRequestItem[] = visibleRows.map((request) => ({
-  ...request,
-  current_balance: walletBalanceByProfileId.get(request.profile_id) ?? 0,
-  profile: profileById.get(request.profile_id) ?? null,
-}));
+  const requests: AdminWalletRequestItem[] = visibleRows.map((request) => {
+    const currentBalance = Number(
+      walletBalanceByProfileId.get(request.profile_id) ?? 0
+    );
+
+    return {
+      ...request,
+      current_balance: Number.isFinite(currentBalance) ? currentBalance : 0,
+      profile: profileById.get(request.profile_id) ?? null,
+    };
+  });
 
   const errors = [
     requestResult.error ? `Wallet requests: ${requestResult.error.message}` : null,

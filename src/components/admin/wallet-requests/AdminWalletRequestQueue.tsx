@@ -38,8 +38,8 @@ export type AdminWalletRequestItem = {
   payment_account_name: string | null;
   payment_account_number: string | null;
   profile: {
-    username: string | null;
     member_code: string | null;
+    phone: string | null;
   } | null;
 };
 
@@ -90,8 +90,8 @@ function formatTime(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-function formatMemberId(profileId: string, memberCode?: string | null) {
-  return memberCode || `NG-${profileId.slice(0, 8).toUpperCase()}`;
+function formatMemberId(memberCode?: string | null) {
+  return memberCode || "—";
 }
 
 function formatRequestType(type: AdminWalletRequestType) {
@@ -566,11 +566,8 @@ export default function AdminWalletRequestQueue({
                 ) : null}
 
                 {requests.map((request) => {
-                  const memberId = formatMemberId(
-                    request.profile_id,
-                    request.profile?.member_code
-                  );
-                  const phoneLabel = request.profile?.username || "—";
+                  const memberId = formatMemberId(request.profile?.member_code);
+                  const phoneLabel = request.profile?.phone || "—";
 const withdrawNoteFields = readWithdrawNoteFields(request.note);
 const isDeposit = request.request_type === "deposit";
 
@@ -619,9 +616,6 @@ const isInsufficientWithdraw =
 
                       <td className="border-r border-white/[0.05] px-4 py-3 text-left">
                         <p className="font-black text-amber-100">{memberId}</p>
-                        <p className="mt-0.5 text-[10px] font-semibold text-white/25">
-                          ID: {request.profile_id.slice(0, 8).toUpperCase()}
-                        </p>
                       </td>
 
                       <td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/70">
