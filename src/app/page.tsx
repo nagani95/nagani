@@ -34,16 +34,20 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let walletBalance = 0;
-  let memberCode: string | null = null;
-  let promoSeenAt: string | null = null;
+let walletBalance = 0;
+let walletBonusBalance = 0;
+let memberCode: string | null = null;
+let promoSeenAt: string | null = null;
 
   if (user) {
-    const { data: wallet } = await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("profile_id", user.id)
-      .maybeSingle<{ balance: number | string | null }>();
+const { data: wallet } = await supabase
+  .from("wallets")
+  .select("balance,bonus_balance")
+  .eq("profile_id", user.id)
+  .maybeSingle<{
+    balance: number | string | null;
+    bonus_balance: number | string | null;
+  }>();
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -54,13 +58,16 @@ export default async function HomePage() {
         promo_welcome_recharge_seen_at: string | null;
       }>();
 
-    walletBalance = toSafeBalance(wallet?.balance);
-    memberCode = profile?.member_code ?? null;
-    promoSeenAt = profile?.promo_welcome_recharge_seen_at ?? null;
+walletBalance = toSafeBalance(wallet?.balance);
+walletBonusBalance = toSafeBalance(wallet?.bonus_balance);
+memberCode = profile?.member_code ?? null;
+promoSeenAt = profile?.promo_welcome_recharge_seen_at ?? null;
   }
 
-  const canEnterSixAnimal =
-    Boolean(user) && walletBalance >= SIX_ANIMAL_MIN_BALANCE;
+const playableBalance = walletBalance + walletBonusBalance;
+
+const canEnterSixAnimal =
+  Boolean(user) && playableBalance >= SIX_ANIMAL_MIN_BALANCE;
 
   const memberIdLabel = user ? memberCode ?? "------" : "ဧည့်သည်";
 
@@ -138,7 +145,7 @@ export default async function HomePage() {
                   သင့်ငွေ
                 </p>
                 <p className="mt-1 text-[0.72rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
-                  {formatMMK(walletBalance)} ကျပ်
+                  {formatMMK(playableBalance)} ကျပ်
                 </p>
               </div>
             </div>
