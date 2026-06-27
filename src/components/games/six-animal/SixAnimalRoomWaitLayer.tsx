@@ -65,9 +65,7 @@ export default function SixAnimalRoomWaitLayer({
     safeCountdown > 0 ? `${safeCountdown}s` : "ဝင်ရောက်နေပါသည်";
 
   return (
-    <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center overflow-hidden bg-[#050101]/88 px-4 text-center backdrop-blur-[10px]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_32%,rgba(255,215,122,0.08)_0%,transparent_36%,rgba(0,0,0,0.72)_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.46),rgba(8,2,2,0.86)_48%,rgba(0,0,0,0.96)_100%)]" />
+    <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center overflow-hidden px-4 text-center">
 
       <div className="relative w-full max-w-[342px] overflow-hidden rounded-[1.8rem] border border-[#d6a84f]/36 bg-[linear-gradient(180deg,rgba(38,12,7,0.96),rgba(9,2,2,0.98))] p-5 shadow-[0_28px_84px_rgba(0,0,0,0.86),inset_0_1px_0_rgba(255,215,122,0.13)]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,122,0.16),transparent_58%)]" />
