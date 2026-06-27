@@ -19,27 +19,30 @@ const APP_URL = "https://naganishweohh.com";
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title:
-    "နဂါးနီရွှေအိုး | မြန်မာရိုးရာ ၆ ကောင်ဂျင် အံစာတုံးဂိမ်း | Nagani Shwe Ohh",
+    "နဂါးနီရွှေအိုး | မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း | Nagani Shwe Ohh",
   description:
-    "နဂါးနီရွှေအိုး သည် မြန်မာရိုးရာ ၆ ကောင်ဂျင် အံစာတုံးဂိမ်း ဖြစ်ပါသည်။ Nagani Shwe Ohh, naganishweohh, Myanmar Traditional Six Animal Dice Game, Burmese 6 Animals Dice Game.",
+    "နဂါးနီရွှေအိုး သည် ကျား၊ နဂါး၊ ကြက်၊ ငါး၊ ဂဏန်း၊ ဆင် တို့ပါဝင်သော မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း ဖြစ်ပါသည်။ လူအများသိသော ၆ ကောင်ဂျင် အငွေ့အသက်ကို တော်ဝင်မြန်မာစတိုင်ဖြင့် ဖန်တီးထားသည်။ Nagani Shwe Ohh, naganishweohh, Myanmar Traditional Dice Festival Game.",
   keywords: [
     "နဂါးနီရွှေအိုး",
     "နဂါးနီ",
     "ရွှေအိုး",
-    "၆ ကောင်ဂျင်",
-    "ခြောက်ကောင်ဂျင်",
-    "မြန်မာ ၆ ကောင်ဂျင်",
+    "မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း",
+    "မြန်မာ အံစာတုံးပွဲတော်",
     "မြန်မာ အံစာတုံး",
     "မြန်မာရိုးရာ အံစာတုံးဂိမ်း",
     "မြန်မာရိုးရာ ဂိမ်း",
     "ကျား နဂါး ကြက် ငါး ဂဏန်း ဆင်",
+    "၆ ကောင်ဂျင်",
+    "ခြောက်ကောင်ဂျင်",
+    "မြန်မာ ၆ ကောင်ဂျင်",
     "Nagani Shwe Ohh",
     "Nagani",
     "Shwe Ohh",
     "naganishweohh",
     "nagani shweohh",
     "nagani shwe ohh",
-    "Myanmar dice game",
+    "Myanmar dice festival game",
+    "Myanmar traditional dice festival game",
     "Myanmar traditional dice game",
     "Myanmar six animal dice game",
     "Burmese 6 Animals",
@@ -51,9 +54,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title:
-      "နဂါးနီရွှေအိုး | မြန်မာရိုးရာ ၆ ကောင်ဂျင် အံစာတုံးဂိမ်း | Nagani Shwe Ohh",
+      "နဂါးနီရွှေအိုး | မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း | Nagani Shwe Ohh",
     description:
-      "နဂါးနီရွှေအိုး သည် မြန်မာရိုးရာ ၆ ကောင်ဂျင် အံစာတုံးဂိမ်း ဖြစ်ပါသည်။ Myanmar Traditional Six Animal Dice Game.",
+      "ကျား၊ နဂါး၊ ကြက်၊ ငါး၊ ဂဏန်း၊ ဆင် တို့ပါဝင်သော မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း။ Nagani Shwe Ohh.",
     url: APP_URL,
     siteName: "နဂါးနီရွှေအိုး",
     type: "website",

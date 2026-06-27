@@ -168,8 +168,7 @@ export default function NaganiLobbyBootGate({
   <div className="relative z-10 flex flex-col items-center">
     <img
       src={LOADING_LOGO_SRC}
-      alt=""
-      aria-hidden="true"
+      alt="နဂါးနီရွှေအိုး Nagani Shwe Ohh"
       className="h-auto w-[9.8rem] object-contain drop-shadow-[0_9px_18px_rgba(0,0,0,0.72)]"
       draggable={false}
     />
@@ -179,7 +178,11 @@ export default function NaganiLobbyBootGate({
     </p>
 
     <p className="mt-3 text-[0.95rem] font-semibold leading-6 text-[#fff3d0]/78">
-      ခေတ္တစောင့်ပါ။ တော်ဝင်ခန်းမကို ပြင်ဆင်နေပါသည်
+      မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း
+    </p>
+
+    <p className="mt-1 text-[0.62rem] font-semibold leading-4 text-[#f7dfaa]/55">
+      Nagani Shwe Ohh · Myanmar Traditional Dice Festival Game
     </p>
 
     <div className="mt-6 w-full overflow-hidden rounded-full border border-[#a66d20]/55 bg-[rgba(0,0,0,0.68)] p-[3px] shadow-[inset_0_1px_4px_rgba(255,215,122,0.06)]">

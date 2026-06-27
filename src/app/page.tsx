@@ -173,7 +173,7 @@ const canEnterSixAnimal =
 
           <Link
             href={playHref}
-            aria-label={playLabel}
+            aria-label={`${playLabel} - နဂါးနီရွှေအိုး မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း`}
             className="absolute left-1/2 top-[58.85%] z-20 h-[3.35rem] w-[3.35rem] -translate-x-1/2 -translate-y-1/2 rounded-[0.72rem] bg-cover bg-center bg-no-repeat shadow-[0_0_16px_rgba(255,243,208,0.65),0_0_34px_rgba(255,215,122,0.42),0_12px_26px_rgba(0,0,0,0.58)] ring-1 ring-[#fff3d0]/55 transition active:scale-[0.95]"
             style={{
               backgroundImage: "url('/assets/nagani/v2/dice.jpg')",
@@ -204,11 +204,11 @@ const canEnterSixAnimal =
             </h1>
 
             <p className="mt-1 text-[0.58rem] font-bold leading-4 text-[#fff3d0]/78 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
-              မြန်မာရိုးရာ ၆ ကောင်ဂျင် အံစာတုံးဂိမ်း
+              မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း
             </p>
 
             <p className="mt-0.5 text-[0.5rem] font-semibold leading-3 text-[#f7dfaa]/58">
-              Nagani Shwe Ohh · Myanmar Traditional Six Animal Dice Game
+              Nagani Shwe Ohh · Myanmar Traditional Dice Festival Game
             </p>
           </div>
         </section>

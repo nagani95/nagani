@@ -13,34 +13,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: `${APP_URL}/six-animal`,
+      url: `${APP_URL}/how-to-play`,
       lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.95,
+      changeFrequency: "weekly",
+      priority: 0.9,
     },
     {
       url: `${APP_URL}/login`,
       lastModified: new Date(),
       changeFrequency: "monthly",
-      priority: 0.5,
+      priority: 0.35,
     },
     {
       url: `${APP_URL}/register`,
       lastModified: new Date(),
       changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${APP_URL}/cashier`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.4,
-    },
-    {
-      url: `${APP_URL}/support`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.4,
+      priority: 0.35,
     },
   ];
 }
