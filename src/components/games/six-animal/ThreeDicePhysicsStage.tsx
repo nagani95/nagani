@@ -790,7 +790,7 @@ function createRecordedDiceAudioCues(
     {
       type: "dice-drop",
       delayMs: dropDelayMs,
-      intensity: 0.72,
+      intensity: 0.9,
       movementSpeed: 2.4,
     },
   ];
@@ -808,7 +808,7 @@ function createRecordedDiceAudioCues(
       cues.push({
         type: "dice-bounce",
         delayMs,
-        intensity: MathUtils.clamp(0.64 - index * 0.12, 0.28, 0.64),
+        intensity: MathUtils.clamp(0.82 - index * 0.1, 0.42, 0.82),
         movementSpeed: MathUtils.clamp(1.9 - index * 0.42, 0.48, 1.9),
       });
     }
@@ -827,7 +827,7 @@ function createRecordedDiceAudioCues(
       cues.push({
         type: "dice-roll",
         delayMs,
-        intensity: MathUtils.clamp(0.38 - index * 0.045, 0.16, 0.38),
+        intensity: MathUtils.clamp(0.62 - index * 0.055, 0.28, 0.62),
         movementSpeed: MathUtils.clamp(1.15 - index * 0.12, 0.35, 1.15),
       });
     }
@@ -836,7 +836,7 @@ function createRecordedDiceAudioCues(
   cues.push({
     type: "dice-settle",
     delayMs: settleDelayMs,
-    intensity: 0.34,
+    intensity: 0.56,
     movementSpeed: 0.12,
   });
 
@@ -931,7 +931,7 @@ function emitDiceSettleAudio(movementSpeed: number) {
 
   emitDiceAudioEvent(
     "dice-settle",
-    MathUtils.clamp(0.24 + movementSpeed * 0.12, 0.22, 0.48),
+    MathUtils.clamp(0.42 + movementSpeed * 0.18, 0.42, 0.72),
     movementSpeed
   );
 }
@@ -1330,7 +1330,7 @@ if (
 
   emitDiceAudioEvent(
     "dice-roll",
-    MathUtils.clamp(movementSpeed / 4.2, 0.14, 0.42),
+    MathUtils.clamp(movementSpeed / 3.0, 0.26, 0.68),
     movementSpeed
   );
 }
@@ -1661,7 +1661,7 @@ const useV1LiveReleaseMaterial =
 
     emitDiceAudioEvent(
       eventType,
-      MathUtils.clamp(impactSpeed / 4.2, 0.18, 1),
+      MathUtils.clamp(impactSpeed / 3.0, 0.32, 1),
       impactSpeed
     );
   }}
