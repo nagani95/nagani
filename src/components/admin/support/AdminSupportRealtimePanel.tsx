@@ -11,19 +11,34 @@ import {
 } from "@/app/admin/support/actions";
 import { createClient } from "@/lib/supabase/client";
 
+type AgentJoin = {
+  id: string;
+  agent_code: string;
+  display_name: string;
+  agent_level: number;
+  parent_agent_id: string | null;
+  agent_login_phone: string | null;
+};
+
+type AgentParentLite = Pick<AgentJoin, "id" | "agent_code" | "display_name">;
+
 type SupportConversation = {
   id: string;
-  profile_id: string;
+  profile_id: string | null;
   player_phone: string | null;
+  conversation_type: "player" | "agent";
+  agent_id: string | null;
+  agent_phone: string | null;
   status: "open" | "closed";
   last_message_at: string | null;
   updated_at: string;
   created_at: string;
+  agent_profiles?: AgentJoin | null;
 };
 
 type SupportMessage = {
   id: string;
-  sender_role: "player" | "admin";
+  sender_role: "player" | "agent" | "admin";
   body: string;
   created_at: string;
 };
@@ -33,6 +48,7 @@ type AdminSupportRealtimePanelProps = {
   initialConversations: SupportConversation[];
   initialActiveConversation: SupportConversation | null;
   initialMessages: SupportMessage[];
+  initialParentAgents: AgentParentLite[];
 };
 
 function formatTime(value: string | null | undefined) {
@@ -46,12 +62,61 @@ function formatTime(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-function shortId(value: string) {
-  return value.slice(0, 8).toUpperCase();
+function shortId(value: string | null | undefined) {
+  return value ? value.slice(0, 8).toUpperCase() : "—";
 }
 
 function displayPhone(value: string | null | undefined) {
   return value?.trim() || "Unknown phone";
+}
+
+function getAgentLevelLabel(level: number | null | undefined) {
+  if (level === 1) return "Agent A";
+  if (level === 2) return "Agent B";
+  return "Agent";
+}
+
+function getConversationTitle(conversation: SupportConversation) {
+  if (conversation.conversation_type === "agent") {
+    return (
+      conversation.agent_profiles?.display_name ||
+      conversation.agent_phone ||
+      "Unknown Agent"
+    );
+  }
+
+  return displayPhone(conversation.player_phone);
+}
+
+function getConversationSubline(
+  conversation: SupportConversation,
+  parentAgentById: Map<string, AgentParentLite>
+) {
+  const agent = conversation.agent_profiles;
+
+  if (conversation.conversation_type !== "agent") {
+    return `Player ID: ${shortId(conversation.profile_id)}`;
+  }
+
+  if (!agent) {
+    return `Agent phone: ${conversation.agent_phone || "—"}`;
+  }
+
+  if (agent.agent_level === 2 && agent.parent_agent_id) {
+    const parent = parentAgentById.get(agent.parent_agent_id);
+
+    return `${getAgentLevelLabel(agent.agent_level)} · ${agent.agent_code} · Parent: ${
+      parent ? `${parent.display_name} (${parent.agent_code})` : "Parent not found"
+    }`;
+  }
+
+  return `${getAgentLevelLabel(agent.agent_level)} · ${agent.agent_code}`;
+}
+
+function getSenderLabel(role: SupportMessage["sender_role"]) {
+  if (role === "admin") return "Admin";
+  if (role === "agent") return "Agent";
+  return "Player";
 }
 
 function sortConversations(conversations: SupportConversation[]) {
@@ -63,11 +128,24 @@ function sortConversations(conversations: SupportConversation[]) {
   });
 }
 
+function mergeConversation(
+  nextConversation: SupportConversation,
+  currentConversation: SupportConversation
+) {
+  return {
+    ...currentConversation,
+    ...nextConversation,
+    agent_profiles:
+      nextConversation.agent_profiles ?? currentConversation.agent_profiles ?? null,
+  };
+}
+
 export default function AdminSupportRealtimePanel({
   search,
   initialConversations,
   initialActiveConversation,
   initialMessages,
+  initialParentAgents,
 }: AdminSupportRealtimePanelProps) {
   const [supabase] = useState(() => createClient());
   const [conversations, setConversations] = useState(initialConversations);
@@ -79,6 +157,10 @@ export default function AdminSupportRealtimePanel({
     initialActiveConversation?.id ?? ""
   );
   const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const parentAgentById = new Map(
+    initialParentAgents.map((agent) => [agent.id, agent])
+  );
 
   useEffect(() => {
     setConversations(initialConversations);
@@ -106,7 +188,13 @@ export default function AdminSupportRealtimePanel({
 
           if (
             search &&
-            !String(nextConversation.player_phone ?? "")
+            ![
+              nextConversation.player_phone,
+              nextConversation.agent_phone,
+              nextConversation.conversation_type,
+            ]
+              .filter(Boolean)
+              .join(" ")
               .toLowerCase()
               .includes(search.toLowerCase())
           ) {
@@ -121,7 +209,7 @@ export default function AdminSupportRealtimePanel({
             const next = exists
               ? current.map((conversation) =>
                   conversation.id === nextConversation.id
-                    ? nextConversation
+                    ? mergeConversation(nextConversation, conversation)
                     : conversation
                 )
               : [nextConversation, ...current];
@@ -146,14 +234,16 @@ export default function AdminSupportRealtimePanel({
             sortConversations(
               current.map((conversation) =>
                 conversation.id === nextConversation.id
-                  ? nextConversation
+                  ? mergeConversation(nextConversation, conversation)
                   : conversation
               )
             )
           );
 
           setActiveConversation((current) =>
-            current?.id === nextConversation.id ? nextConversation : current
+            current?.id === nextConversation.id
+              ? mergeConversation(nextConversation, current)
+              : current
           );
         }
       )
@@ -164,27 +254,27 @@ export default function AdminSupportRealtimePanel({
     };
   }, [search, supabase]);
 
-useEffect(() => {
-  const conversationId = activeConversation?.id ?? "";
+  useEffect(() => {
+    const conversationId = activeConversation?.id ?? "";
 
-  if (!conversationId) return;
+    if (!conversationId) return;
 
-  if (loadedConversationId === conversationId) return;
+    if (loadedConversationId === conversationId) return;
 
-  async function loadMessages() {
-    const { data } = await supabase
-      .from("support_messages")
-      .select("id, sender_role, body, created_at")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true })
-      .limit(300);
+    async function loadMessages() {
+      const { data } = await supabase
+        .from("support_messages")
+        .select("id, sender_role, body, created_at")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true })
+        .limit(300);
 
-    setMessages((data ?? []) as SupportMessage[]);
-    setLoadedConversationId(conversationId);
-  }
+      setMessages((data ?? []) as SupportMessage[]);
+      setLoadedConversationId(conversationId);
+    }
 
-  void loadMessages();
-}, [activeConversation?.id, loadedConversationId, supabase]);
+    void loadMessages();
+  }, [activeConversation?.id, loadedConversationId, supabase]);
 
   useEffect(() => {
     if (!activeConversation?.id) return;
@@ -232,7 +322,7 @@ useEffect(() => {
               Support Chat
             </h1>
             <p className="mt-1 text-sm text-[#cdbb91]">
-              Player များထံမှ support message များကို ဖတ်ပြီး reply ပြန်ရန်။
+              Player / Agent support message များကို ဖတ်ပြီး reply ပြန်ရန်။
             </p>
           </div>
 
@@ -250,7 +340,7 @@ useEffect(() => {
               <input
                 name="q"
                 defaultValue={search}
-                placeholder="Search phone..."
+                placeholder="Search phone, agent..."
                 className="min-w-0 flex-1 rounded-2xl border border-[#c8a45d]/20 bg-[#0d0504] px-4 py-3 text-sm text-[#fff4cf] outline-none placeholder:text-[#8f7a57]"
               />
 
@@ -264,7 +354,7 @@ useEffect(() => {
                 <div className="rounded-3xl border border-dashed border-[#c8a45d]/25 p-6 text-center">
                   <p className="font-bold text-[#fff4cf]">No support chats</p>
                   <p className="mt-1 text-sm text-[#bba982]">
-                    Player message ဝင်လာရင် ဒီနေရာမှာ ပြပါမယ်။
+                    Player / Agent message ဝင်လာရင် ဒီနေရာမှာ ပြပါမယ်။
                   </p>
                 </div>
               ) : (
@@ -285,11 +375,14 @@ useEffect(() => {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-black text-[#fff4cf]">
-                            {displayPhone(conversation.player_phone)}
+                            {getConversationTitle(conversation)}
                           </p>
 
                           <p className="mt-1 text-xs text-[#bba982]">
-                            ID: {shortId(conversation.profile_id)}
+                            {getConversationSubline(
+                              conversation,
+                              parentAgentById
+                            )}
                           </p>
                         </div>
 
@@ -322,7 +415,7 @@ useEffect(() => {
                     Select a chat
                   </p>
                   <p className="mt-2 text-sm text-[#bba982]">
-                    Player support message ရှိလာရင် reply ပြန်နိုင်ပါတယ်။
+                    Player / Agent support message ရှိလာရင် reply ပြန်နိုင်ပါတယ်။
                   </p>
                 </div>
               </div>
@@ -331,15 +424,20 @@ useEffect(() => {
                 <div className="mb-4 flex flex-col gap-3 border-b border-[#c8a45d]/15 pb-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-[#d7b56d]">
-                      Player
+                      {activeConversation.conversation_type === "agent"
+                        ? "Agent"
+                        : "Player"}
                     </p>
 
                     <h2 className="mt-1 text-xl font-black text-[#fff4cf]">
-                      {displayPhone(activeConversation.player_phone)}
+                      {getConversationTitle(activeConversation)}
                     </h2>
 
                     <p className="mt-1 text-xs text-[#bba982]">
-                      Profile ID: {activeConversation.profile_id}
+                      {getConversationSubline(
+                        activeConversation,
+                        parentAgentById
+                      )}
                     </p>
                   </div>
 
@@ -405,7 +503,7 @@ useEffect(() => {
                                     : "text-[#b99b62]"
                                 }`}
                               >
-                                {isAdminMessage ? "Admin" : "Player"} ·{" "}
+                                {getSenderLabel(message.sender_role)} ·{" "}
                                 {formatTime(message.created_at)}
                               </p>
                             </div>
@@ -429,7 +527,7 @@ useEffect(() => {
                     name="message"
                     required
                     rows={3}
-                    placeholder="Reply to player..."
+                    placeholder="Reply..."
                     className="w-full resize-none rounded-3xl border border-[#c8a45d]/25 bg-[#2a120c] px-4 py-3 text-sm text-[#fff4cf] outline-none placeholder:text-[#9f875f] focus:border-[#e7c36f]"
                   />
 

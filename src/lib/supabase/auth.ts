@@ -32,6 +32,14 @@ function normalizePlayerAuthEmail(value: string) {
   return digits ? `${digits}@nagani.local` : "";
 }
 
+function getPhoneFromPlayerAuthEmail(email: string) {
+  if (!email.endsWith("@nagani.local")) {
+    return "";
+  }
+
+  return email.replace("@nagani.local", "");
+}
+
 function redirectWithRegisterError(message: string): never {
   redirect(`/register?error=${encodeURIComponent(message)}`);
 }
@@ -54,6 +62,7 @@ function redirectWithAgentLoginError(message: string): never {
 
 export async function registerWithEmail(formData: FormData) {
 const email = normalizePlayerAuthEmail(getFormString(formData, "email"));
+const phoneNumber = getPhoneFromPlayerAuthEmail(email);
 const referralCode = getFormString(formData, "referralCode").toUpperCase();
 const password = getFormString(formData, "password");
 const confirmPassword = getFormString(formData, "confirmPassword");
@@ -103,9 +112,15 @@ const { data, error } = await supabase.auth.signUp({
     );
   }
 
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .upsert({ id: userId }, { onConflict: "id" });
+const { error: profileError } = await supabase
+  .from("profiles")
+  .upsert(
+    {
+      id: userId,
+      phone_number: phoneNumber || null,
+    },
+    { onConflict: "id" }
+  );
 
 if (profileError) {
   console.error("Profile upsert error:", profileError.message);

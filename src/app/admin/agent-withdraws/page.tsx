@@ -37,9 +37,12 @@ type AgentJoin = {
   agent_code: string;
   display_name: string;
   agent_level: number;
+  parent_agent_id: string | null;
   status: string;
   commission_rate: number;
 };
+
+type AgentParentLite = Pick<AgentJoin, "id" | "agent_code" | "display_name">;
 
 type RawWithdrawRequest = {
   id: string;
@@ -76,14 +79,15 @@ const AGENT_WITHDRAW_SELECT = `
   reviewed_at,
   created_at,
   updated_at,
-  agent_profiles (
-    id,
-    agent_code,
-    display_name,
-    agent_level,
-    status,
-    commission_rate
-  )
+agent_profiles (
+  id,
+  agent_code,
+  display_name,
+  agent_level,
+  parent_agent_id,
+  status,
+  commission_rate
+)
 `;
 
 function normalizeAgent(agentProfiles: RawWithdrawRequest["agent_profiles"]) {
@@ -172,6 +176,23 @@ function getAgentLevelLabel(level: number | null | undefined) {
   return "Agent";
 }
 
+function getParentAgentLabel(
+  agent: AgentJoin | null,
+  parentAgentById: Map<string, AgentParentLite>
+) {
+  if (!agent) return "—";
+
+  if (agent.agent_level === 1) return "Primary Agent";
+
+  if (!agent.parent_agent_id) return "No parent";
+
+  const parent = parentAgentById.get(agent.parent_agent_id);
+
+  if (!parent) return "Parent not found";
+
+  return `${parent.display_name} (${parent.agent_code})`;
+}
+
 function buildHref(params: {
   status: StatusFilter;
   q: string;
@@ -201,11 +222,19 @@ function buildHref(params: {
   return `/admin/agent-withdraws?${searchParams.toString()}`;
 }
 
-function matchesSearch(request: WithdrawRequest, searchTerm: string) {
+function matchesSearch(
+  request: WithdrawRequest,
+  searchTerm: string,
+  parentAgentById: Map<string, AgentParentLite>
+) {
   const target = searchTerm.trim().toLowerCase();
   if (!target) return true;
 
   const agent = request.agent_profiles;
+
+  const parentAgent = agent?.parent_agent_id
+  ? parentAgentById.get(agent.parent_agent_id)
+  : null;
 
   const searchableText = [
     request.id,
@@ -218,10 +247,13 @@ function matchesSearch(request: WithdrawRequest, searchTerm: string) {
     request.payment_account_number,
     request.note,
     request.admin_note,
-    agent?.agent_code,
-    agent?.display_name,
-    agent?.agent_level,
-    agent?.status,
+agent?.agent_code,
+agent?.display_name,
+agent?.agent_level,
+agent?.status,
+agent?.parent_agent_id,
+parentAgent?.agent_code,
+parentAgent?.display_name,
   ]
     .filter(Boolean)
     .join(" ")
@@ -425,8 +457,9 @@ export default async function AdminAgentWithdrawsPage({
     approvedCountResult,
     paidCountResult,
     rejectedCountResult,
-    amountResult,
-    requestResult,
+amountResult,
+parentAgentsResult,
+requestResult,
   ] = await Promise.all([
     supabase
       .from("agent_withdraw_requests")
@@ -452,13 +485,20 @@ export default async function AdminAgentWithdrawsPage({
       .select("id", { count: "exact", head: true })
       .eq("status", "rejected"),
 
-    supabase
-      .from("agent_withdraw_requests")
-      .select("status, amount")
-      .limit(1000)
-      .returns<Pick<WithdrawRequest, "status" | "amount">[]>(),
+supabase
+  .from("agent_withdraw_requests")
+  .select("status, amount")
+  .limit(1000)
+  .returns<Pick<WithdrawRequest, "status" | "amount">[]>(),
 
-    searchTerm
+supabase
+  .from("agent_profiles")
+  .select("id, agent_code, display_name")
+  .eq("agent_level", 1)
+  .limit(1000)
+  .returns<AgentParentLite[]>(),
+
+searchTerm
       ? listQuery.limit(SEARCH_LOAD_LIMIT).returns<RawWithdrawRequest[]>()
       : listQuery
           .range(offset, offset + PAGE_SIZE - 1)
@@ -470,8 +510,14 @@ export default async function AdminAgentWithdrawsPage({
     agent_profiles: normalizeAgent(request.agent_profiles),
   })) as WithdrawRequest[];
 
+  const parentAgentById = new Map(
+  (parentAgentsResult.data ?? []).map((agent) => [agent.id, agent])
+);
+
   const matchedRequests = searchTerm
-    ? loadedRequests.filter((request) => matchesSearch(request, searchTerm))
+    ? loadedRequests.filter((request) =>
+    matchesSearch(request, searchTerm, parentAgentById)
+  )
     : loadedRequests;
 
   const visibleRequests = searchTerm
@@ -514,6 +560,9 @@ export default async function AdminAgentWithdrawsPage({
       ? `Rejected count: ${rejectedCountResult.error.message}`
       : null,
     amountResult.error ? `Amount totals: ${amountResult.error.message}` : null,
+    parentAgentsResult.error
+  ? `Parent agents: ${parentAgentsResult.error.message}`
+  : null,
   ].filter((item): item is string => Boolean(item));
 
   const statusTabs: Array<{
@@ -789,6 +838,12 @@ export default async function AdminAgentWithdrawsPage({
                             {agent?.agent_code ?? "—"}
                           </span>
                         </p>
+                        <p className="mt-0.5 text-[11px] font-bold text-white/40">
+  Parent:{" "}
+  <span className="text-amber-100/75">
+    {getParentAgentLabel(agent, parentAgentById)}
+  </span>
+</p>
                       </td>
 
                       <td className="border-r border-white/[0.05] px-4 py-3 text-center">

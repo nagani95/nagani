@@ -19,6 +19,7 @@ type ProfileRow = {
   id: string;
   username: string | null;
   member_code: string | null;
+  phone_number: string | null;
   created_at: string;
 };
 
@@ -100,7 +101,7 @@ export default async function AdminUsersPage({
     count: profileCount,
   } = await supabase
     .from("profiles")
-    .select("id, username, member_code, created_at", { count: "exact" })
+    .select("id, username, member_code, phone_number, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to)
     .returns<ProfileRow[]>();
@@ -349,9 +350,11 @@ export default async function AdminUsersPage({
                 {formatMemberId(profile)}
               </td>
 
-              <td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/70 group-focus:text-amber-50">
-                <span className="break-all">{profile.username || "—"}</span>
-              </td>
+<td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/70 group-focus:text-amber-50">
+  <span className="break-all">
+    {profile.phone_number || profile.username || "—"}
+  </span>
+</td>
 
               <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-emerald-100">
                 {formatAmount(cashBalance)}

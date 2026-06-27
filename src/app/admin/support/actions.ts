@@ -52,8 +52,9 @@ export async function sendAdminSupportMessageAction(formData: FormData) {
     redirect(`/admin/support?thread=${conversationId}&error=send`);
   }
 
-  revalidatePath("/admin/support");
-  revalidatePath("/support");
+revalidatePath("/admin/support");
+revalidatePath("/support");
+revalidatePath("/agent/support");
 
   redirect(`/admin/support?thread=${conversationId}`);
 }
@@ -80,8 +81,9 @@ export async function updateSupportStatusAction(formData: FormData) {
     redirect(`/admin/support?thread=${conversationId}&error=status`);
   }
 
-  revalidatePath("/admin/support");
-  revalidatePath("/support");
+revalidatePath("/admin/support");
+revalidatePath("/support");
+revalidatePath("/agent/support");
 
   redirect(`/admin/support?thread=${conversationId}`);
 }

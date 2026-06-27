@@ -263,7 +263,6 @@ setBetMode("single");
 
   roundIdRef.current = round.id;
 
-const hasJoinedCurrentBrowserRound = joinedRoundIdRef.current === round.id;
 const isJoinableBettingRound = nextPhase === "betting" && nextCountdown > 0;
 
 if (
@@ -272,9 +271,6 @@ if (
     isWaitingForNextRoundRef.current ||
     showRoomIntroRef.current)
 ) {
-  joinedRoundIdRef.current = round.id;
-  setJoinedRoundId(round.id);
-
   setIsWaitingForNextRound(false);
   isWaitingForNextRoundRef.current = false;
 
@@ -294,10 +290,10 @@ const restoredActiveBets = backendBets
   .map((bet) => convertBackendBetToActiveBet(bet, round.round_number))
   .filter((bet): bet is ActiveBet => Boolean(bet));
 
-const isRefreshOrLateJoinToInProgressRound =
-  !isJoinableBettingRound && !hasJoinedCurrentBrowserRound;
+const shouldWaitForNextRoundWithoutBet =
+  !isJoinableBettingRound && restoredActiveBets.length === 0;
 
-if (isRefreshOrLateJoinToInProgressRound) {
+if (shouldWaitForNextRoundWithoutBet) {
   clearVisibleDiceRoundState();
 
   setShouldPlayLiveDiceSequence(false);
@@ -316,10 +312,18 @@ if (isRefreshOrLateJoinToInProgressRound) {
   setCountdown(secondsUntil(waitingTargetAt));
 
   setIsWaitingForNextRound(true);
+  isWaitingForNextRoundRef.current = true;
+
   setShowRoomIntro(false);
+  showRoomIntroRef.current = false;
 
   setServerRngResults([]);
+  serverRngResultsRef.current = [];
+
   setActiveBets([]);
+
+  joinedRoundIdRef.current = null;
+  setJoinedRoundId(null);
 
   return;
 }
@@ -341,8 +345,6 @@ if (restoredActiveBets.length > 0) {
   }
 
 if (isJoinableBettingRound) {
-  joinedRoundIdRef.current = round.id;
-  setJoinedRoundId(round.id);
   setShowRoomIntro(false);
 }
 
@@ -738,10 +740,18 @@ const showPendingResultBoard =
 const showRollingResultPanel = showPendingResultBoard;
 const showResultBoardPanel = showRollingResultPanel || showFinalResultPanel;
 
+const isLiveRoundHiddenForNoBet =
+  isWaitingForNextRound && !showRoomIntro && !hasActiveBets;
+
   const showTopPanel = phase === "betting";
-  const showFloatingResultBoard = showResultBoardPanel;
+  const showFloatingResultBoard =
+    !isLiveRoundHiddenForNoBet && showResultBoardPanel;
+
 const showSettlementSheet =
-  showFinalResultPanel && showSettlementMoment && hasActiveBets;
+  !isLiveRoundHiddenForNoBet &&
+  showFinalResultPanel &&
+  showSettlementMoment &&
+  hasActiveBets;
 
 const fallbackVisualRoundId =
   roundId && (phase === "closed" || phase === "rolling" || isResultPhaseVisualGuard)
@@ -768,7 +778,9 @@ const canPreloadShadowDice =
   !USE_V1_AUTO_VISIBLE_ROOM_RESULT && canPrepareShadowDice;
 
 const shouldEnableDiceController =
-  !showFinalResultPanel && (canPreloadShadowDice || canPlayShadowDice);
+  !isLiveRoundHiddenForNoBet &&
+  !showFinalResultPanel &&
+  (canPreloadShadowDice || canPlayShadowDice);
 
 const shouldConfirmBrowserRefresh =
   !showRoomIntro &&
@@ -916,7 +928,9 @@ void sixAnimalAudioEngine.unlockAudio();
     startCrowdBed();
   }
 
-  playCurrentPhaseSound();
+  if (!isWaitingForNextRoundRef.current) {
+    playCurrentPhaseSound();
+  }
 }
 
 function handleStayInRoomClick() {
@@ -1310,6 +1324,7 @@ useEffect(() => {
 useEffect(() => {
   if (!gameSoundEnabled) return;
   if (!roomAudioUnlockedRef.current) return;
+  if (isWaitingForNextRound) return;
 
   const soundRoundId = roundId || "boot";
 
@@ -1365,7 +1380,7 @@ useEffect(() => {
     return;
   }
 
-  if (showRoomIntro || isQuitting) {
+  if (showRoomIntro || isWaitingForNextRound || isQuitting) {
     stopCrowdBed();
   }
 }, [gameSoundEnabled, showRoomIntro, isWaitingForNextRound, isQuitting]);
@@ -1675,9 +1690,6 @@ async function handlePlaceBet() {
 
   const placedAmount = numericBetAmount;
 
-  joinedRoundIdRef.current = roundId;
-  setJoinedRoundId(roundId);
-
   if (isPairBetMode) {
     if (selectedPairOptions.length !== 2) {
       finishBetSubmit();
@@ -1726,6 +1738,8 @@ async function handlePlaceBet() {
     }
 
     const nextPairAmount = Number(response?.total_pair_amount ?? placedAmount);
+    joinedRoundIdRef.current = roundId;
+    setJoinedRoundId(roundId);
 
     setActiveBets((currentBets) => {
       const pairKey = getPairKey(
@@ -1811,6 +1825,8 @@ async function handlePlaceBet() {
   const nextAnimalAmount = Number(
     response?.total_animal_amount ?? placedAmount
   );
+  joinedRoundIdRef.current = roundId;
+  setJoinedRoundId(roundId);
 
   setActiveBets((currentBets) => {
     const existingBet = currentBets.find(
@@ -1997,20 +2013,22 @@ style={{
 
             <div className="relative z-10 flex h-full min-h-0 items-center justify-center px-0 pb-0 pt-1">
   <div className="relative h-full w-full">
-                <ThreeDiceSequenceController
-  key={roundId || "six-animal-dice-stage"}
-  enabled={shouldEnableDiceController}
-  runKey={threeDiceRunKey}
-  onComplete={handleThreeDiceComplete}
-                  onProgress={handleThreeDiceProgress}
-                  onDiceDrop={handleDiceDrop}
-                  onDiceAudioEvent={handleDiceTableAudioEvent}
-                  className="h-full min-h-[500px] w-full"
-                  showInternalResultStrip={false}
-                  mountedDiceRackMode={effectiveMountedDiceRackMode}
-                  serverRngResults={serverRngResults}
-                  visualRoundId={heldVisualRoundId}
-                />
+{!isLiveRoundHiddenForNoBet ? (
+  <ThreeDiceSequenceController
+    key={roundId || "six-animal-dice-stage"}
+    enabled={shouldEnableDiceController}
+    runKey={threeDiceRunKey}
+    onComplete={handleThreeDiceComplete}
+    onProgress={handleThreeDiceProgress}
+    onDiceDrop={handleDiceDrop}
+    onDiceAudioEvent={handleDiceTableAudioEvent}
+    className="h-full min-h-[500px] w-full"
+    showInternalResultStrip={false}
+    mountedDiceRackMode={effectiveMountedDiceRackMode}
+    serverRngResults={serverRngResults}
+    visualRoundId={heldVisualRoundId}
+  />
+) : null}
               </div>
             </div>
 

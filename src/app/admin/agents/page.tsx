@@ -32,7 +32,17 @@ type AgentProfile = {
   created_at: string;
   auth_user_id: string | null;
   agent_login_phone: string | null;
+  parent_agent_id: string | null;
+  agent_level: number;
+  max_commission_rate: number;
+  active_player_bonus_amount: number;
+  max_active_player_bonus_amount: number;
+  can_create_sub_agents: boolean;
 };
+
+type AgentParentLite = Pick<AgentProfile, "id" | "agent_code" | "display_name">;
+
+type AgentHierarchyLite = Pick<AgentProfile, "id" | "parent_agent_id">;
 
 type AdminAgentsPageProps = {
   searchParams?: Promise<{
@@ -85,6 +95,27 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function getAgentLevelLabel(level: number | null | undefined) {
+  if (level === 1) return "Agent A";
+  if (level === 2) return "Agent B";
+  return "Agent";
+}
+
+function getParentAgentLabel(
+  agent: AgentProfile,
+  parentAgentById: Map<string, AgentParentLite>
+) {
+  if (agent.agent_level === 1) return "Primary Agent";
+
+  if (!agent.parent_agent_id) return "No parent";
+
+  const parent = parentAgentById.get(agent.parent_agent_id);
+
+  if (!parent) return "Parent not found";
+
+  return `${parent.display_name} (${parent.agent_code})`;
+}
+
 function getStatusClass(status: AgentStatus) {
   if (status === "active") {
     return "border-emerald-400/25 bg-emerald-400/10 text-emerald-100";
@@ -129,16 +160,21 @@ function matchesSearch(agent: AgentProfile, searchTerm: string) {
   const target = searchTerm.trim().toLowerCase();
   if (!target) return true;
 
-  const searchableText = [
-    agent.id,
-    agent.agent_code,
-    agent.display_name,
-    agent.status,
-    agent.agent_login_phone,
-    agent.notes,
-    String(agent.commission_rate),
-    String(agent.negative_carry),
-  ]
+const searchableText = [
+  agent.id,
+  agent.agent_code,
+  agent.display_name,
+  agent.status,
+  agent.agent_login_phone,
+  agent.notes,
+  agent.parent_agent_id,
+  String(agent.agent_level),
+  String(agent.commission_rate),
+  String(agent.negative_carry),
+  String(agent.active_player_bonus_amount),
+  String(agent.max_commission_rate),
+  String(agent.max_active_player_bonus_amount),
+]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -206,154 +242,12 @@ function StatCard({
 
 function AgentControls({ agent }: { agent: AgentProfile }) {
   return (
-    <details className="rounded-xl border border-white/10 bg-black/25">
-      <summary className="cursor-pointer list-none px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-amber-100/75 transition hover:bg-amber-300/[0.04] hover:text-amber-100">
-        Open controls for {agent.display_name}
-      </summary>
-
-      <div className="grid gap-4 border-t border-white/10 p-4 xl:grid-cols-[1.35fr_1fr_160px]">
-        <form action={updateAgentAction} className="grid gap-3 lg:grid-cols-12">
-          <input type="hidden" name="agent_id" value={agent.id} />
-
-          <label className="lg:col-span-3">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-              Display Name
-            </span>
-            <input
-              name="display_name"
-              required
-              defaultValue={agent.display_name}
-              className="mt-2 w-full rounded-lg border border-amber-300/15 bg-black/40 px-3 py-2 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
-            />
-          </label>
-
-          <label className="lg:col-span-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-              Commission %
-            </span>
-            <input
-              name="commission_rate_percent"
-              required
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              defaultValue={formatPercent(agent.commission_rate)}
-              className="mt-2 w-full rounded-lg border border-amber-300/15 bg-black/40 px-3 py-2 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
-            />
-          </label>
-
-          <label className="lg:col-span-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-              Status
-            </span>
-            <select
-              name="status"
-              defaultValue={agent.status}
-              className="mt-2 w-full rounded-lg border border-amber-300/15 bg-black/40 px-3 py-2 text-sm font-bold text-amber-50 outline-none focus:border-amber-300/40"
-            >
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="disabled">Disabled</option>
-            </select>
-          </label>
-
-          <label className="lg:col-span-3">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-              Notes
-            </span>
-            <input
-              name="notes"
-              defaultValue={agent.notes ?? ""}
-              placeholder="Optional"
-              className="mt-2 w-full rounded-lg border border-amber-300/15 bg-black/40 px-3 py-2 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
-            />
-          </label>
-
-          <div className="flex items-end lg:col-span-2">
-            <button
-              type="submit"
-              className="w-full rounded-lg border border-amber-300/25 bg-amber-300/15 px-3 py-2 text-sm font-black text-amber-100 transition hover:bg-amber-300 hover:text-black"
-            >
-              Save
-            </button>
-          </div>
-        </form>
-
-        <form action={createAgentLoginAction} className="grid gap-3 lg:grid-cols-3">
-          <input type="hidden" name="agent_id" value={agent.id} />
-          <input type="hidden" name="agent_code" value={agent.agent_code} />
-          <input type="hidden" name="auth_user_id" value={agent.auth_user_id ?? ""} />
-
-          <label>
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-              Login Phone
-            </span>
-            <input
-              name="phone_number"
-              required
-              defaultValue={agent.agent_login_phone ?? ""}
-              placeholder="09957117174"
-              className="mt-2 w-full rounded-lg border border-amber-300/15 bg-black/40 px-3 py-2 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
-            />
-          </label>
-
-          <label>
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-              Password
-            </span>
-            <input
-              name="password"
-              required
-              type="password"
-              minLength={6}
-              placeholder="Minimum 6 characters"
-              className="mt-2 w-full rounded-lg border border-amber-300/15 bg-black/40 px-3 py-2 text-sm font-bold text-amber-50 outline-none placeholder:text-white/25 focus:border-amber-300/40"
-            />
-          </label>
-
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm font-black text-emerald-100 transition hover:bg-emerald-300 hover:text-black"
-            >
-              {agent.auth_user_id ? "Reset Login" : "Create Login"}
-            </button>
-          </div>
-        </form>
-
-        <div className="grid content-start gap-2">
-          <Link
-            href="/admin/referrals"
-            className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-center text-xs font-black text-amber-100/85 transition hover:bg-amber-300 hover:text-black"
-          >
-            Referrals
-          </Link>
-
-          {agent.status === "active" ? (
-            <form action={pauseAgentAction}>
-              <input type="hidden" name="agent_id" value={agent.id} />
-              <button
-                type="submit"
-                className="w-full rounded-lg border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-amber-100 transition hover:bg-amber-300/20"
-              >
-                Pause
-              </button>
-            </form>
-          ) : (
-            <form action={activateAgentAction}>
-              <input type="hidden" name="agent_id" value={agent.id} />
-              <button
-                type="submit"
-                className="w-full rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/20"
-              >
-                Activate
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    </details>
+    <Link
+      href={`/admin/agents/${agent.id}`}
+      className="inline-flex w-full items-center justify-center rounded-md border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-xs font-black text-amber-100/85 transition hover:border-amber-300/45 hover:bg-amber-300/15 hover:text-amber-50"
+    >
+      Open
+    </Link>
   );
 }
 
@@ -377,24 +271,26 @@ export default async function AdminAgentsPage({
 
   let listQuery = supabase
     .from("agent_profiles")
-    .select(
-      "id, agent_code, display_name, commission_rate, status, negative_carry, notes, created_at, auth_user_id, agent_login_phone",
-      { count: "exact" }
-    )
+.select(
+  "id, agent_code, display_name, commission_rate, status, negative_carry, notes, created_at, auth_user_id, agent_login_phone, parent_agent_id, agent_level, max_commission_rate, active_player_bonus_amount, max_active_player_bonus_amount, can_create_sub_agents",
+  { count: "exact" }
+)
     .order("created_at", { ascending: false });
 
   if (statusFilter !== "all") {
     listQuery = listQuery.eq("status", statusFilter);
   }
 
-  const [
-    allCountResult,
-    activeCountResult,
-    pausedCountResult,
-    disabledCountResult,
-    negativeCarryResult,
-    agentResult,
-  ] = await Promise.all([
+const [
+  allCountResult,
+  activeCountResult,
+  pausedCountResult,
+  disabledCountResult,
+  negativeCarryResult,
+  parentAgentsResult,
+  hierarchyResult,
+  agentResult,
+] = await Promise.all([
     supabase.from("agent_profiles").select("id", { count: "exact", head: true }),
 
     supabase
@@ -412,15 +308,28 @@ export default async function AdminAgentsPage({
       .select("id", { count: "exact", head: true })
       .eq("status", "disabled"),
 
-    supabase
-      .from("agent_profiles")
-      .select("negative_carry")
-      .limit(1000)
-      .returns<Pick<AgentProfile, "negative_carry">[]>(),
+supabase
+  .from("agent_profiles")
+  .select("negative_carry")
+  .limit(1000)
+  .returns<Pick<AgentProfile, "negative_carry">[]>(),
 
-    searchTerm
-      ? listQuery.limit(SEARCH_LOAD_LIMIT).returns<AgentProfile[]>()
-      : listQuery.range(offset, offset + PAGE_SIZE - 1).returns<AgentProfile[]>(),
+supabase
+  .from("agent_profiles")
+  .select("id, agent_code, display_name")
+  .eq("agent_level", 1)
+  .limit(1000)
+  .returns<AgentParentLite[]>(),
+
+supabase
+  .from("agent_profiles")
+  .select("id, parent_agent_id")
+  .limit(1000)
+  .returns<AgentHierarchyLite[]>(),
+
+searchTerm
+  ? listQuery.limit(SEARCH_LOAD_LIMIT).returns<AgentProfile[]>()
+  : listQuery.range(offset, offset + PAGE_SIZE - 1).returns<AgentProfile[]>(),
   ]);
 
   const loadedAgents = agentResult.data ?? [];
@@ -445,6 +354,21 @@ export default async function AdminAgentsPage({
     0
   );
 
+  const parentAgentById = new Map(
+  (parentAgentsResult.data ?? []).map((agent) => [agent.id, agent])
+);
+
+const childCountByParentId = new Map<string, number>();
+
+for (const agent of hierarchyResult.data ?? []) {
+  if (!agent.parent_agent_id) continue;
+
+  childCountByParentId.set(
+    agent.parent_agent_id,
+    (childCountByParentId.get(agent.parent_agent_id) ?? 0) + 1
+  );
+}
+
   const errors = [
     agentResult.error ? `Agents: ${agentResult.error.message}` : null,
     allCountResult.error ? `All count: ${allCountResult.error.message}` : null,
@@ -460,6 +384,12 @@ export default async function AdminAgentsPage({
     negativeCarryResult.error
       ? `Negative carry: ${negativeCarryResult.error.message}`
       : null,
+   parentAgentsResult.error
+  ? `Parent agents: ${parentAgentsResult.error.message}`
+  : null,
+hierarchyResult.error
+  ? `Agent hierarchy: ${hierarchyResult.error.message}`
+  : null,
   ].filter((item): item is string => Boolean(item));
 
   const statusTabs: Array<{ label: string; value: StatusFilter; count: number }> =
@@ -742,52 +672,60 @@ export default async function AdminAgentsPage({
 
         <div className="mt-4 overflow-hidden rounded-xl border border-amber-300/15 bg-[#050202]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1180px] border-collapse text-sm">
-              <colgroup>
-                <col className="w-[190px]" />
-                <col className="w-[145px]" />
-                <col className="w-[120px]" />
-                <col className="w-[120px]" />
-                <col className="w-[125px]" />
-                <col className="w-[155px]" />
-                <col className="w-[135px]" />
-                <col className="w-[150px]" />
-              </colgroup>
+<table className="w-full min-w-[1280px] border-collapse text-sm">
+<colgroup>
+  <col className="w-[170px]" />
+  <col className="w-[135px]" />
+  <col className="w-[170px]" />
+  <col className="w-[135px]" />
+  <col className="w-[130px]" />
+  <col className="w-[120px]" />
+  <col className="w-[105px]" />
+  <col className="w-[105px]" />
+  <col className="w-[130px]" />
+  <col className="w-[180px]" />
+</colgroup>
 
-              <thead>
-                <tr className="bg-[#24100b] text-[10px] font-black uppercase tracking-[0.16em] text-amber-100/70">
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
-                    Agent
-                  </th>
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
-                    Code
-                  </th>
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
-                    Status
-                  </th>
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
-                    Login
-                  </th>
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
-                    Rate
-                  </th>
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
-                    Negative Carry
-                  </th>
-                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
-                    Created
-                  </th>
-                  <th className="border-b border-amber-300/15 px-4 py-4 text-center">
-                    Control
-                  </th>
-                </tr>
-              </thead>
+<thead>
+  <tr className="bg-[#24100b] text-[10px] font-black uppercase tracking-[0.16em] text-amber-100/70">
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+      Agent
+    </th>
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+      Phone
+    </th>
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+      Parent
+    </th>
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+      Code
+    </th>
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+      Level
+    </th>
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+      Status
+    </th>
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
+      Rate
+    </th>
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+      Children
+    </th>
+    <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+      Created
+    </th>
+    <th className="border-b border-amber-300/15 px-4 py-4 text-center">
+      Control
+    </th>
+  </tr>
+</thead>
 
               <tbody>
                 {visibleAgents.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={10}
                       className="px-4 py-8 text-center text-sm font-bold text-white/45"
                     >
                       No agents match this view.
@@ -796,64 +734,61 @@ export default async function AdminAgentsPage({
                 ) : null}
 
 {visibleAgents.map((agent) => (
-  <tbody key={agent.id}>
-                    <tr
-                      key={agent.id}
-                      tabIndex={0}
-                      aria-label={`Select agent ${agent.display_name}`}
-                      className="group cursor-pointer border-b border-white/[0.06] bg-black/[0.16] outline-none transition hover:bg-amber-300/[0.045] focus:bg-amber-300/[0.09] focus-within:bg-amber-300/[0.09] active:bg-amber-300/[0.12]"
-                    >
-                      <td className="border-r border-white/[0.05] px-4 py-3 text-left">
-                        <p className="font-black text-amber-100">
-                          {agent.display_name}
-                        </p>
-                        <p className="mt-0.5 truncate text-[11px] font-bold text-white/38">
-                          {agent.notes || "—"}
-                        </p>
-                      </td>
+  <tr
+    key={agent.id}
+    tabIndex={0}
+    aria-label={`Select agent ${agent.display_name}`}
+    className="group cursor-pointer border-b border-white/[0.06] bg-black/[0.16] outline-none transition hover:bg-amber-300/[0.045] focus:bg-amber-300/[0.09] active:bg-amber-300/[0.12]"
+  >
+    <td className="border-r border-white/[0.05] px-4 py-3 text-left">
+<p className="font-black text-amber-100">
+  {agent.display_name}
+</p>
+    </td>
 
-                      <td className="border-r border-white/[0.05] px-4 py-3 text-left font-black text-amber-100/85">
-                        {agent.agent_code}
-                      </td>
+    <td className="border-r border-white/[0.05] px-4 py-3 text-left">
+      <p className="break-all font-black text-white/72">
+        {agent.agent_login_phone || "—"}
+      </p>
+      <LoginBadge agent={agent} />
+    </td>
 
-                      <td className="border-r border-white/[0.05] px-4 py-3 text-center">
-                        <StatusBadge status={agent.status} />
-                      </td>
+    <td className="border-r border-white/[0.05] px-4 py-3 text-left">
+      <p className="font-bold text-white/58">
+        {getParentAgentLabel(agent, parentAgentById)}
+      </p>
+    </td>
 
-                      <td className="border-r border-white/[0.05] px-4 py-3 text-center">
-                        <LoginBadge agent={agent} />
-                        {agent.agent_login_phone ? (
-                          <p className="mt-1 text-[10px] font-bold text-white/40">
-                            {agent.agent_login_phone}
-                          </p>
-                        ) : null}
-                      </td>
+    <td className="border-r border-white/[0.05] px-4 py-3 text-left font-black text-amber-100/85">
+      {agent.agent_code}
+    </td>
 
-                      <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-amber-100">
-                        {formatPercent(agent.commission_rate)}%
-                      </td>
+    <td className="border-r border-white/[0.05] px-4 py-3 text-center">
+      <p className="font-black text-amber-100">
+        {getAgentLevelLabel(agent.agent_level)}
+      </p>
+    </td>
 
-                      <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-red-100/90">
-                        {formatMMK(agent.negative_carry)}
-                      </td>
+    <td className="border-r border-white/[0.05] px-4 py-3 text-center">
+      <StatusBadge status={agent.status} />
+    </td>
 
-                      <td className="border-r border-white/[0.05] px-4 py-3 text-center font-bold tabular-nums text-white/48">
-                        {formatDate(agent.created_at)}
-                      </td>
+    <td className="border-r border-white/[0.05] px-4 py-3 text-right font-black tabular-nums text-amber-100">
+      {formatPercent(agent.commission_rate)}%
+    </td>
 
-                      <td className="px-4 py-3 text-center">
-                        <span className="rounded-md border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-black text-amber-100/80">
-                          Below
-                        </span>
-                      </td>
-                    </tr>
+    <td className="border-r border-white/[0.05] px-4 py-3 text-center font-black tabular-nums text-amber-100">
+      {childCountByParentId.get(agent.id) ?? 0}
+    </td>
 
-                    <tr className="border-b border-white/[0.06] bg-black/[0.08]">
-                      <td colSpan={8} className="px-4 py-2">
-                        <AgentControls agent={agent} />
-                      </td>
-                    </tr>
-  </tbody>
+    <td className="border-r border-white/[0.05] px-4 py-3 text-center font-bold tabular-nums text-white/48 group-focus:text-white/75">
+      {formatDate(agent.created_at)}
+    </td>
+
+    <td className="px-4 py-3 text-center">
+      <AgentControls agent={agent} />
+    </td>
+  </tr>
 ))}
               </tbody>
             </table>
