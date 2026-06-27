@@ -44,6 +44,25 @@ type SixAnimalBettingSheetProps = {
 const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 15000, 20000] as const;
 const BETTING_BOARD_FRAME = naganiAssets.sixAnimal.ui.bettingBoardFrame;
 
+const BETTING_PANEL_ANIMAL_ORDER = [
+  "rooster",
+  "elephant",
+  "tiger",
+  "dragon",
+  "crab",
+  "fish",
+] satisfies SixAnimalKey[];
+
+const BETTING_PANEL_ANIMALS = BETTING_PANEL_ANIMAL_ORDER.map((animalKey) => {
+  const animal = SIX_ANIMAL_OPTIONS.find((option) => option.key === animalKey);
+
+  if (!animal) {
+    throw new Error(`Missing six animal option: ${animalKey}`);
+  }
+
+  return animal;
+});
+
 function formatMMK(amount: number) {
   return new Intl.NumberFormat("en-US").format(amount);
 }
@@ -129,7 +148,7 @@ export default function SixAnimalBettingSheet({
 
         <div className="relative z-10 px-3 pb-3 pt-3">
           <div className="grid grid-cols-3 gap-1.5">
-            {SIX_ANIMAL_OPTIONS.map((animal) => {
+            {BETTING_PANEL_ANIMALS.map((animal) => {
               const activeAnimalBet = singleBetMap.get(animal.key);
               const activePairBet = pairBetMap.get(animal.key);
               const activeCardBet = activeAnimalBet ?? activePairBet;
