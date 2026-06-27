@@ -26,7 +26,8 @@ type DiceAudioKey =
   | "deflectorHit"
   | "trayImpact"
   | "rollLoop"
-  | "tap";
+  | "tap"
+  | "settle";
 
 type LegacyRoomUiSoundKey =
   | "loading"
@@ -74,6 +75,7 @@ const DICE_AUDIO_SRC: Record<DiceAudioKey, string> = {
   trayImpact: "/assets/nagani/sounds/six-animal/dice/tray-impact-01.wav",
   rollLoop: "/assets/nagani/sounds/six-animal/dice/roll-loop-soft.wav",
   tap: "/assets/nagani/sounds/six-animal/dice/tap-01.wav",
+  settle: "/assets/nagani/sounds/six-animal/dice/settle-01.wav",
 };
 
 const DICE_AUDIO_VOLUME: Record<DiceAudioKey, number> = {
@@ -82,6 +84,7 @@ const DICE_AUDIO_VOLUME: Record<DiceAudioKey, number> = {
   trayImpact: 1.0,
   rollLoop: 0.54,
   tap: 0.76,
+  settle: 0.82,
 };
 
 const DICE_MASTER_VOLUME = 1.12;
@@ -158,33 +161,34 @@ class SixAnimalAudioEngine {
     void this.preloadDiceAudio();
   }
 
-  startBackground() {
-    if (!ROOM_SOUND_ENABLED) return;
-    if (!this.isUnlocked) return;
+startBackground() {
+  if (!ROOM_SOUND_ENABLED) return;
+  if (!this.isUnlocked) return;
 
+  if (!this.isBackgroundMuted) {
     this.startLoopingRoomSound("crowdBed");
-
-    if (!this.isBackgroundMuted) {
-      this.startLoopingRoomSound("roomBgm");
-    }
+    this.startLoopingRoomSound("roomBgm");
   }
+}
 
   stopBackground() {
     this.stopLoopingRoomSound("crowdBed");
     this.stopLoopingRoomSound("roomBgm");
   }
 
-  setBackgroundMuted(nextMuted: boolean) {
-    this.isBackgroundMuted = nextMuted;
-    this.writeBackgroundMutedPreference(nextMuted);
+setBackgroundMuted(nextMuted: boolean) {
+  this.isBackgroundMuted = nextMuted;
+  this.writeBackgroundMutedPreference(nextMuted);
 
-    if (nextMuted) {
-      this.stopLoopingRoomSound("roomBgm");
-      return;
-    }
-
-    this.startLoopingRoomSound("roomBgm");
+  if (nextMuted) {
+    this.stopLoopingRoomSound("crowdBed");
+    this.stopLoopingRoomSound("roomBgm");
+    return;
   }
+
+  this.startLoopingRoomSound("crowdBed");
+  this.startLoopingRoomSound("roomBgm");
+}
 
   toggleBackground() {
     const nextMuted = !this.isBackgroundMuted;
@@ -253,11 +257,19 @@ class SixAnimalAudioEngine {
       return;
     }
 
-    if (event.type === "dice-bounce") {
-      this.playDiceOneShot("tap", 0.62 + intensity * 0.78, 70);
-      this.startOrUpdateRollLoop(0.22 + intensity * 0.36);
-      return;
-    }
+if (event.type === "dice-bounce") {
+  const shouldUseTrayLanding =
+    event.rollAgeMs > 620 && event.rollAgeMs < 2600 && intensity > 0.44;
+
+  if (shouldUseTrayLanding) {
+    this.playDiceOneShot("trayImpact", 0.74 + intensity * 0.68, 90);
+  } else {
+    this.playDiceOneShot("tap", 0.62 + intensity * 0.78, 70);
+  }
+
+  this.startOrUpdateRollLoop(0.22 + intensity * 0.36);
+  return;
+}
 
     if (event.type === "dice-roll") {
       this.startOrUpdateRollLoop(0.18 + intensity * 0.52);
@@ -265,9 +277,11 @@ class SixAnimalAudioEngine {
       return;
     }
 
-    if (event.type === "dice-settle") {
-      this.fadeOutRollLoop(320);
-    }
+if (event.type === "dice-settle") {
+  this.fadeOutRollLoop(320);
+  this.playDiceOneShot("settle", 0.72 + intensity * 0.78, 180);
+  return;
+}
   }
 
   playDiceRelease() {
