@@ -159,7 +159,7 @@ const canEnterSixAnimal =
               style={{
                 backgroundImage: `url(${naganiAssets.shared.logo.conceptV1})`,
               }}
-              aria-label="ရွှေအိုး"
+              aria-label="နဂါးနီရွှေအိုး"
             />
 
             <div className="-mt-3 rounded-full border border-[#ffd77a]/30 bg-[#090202]/42 px-4 py-1 text-sm font-black tracking-[0.12em] text-[#ffd77a] shadow-lg shadow-black/50 backdrop-blur-[2px]">
@@ -196,6 +196,20 @@ const canEnterSixAnimal =
                 </span>
               </Link>
             </div>
+          </div>
+
+          <div className="absolute inset-x-4 bottom-[5.7rem] z-20 text-center">
+            <h1 className="text-[0.72rem] font-black tracking-[0.08em] text-[#ffd77a] drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
+              နဂါးနီရွှေအိုး
+            </h1>
+
+            <p className="mt-1 text-[0.58rem] font-bold leading-4 text-[#fff3d0]/78 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
+              မြန်မာရိုးရာ ၆ ကောင်ဂျင် အံစာတုံးဂိမ်း
+            </p>
+
+            <p className="mt-0.5 text-[0.5rem] font-semibold leading-3 text-[#f7dfaa]/58">
+              Nagani Shwe Ohh · Myanmar Traditional Six Animal Dice Game
+            </p>
           </div>
         </section>
       </NaganiPageShell>
