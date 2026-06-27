@@ -142,7 +142,7 @@ const canEnterSixAnimal =
 
               <div className="w-full">
                 <p className="text-[0.58rem] font-bold leading-none text-[#f7dfaa]/70">
-                  သင့်
+                  သင့်ငွေ
                 </p>
                 <p className="mt-1 text-[0.72rem] font-black leading-none text-[#ffd77a] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
                   {formatMMK(playableBalance)} ကျပ်
