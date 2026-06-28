@@ -12,6 +12,7 @@ import NaganiHomeTopControls from "@/components/nagani-v2/NaganiHomeTopControls"
 import NaganiLobbyBgm from "@/components/nagani-v2/NaganiLobbyBgm";
 import NaganiHomeWelcomeAnnouncement from "@/components/nagani-v2/NaganiHomeWelcomeAnnouncement";
 import NaganiLobbyBootGate from "@/components/nagani-v2/NaganiLobbyBootGate";
+import NaganiInstallPrompt from "@/components/nagani-v2/NaganiInstallPrompt";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { createClient } from "@/lib/supabase/server";
 
@@ -109,6 +110,7 @@ const canEnterSixAnimal =
         bottomNav={<NaganiBottomNav />}
         contentClassName="relative z-10 h-[100svh] overflow-hidden"
       >
+        <NaganiInstallPrompt />
         <NaganiLobbyBgm />
         <NaganiHomeWelcomeAnnouncement />
 

@@ -1,4 +1,4 @@
-//src>app>layout.tsx
+// src/app/layout.tsx
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 
 const APP_URL = "https://naganishweohh.com";
 const APP_OG_IMAGE = "/assets/nagani/v2/poster.png";
+const APP_ICON = "/assets/nagani/shared/logo/nagani-logo-concept-v1.png";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
@@ -35,6 +36,18 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: APP_URL,
+  },
+  manifest: "/manifest.webmanifest",
+  applicationName: "နဂါးနီရွှေအိုး",
+  appleWebApp: {
+    capable: true,
+    title: "နဂါးနီရွှေအိုး",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: APP_ICON,
+    shortcut: APP_ICON,
+    apple: APP_ICON,
   },
   openGraph: {
     title: "နဂါးနီရွှေအိုး | Official Website",
@@ -67,8 +80,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-<html
-  lang="my"
+    <html
+      lang="my"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-[#090202] text-white">{children}</body>
