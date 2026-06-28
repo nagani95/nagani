@@ -16,6 +16,20 @@ function getFormString(formData: FormData, key: string) {
   return value.trim();
 }
 
+function getSafeInternalPath(value: string) {
+  const path = value.trim();
+
+  if (!path.startsWith("/") || path.startsWith("//")) {
+    return "";
+  }
+
+  if (path.includes("://")) {
+    return "";
+  }
+
+  return path;
+}
+
 function normalizePlayerAuthEmail(value: string) {
   const input = value.trim().toLowerCase();
 
@@ -146,6 +160,7 @@ redirect("/");
 export async function loginWithEmail(formData: FormData) {
   const email = normalizePlayerAuthEmail(getFormString(formData, "email"));
   const password = getFormString(formData, "password");
+  const nextPath = getSafeInternalPath(getFormString(formData, "next"));
 
   if (!email) {
     redirectWithLoginError("ဖုန်းနံပါတ် လိုအပ်ပါသည်။");
@@ -167,7 +182,7 @@ export async function loginWithEmail(formData: FormData) {
     redirectWithLoginError("ဝင်ရောက်မှု မအောင်မြင်ပါ။");
   }
 
-  redirect("/");
+  redirect(nextPath || "/");
 }
 
 export async function logout() {

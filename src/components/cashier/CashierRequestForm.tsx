@@ -134,6 +134,8 @@ export default function CashierRequestForm({
             value={amount}
             onChange={(event) => onAmountChange(event.target.value)}
             inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={12}
             className="min-w-0 flex-1 bg-transparent text-[1.3rem] font-black leading-none text-[#ffe6a3] outline-none placeholder:text-[#f7dfaa]/22"
             placeholder="10000"
           />
@@ -168,6 +170,7 @@ export default function CashierRequestForm({
             value={note}
             onChange={(event) => onNoteChange(event.target.value)}
             rows={2}
+            maxLength={140}
             className="mt-1.5 h-[2.55rem] w-full resize-none rounded-[0.75rem] border border-[#d6a84f]/26 bg-black/24 px-3 py-1.5 text-sm font-bold leading-5 text-[#ffe6a3] outline-none placeholder:text-[#f7dfaa]/28 focus:border-[#ffd77a]/52 focus:ring-2 focus:ring-[#d6a84f]/18"
             placeholder="နောက်ဆုံးနံပါတ် 6လုံး"
           />
@@ -211,6 +214,7 @@ export default function CashierRequestForm({
                   updateWithdrawField("accountPhone", event.target.value)
                 }
                 inputMode="tel"
+                maxLength={32}
                 className="mt-1 h-10 w-full rounded-[0.75rem] border border-[#d6a84f]/26 bg-black/24 px-3 text-sm font-bold text-[#ffe6a3] outline-none placeholder:text-[#f7dfaa]/28 focus:border-[#ffd77a]/52 focus:ring-2 focus:ring-[#d6a84f]/18"
                 placeholder="09xxxxxxxxx"
               />
@@ -227,6 +231,7 @@ export default function CashierRequestForm({
                   updateWithdrawField("holderName", event.target.value)
                 }
                 className="mt-1 h-10 w-full rounded-[0.75rem] border border-[#d6a84f]/26 bg-black/24 px-3 text-sm font-bold text-[#ffe6a3] outline-none placeholder:text-[#f7dfaa]/28 focus:border-[#ffd77a]/52 focus:ring-2 focus:ring-[#d6a84f]/18"
+                maxLength={60}
                 placeholder="ဥပမာ - Mg Mg"
               />
             </label>

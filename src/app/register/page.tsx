@@ -22,7 +22,12 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const params = await searchParams;
   const errorMessage = params?.error;
   const successMessage = params?.message;
-const referralCode = params?.ref?.trim().toUpperCase() ?? "";
+const rawReferralCode = params?.ref?.trim() ?? "";
+const referralCode = rawReferralCode
+  .replace(/[^a-zA-Z0-9_-]/g, "")
+  .slice(0, 24)
+  .toUpperCase();
+
 const loginHref = referralCode
   ? `/login?ref=${encodeURIComponent(referralCode)}`
   : "/login";
@@ -45,7 +50,10 @@ const loginHref = referralCode
             </h1>
 
             <p className="mt-2 text-sm font-bold leading-7 text-[#fff3d0]/78 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-              တော်ဝင်ပွဲခန်းမသို့ ဝင်ရန် အကောင့်ဖွင့်ပါ
+              တရားဝင်အကောင့် ဖွင့်ရန်
+            </p>
+            <p className="mt-1 text-[0.7rem] font-bold leading-5 text-[#f7dfaa]/55">
+              စည်းမျဉ်းနှင့်အညီ တာဝန်ယူကစားပါ
             </p>
           </div>
 

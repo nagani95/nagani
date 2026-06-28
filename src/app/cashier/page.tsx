@@ -116,7 +116,7 @@ const fetchCashierData = useCallback(async () => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    router.replace("/login");
+    router.replace("/login?next=/cashier");
     return;
   }
 
@@ -220,7 +220,7 @@ async function handleRefreshWallet() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.replace("/login");
+      router.replace("/login?next=/cashier");
       return;
     }
 

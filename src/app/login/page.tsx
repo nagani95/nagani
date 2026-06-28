@@ -14,6 +14,7 @@ type LoginPageProps = {
   searchParams?: Promise<{
     error?: string;
     ref?: string;
+    next?: string;
   }>;
 };
 
@@ -21,6 +22,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const errorMessage = params?.error;
   const referralCode = params?.ref?.trim().toUpperCase() ?? "";
+    const rawNextPath = params?.next?.trim() ?? "";
+  const nextPath =
+    rawNextPath.startsWith("/") && !rawNextPath.startsWith("//")
+      ? rawNextPath
+      : "";
   const registerHref = referralCode
     ? `/register?ref=${encodeURIComponent(referralCode)}`
     : "/register";
@@ -52,6 +58,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd77a]/70 to-transparent" />
 
             <form action={loginWithEmail} className="relative space-y-5">
+                            {nextPath ? (
+                <input type="hidden" name="next" value={nextPath} />
+              ) : null}
               <div>
                 <p className="text-xs font-black tracking-[0.16em] text-[#f7dfaa]/60">
                   ကိုယ်ပိုင်အကောင့်ဝင်ရန်

@@ -12,7 +12,13 @@ function getMessage(formData: FormData) {
 }
 
 function getPhoneFromEmail(email: string | null | undefined) {
-  return String(email ?? "").replace("@nagani.local", "");
+  const value = String(email ?? "");
+
+  if (!value.endsWith("@nagani.local")) {
+    return "";
+  }
+
+  return value.replace("@nagani.local", "");
 }
 
 export async function sendPlayerSupportMessageAction(formData: FormData) {
@@ -33,7 +39,7 @@ export async function sendPlayerSupportMessageAction(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/login?next=/support");
   }
 
   const playerPhone = getPhoneFromEmail(user.email);

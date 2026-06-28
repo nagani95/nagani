@@ -73,7 +73,7 @@ export default function CashierHistoryPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/login");
+        router.replace("/login?next=/cashier/history");
         return;
       }
 

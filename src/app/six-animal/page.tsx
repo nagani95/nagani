@@ -951,7 +951,7 @@ const fetchAndSyncPlayableWalletBalance = useCallback(async () => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    router.replace("/login");
+    router.replace("/login?next=/six-animal");
     return 0;
   }
 
@@ -1031,7 +1031,7 @@ const {
 } = await supabase.auth.getUser();
 
 if (!user) {
-  router.replace("/login");
+  router.replace("/login?next=/six-animal");
   return;
 }
 
