@@ -78,10 +78,10 @@ const canEnterSixAnimal =
       : "/cashier";
 
   const playLabel = !user
-    ? "ဝင်ရောက်ရန်"
+    ? "စတင်ရန်"
     : canEnterSixAnimal
       ? "ကစားပွဲသို့"
-      : "ငွေဖြည့်ရန်";
+      : "ပိုက်ဆံအိတ်သို့";
 
         async function markPromoSeen() {
     "use server";
@@ -207,8 +207,12 @@ const canEnterSixAnimal =
               မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း
             </p>
 
-            <p className="mt-0.5 text-[0.5rem] font-semibold leading-3 text-[#f7dfaa]/58">
-              Nagani Shwe Ohh · Myanmar Traditional Dice Festival Game
+            <p className="mt-0.5 text-[0.5rem] font-semibold leading-3 text-[#f7dfaa]/68">
+              အသက် ၁၈ နှစ်အထက်များအတွက်သာ · တာဝန်ယူကစားပါ
+            </p>
+
+            <p className="mt-0.5 text-[0.48rem] font-semibold leading-3 text-[#f7dfaa]/50">
+              Nagani Shwe Ohh · Official Myanmar Traditional Game
             </p>
           </div>
         </section>

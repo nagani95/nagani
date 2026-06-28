@@ -15,51 +15,49 @@ const geistMono = Geist_Mono({
 });
 
 const APP_URL = "https://naganishweohh.com";
+const APP_OG_IMAGE = "/assets/nagani/v2/poster.png";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
-  title:
-    "နဂါးနီရွှေအိုး | မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း | Nagani Shwe Ohh",
+  title: "နဂါးနီရွှေအိုး | Official Website",
   description:
-    "နဂါးနီရွှေအိုး သည် ကျား၊ နဂါး၊ ကြက်၊ ငါး၊ ဂဏန်း၊ ဆင် တို့ပါဝင်သော မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း ဖြစ်ပါသည်။ လူအများသိသော ၆ ကောင်ဂျင် အငွေ့အသက်ကို တော်ဝင်မြန်မာစတိုင်ဖြင့် ဖန်တီးထားသည်။ Nagani Shwe Ohh, naganishweohh, Myanmar Traditional Dice Festival Game.",
+    "နဂါးနီရွှေအိုး တရားဝင်ဝက်ဘ်ဆိုက်။ မြန်မာရိုးရာဂိမ်းအငွေ့အသက်ကို တော်ဝင်မြန်မာစတိုင်ဖြင့် ဖန်တီးထားပါသည်။ သတ်မှတ်အသက်ပြည့်သူများအတွက်သာ · တာဝန်ယူကစားပါ။",
   keywords: [
     "နဂါးနီရွှေအိုး",
     "နဂါးနီ",
     "ရွှေအိုး",
-    "မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း",
-    "မြန်မာ အံစာတုံးပွဲတော်",
-    "မြန်မာ အံစာတုံး",
-    "မြန်မာရိုးရာ အံစာတုံးဂိမ်း",
-    "မြန်မာရိုးရာ ဂိမ်း",
-    "ကျား နဂါး ကြက် ငါး ဂဏန်း ဆင်",
-    "၆ ကောင်ဂျင်",
-    "ခြောက်ကောင်ဂျင်",
-    "မြန်မာ ၆ ကောင်ဂျင်",
     "Nagani Shwe Ohh",
     "Nagani",
     "Shwe Ohh",
     "naganishweohh",
-    "nagani shweohh",
-    "nagani shwe ohh",
-    "Myanmar dice festival game",
-    "Myanmar traditional dice festival game",
-    "Myanmar traditional dice game",
-    "Myanmar six animal dice game",
-    "Burmese 6 Animals",
-    "Burmese six animal dice game",
-    "six animal dice game",
+    "Myanmar traditional game",
+    "Myanmar royal game",
   ],
   alternates: {
     canonical: APP_URL,
   },
   openGraph: {
-    title:
-      "နဂါးနီရွှေအိုး | မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း | Nagani Shwe Ohh",
+    title: "နဂါးနီရွှေအိုး | Official Website",
     description:
-      "ကျား၊ နဂါး၊ ကြက်၊ ငါး၊ ဂဏန်း၊ ဆင် တို့ပါဝင်သော မြန်မာရိုးရာ အံစာတုံးပွဲတော်ဂိမ်း။ Nagani Shwe Ohh.",
+      "နဂါးနီရွှေအိုး တရားဝင်ဝက်ဘ်ဆိုက်။ မြန်မာရိုးရာဂိမ်းအငွေ့အသက်ကို တော်ဝင်မြန်မာစတိုင်ဖြင့် ဖန်တီးထားပါသည်။",
     url: APP_URL,
     siteName: "နဂါးနီရွှေအိုး",
     type: "website",
+    images: [
+      {
+        url: APP_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: "နဂါးနီရွှေအိုး Official Website",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "နဂါးနီရွှေအိုး | Official Website",
+    description:
+      "မြန်မာရိုးရာဂိမ်းအငွေ့အသက်ကို တော်ဝင်မြန်မာစတိုင်ဖြင့် ဖန်တီးထားသော တရားဝင်ဝက်ဘ်ဆိုက်။",
+    images: [APP_OG_IMAGE],
   },
 };
 
