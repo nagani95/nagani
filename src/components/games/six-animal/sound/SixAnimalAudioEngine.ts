@@ -199,6 +199,7 @@ class SixAnimalAudioEngine {
   private activeRollLoop: ActiveLoop | null = null;
   private rollFadeTimer: number | null = null;
   private lastDiceOneShotAt = new Map<DiceAudioKey, number>();
+  private trayLandingPlayedByDie = new Set<number>();
 
   constructor() {
     this.isBackgroundMuted = this.readBackgroundMutedPreference();
@@ -334,41 +335,51 @@ setBackgroundMuted(nextMuted: boolean) {
     if (!this.isUnlocked) return;
 
     const intensity = clamp(event.intensity, 0.05, 1);
+    const hasTrayLanding = this.trayLandingPlayedByDie.has(event.dieIndex);
 
-        if (event.type === "dice-drop") {
-      const impactKey: DiceAudioKey =
-        event.rollAgeMs < 720 ? "deflectorHit" : "trayImpact";
+    if (event.type === "dice-drop") {
+      this.trayLandingPlayedByDie.delete(event.dieIndex);
 
-      this.playDiceOneShot(impactKey, 0.8 + intensity * 0.7, 90);
-      this.startOrUpdateRollLoop(0.32 + intensity * 0.42);
+      // First contact = deflector bar bounce only.
+      // Do not start rolling loop here.
+      this.playDiceOneShot("deflectorHit", 0.82 + intensity * 0.58, 150);
       return;
     }
 
-if (event.type === "dice-bounce") {
-  const shouldUseTrayLanding =
-    event.rollAgeMs > 620 && event.rollAgeMs < 2600 && intensity > 0.44;
+    if (event.type === "dice-bounce") {
+      if (!hasTrayLanding) {
+        this.trayLandingPlayedByDie.add(event.dieIndex);
 
-  if (shouldUseTrayLanding) {
-    this.playDiceOneShot("trayImpact", 0.74 + intensity * 0.68, 90);
-  } else {
-    this.playDiceOneShot("tap", 0.62 + intensity * 0.78, 70);
-  }
+        // First bounce after deflector = tray landing.
+        // Rolling starts only after this landing impact.
+        this.playDiceOneShot("trayImpact", 0.82 + intensity * 0.62, 160);
+        this.startOrUpdateRollLoop(0.28 + intensity * 0.38);
+        return;
+      }
 
-  this.startOrUpdateRollLoop(0.22 + intensity * 0.36);
-  return;
-}
+      // Later bounces while rolling = small tap.
+      this.playDiceOneShot("tap", 0.52 + intensity * 0.58, 90);
+      this.startOrUpdateRollLoop(0.18 + intensity * 0.28);
+      return;
+    }
 
     if (event.type === "dice-roll") {
-      this.startOrUpdateRollLoop(0.18 + intensity * 0.52);
+      // Fallback only. Normal rolling starts after tray landing.
+      if (!hasTrayLanding && event.rollAgeMs < 700) return;
+
+      this.trayLandingPlayedByDie.add(event.dieIndex);
+      this.startOrUpdateRollLoop(0.16 + intensity * 0.42);
       this.scheduleRollLoopFade(520);
       return;
     }
 
-if (event.type === "dice-settle") {
-  this.fadeOutRollLoop(320);
-  this.playDiceOneShot("settle", 0.72 + intensity * 0.78, 180);
-  return;
-}
+    if (event.type === "dice-settle") {
+      this.trayLandingPlayedByDie.delete(event.dieIndex);
+
+      this.fadeOutRollLoop(320);
+      this.playDiceOneShot("settle", 0.72 + intensity * 0.78, 180);
+      return;
+    }
   }
 
   playDiceRelease() {
@@ -397,6 +408,7 @@ if (event.type === "dice-settle") {
     }
 
     this.lastDiceOneShotAt.clear();
+    this.trayLandingPlayedByDie.clear();
   }
 
   private preloadHtmlAudio() {
