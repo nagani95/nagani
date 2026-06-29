@@ -1,0 +1,531 @@
+src\app\apple-icon.png:11636:Ú≤†¨K :ê@Háé N˝aõµç!kõ#÷∑VŸΩ±Õ≠wnp˚ﬁmﬁyÔ.Ô}¯.˜>|èw>∏«Ìªwÿ⁄Ÿ¶◊Ì!Ñ"õÂø:ÊÒ√'<¯‚!_züØ~uüG_?·’≥&g Ö¡’)"‚®Eú¥–qtBiaö◊\ÃrŒg9ß≥ÇÛE≈eaô÷éôÛ,\8aKÚ°œFàpÆihtA`ﬂò◊Ûe©˙∞M∑¥ıÀÁêg‚xM˙fº,ﬂG,-€ﬁúéÀ°∂|4ñOJÇj,ÂRA%ÂÅÛú†k–¨;ÅÄhˇï"QM–-a¬9lm∞UrCÚú:/»Ês≤˘î˘t¬t<f>ô0õåôå/_ú3æ∏`|yŒ|:&õœ∞eN)F√.Î+lo≠±≥Ω…ˆ÷*É~ã4UH¬˘uIˆy»ô•≠c kQcåŸT∆R◊Ü"/òÕgLÆ∆LÆÆ_^1O»≤å<œ_V¡ﬁ©,)J∆y^^è·º(©ù#iß¨oo≥wÛ6£çm^_˘˚Ô>Â˛ììÚjÓN2√Û.*TÌ!"√ˆG,:†«(â¶9l^¢phÎâù#≤û»XTÉQKkAk¶ÆÇ4ï¨≠∂˘‡˝}~˝{lÆè_^Ë˛#^Ω<ƒ9ÿø±Mß”‚Ú‚å,œÆ¨Œ{Ô±∂π√Ò…ò?ˇ‰kæ˙˙%„πÛYç-úüV÷=uBætBå≠˜µtR:Ô#	©QÌπ)ˇ^Ï˘IWÒ˝µ∂⁄ŸZI[˚õπ≥—´Ék´=∂7◊ËuªL'?~…∑è^rvûQñû(Nâ”µuÃ≤úEYR7Ñq⁄K¯¯˚w¯{ˇ›ﬂ‚G?yüŸ‰òßﬂ~Õ˘…∏`2ñ§F´õDiüóGc>˘’#æ˙ˆòÀÖ#Û`„àdÿßøæJ‹Î†“'É˙Y*≈˙˙:{˚˚Tu≈É˚89>Q8,Uh\QëÀıÈ≠π¶ ÃiöÊî@‰-Ø)õÈ*¬u• 4àDZM(TÚAÉ2ñOKzz±bgm»ª7˜Xt(3LCBÙªm"-H“≠#ÊY¡˘’ÑyQ•êh ñêHœ†≠∏±≥ Ê˙Èkf”1ã˘Á,I”È∂QRíe∆V◊÷≠nrr6ÊªÁ«ú^f‰¶…:ÚÑî“¶*ï˝ x˚'÷ıú_¸ˆe¯9îkµü’¯B)ëj©FJ…ÆRK!ÖµÜ≈º‡ÚÚälë#îd8∞ππ¡ Íà¥”
+src\app\icon.png:11636:Ú≤†¨K :ê@Háé N˝aõµç!kõ#÷∑VŸΩ±Õ≠wnp˚ﬁmﬁyÔ.Ô}¯.˜>|èw>∏«Ìªwÿ⁄Ÿ¶◊Ì!Ñ"õÂø:ÊÒ√'<¯‚!_züØ~uüG_?·’≥&g Ö¡’)"‚®Eú¥–qtBiaö◊\ÃrŒg9ß≥ÇÛE≈eaô÷éôÛ,\8aKÚ°œFàpÆihtA`ﬂò◊Ûe©˙∞M∑¥ıÀÁêg‚xM˙fº,ﬂG,-€ﬁúéÀ°∂|4ñOJÇj,ÂRA%ÂÅÛú†k–¨;ÅÄhˇï"QM–-a¬9lm∞UrCÚú:/»Ês≤˘î˘t¬t<f>ô0õåôå/_ú3æ∏`|yŒ|:&õœ∞eN)F√.Î+lo≠±≥Ω…ˆ÷*É~ã4UH¬˘uIˆy»ô•≠c kQcåŸT∆R◊Ü"/òÕgLÆ∆LÆÆ_^1O»≤å<œ_V¡ﬁ©,)J∆y^^è·º(©ù#iß¨oo≥wÛ6£çm^_˘˚Ô>Â˛ììÚjÓN2√Û.*TÌ!"√ˆG,:†«(â¶9l^¢phÎâù#≤û»XTÉQKkAk¶ÆÇ4ï¨≠∂˘‡˝}~˝{lÆè_^Ë˛#^Ω<ƒ9ÿø±Mß”‚Ú‚å,œÆ¨Œ{Ô±∂π√Ò…ò?ˇ‰kæ˙˙%„πÛYç-úüV÷=uBætBå≠˜µtR:Ô#	©QÌπ)ˇ^Ï˘IWÒ˝µ∂⁄ŸZI[˚õπ≥—´Ék´=∂7◊ËuªL'?~…∑è^rvûQñû(Nâ”µuÃ≤úEYR7Ñq⁄K¯¯˚w¯{ˇ›ﬂ‚G?yüŸ‰òßﬂ~Õ˘…∏`2ñ§F´õDiüóGc>˘’#æ˙ˆòÀÖ#Û`„àdÿßøæJ‹Î†“'É˙Y*≈˙˙:{˚˚Tu≈É˚89>Q8,Uh\QëÀıÈ≠π¶ ÃiöÊî@‰-Ø)õÈ*¬u• 4àDZM(TÚAÉ2ñOKzz±bgm»ª7˜Xt(3LCBÙªm"-H“≠#ÊY¡˘’ÑyQ•êh ñêHœ†≠∏±≥ Ê˙Èkf”1ã˘Á,I”È∂QRíe∆V◊÷≠nrr6ÊªÁ«ú^f‰¶…:ÚÑî“¶*ï˝ x˚'÷ıú_¸ˆe¯9îkµü’¯B)ëj©FJ…ÆRK!ÖµÜ≈º‡ÚÚälë#îd8∞ππ¡ Íà¥”
+src\app\page.tsx:12:import NaganiLobbyBgm from "@/components/nagani-v2/NaganiLobbyBgm";
+src\app\page.tsx:114:        <NaganiLobbyBgm />
+src\app\six-animal\page.tsx:11:  DiceTableAudioEvent,
+src\app\six-animal\page.tsx:29:import { sixAnimalAudioEngine } from "@/components/games/six-animal/sound/SixAnimalAudioEngine";
+src\app\six-animal\page.tsx:37:  ROOM_SOUND_ENABLED,
+src\app\six-animal\page.tsx:58:  type SixAnimalSoundEvent,
+src\app\six-animal\page.tsx:102:const gameSoundEnabled = ROOM_SOUND_ENABLED;
+src\app\six-animal\page.tsx:121:const lastDiceSoundCountRef = useRef(0);
+src\app\six-animal\page.tsx:122:const roomAudioUnlockedRef = useRef(false);
+src\app\six-animal\page.tsx:123:const [isRoomAudioUnlocked, setIsRoomAudioUnlocked] = useState(false);
+src\app\six-animal\page.tsx:126:const lastPhaseSoundKeyRef = useRef<string | null>(null);
+src\app\six-animal\page.tsx:129:  sixAnimalAudioEngine.getBackgroundMuted()
+src\app\six-animal\page.tsx:133:  const nextMuted = sixAnimalAudioEngine.toggleBackground();
+src\app\six-animal\page.tsx:192:lastDiceSoundCountRef.current = 0;
+src\app\six-animal\page.tsx:240:lastDiceSoundCountRef.current = 0;
+src\app\six-animal\page.tsx:400:    lastDiceSoundCountRef.current = 0;
+src\app\six-animal\page.tsx:459:    lastDiceSoundCountRef.current = 0;
+src\app\six-animal\page.tsx:510:    lastDiceSoundCountRef.current = 0;
+src\app\six-animal\page.tsx:824:function playRoomSound(eventName: SixAnimalSoundEvent) {
+src\app\six-animal\page.tsx:825:  if (!gameSoundEnabled) return;
+src\app\six-animal\page.tsx:826:  if (!roomAudioUnlockedRef.current) return;
+src\app\six-animal\page.tsx:829:    sixAnimalAudioEngine.playSettlementWin();
+src\app\six-animal\page.tsx:837:  sixAnimalAudioEngine.playUiSound(eventName);
+src\app\six-animal\page.tsx:841:  if (!gameSoundEnabled) return;
+src\app\six-animal\page.tsx:842:  if (!roomAudioUnlockedRef.current) return;
+src\app\six-animal\page.tsx:844:  sixAnimalAudioEngine.startBackground();
+src\app\six-animal\page.tsx:848:  sixAnimalAudioEngine.stopBackground();
+src\app\six-animal\page.tsx:851:function playNewResultAnimalSounds(resultNames: string[]) {
+src\app\six-animal\page.tsx:852:  if (resultNames.length <= lastDiceSoundCountRef.current) return;
+src\app\six-animal\page.tsx:855:    lastDiceSoundCountRef.current
+src\app\six-animal\page.tsx:860:      sixAnimalAudioEngine.playReveal(nameMm);
+src\app\six-animal\page.tsx:864:  lastDiceSoundCountRef.current = resultNames.length;
+src\app\six-animal\page.tsx:868:  playRoomSound("exit-button");
+src\app\six-animal\page.tsx:873:  if (!gameSoundEnabled) return false;
+src\app\six-animal\page.tsx:874:  if (!roomAudioUnlockedRef.current) return false;
+src\app\six-animal\page.tsx:893:  playRoomSound("loading");
+src\app\six-animal\page.tsx:898:function playCurrentPhaseSound() {
+src\app\six-animal\page.tsx:902:    playRoomSound("betting-round");
+src\app\six-animal\page.tsx:907:    playRoomSound("bets-closed");
+src\app\six-animal\page.tsx:911:function unlockRoomAudio() {
+src\app\six-animal\page.tsx:912:  if (!gameSoundEnabled) return;
+src\app\six-animal\page.tsx:914:  if (roomAudioUnlockedRef.current) {
+src\app\six-animal\page.tsx:915:    setIsRoomAudioUnlocked(true);
+src\app\six-animal\page.tsx:919:roomAudioUnlockedRef.current = true;
+src\app\six-animal\page.tsx:920:setIsRoomAudioUnlocked(true);
+src\app\six-animal\page.tsx:921:void sixAnimalAudioEngine.unlockAudio();
+src\app\six-animal\page.tsx:932:    playCurrentPhaseSound();
+src\app\six-animal\page.tsx:937:  playRoomSound("ui-click");
+src\app\six-animal\page.tsx:942:  playRoomSound("ui-click");
+src\app\six-animal\page.tsx:1306:  if (!gameSoundEnabled) return;
+src\app\six-animal\page.tsx:1307:  if (!roomAudioUnlockedRef.current) return;
+src\app\six-animal\page.tsx:1321:  playRoomSound("countdown-hit");
+src\app\six-animal\page.tsx:1322:}, [phase, displayCountdown, gameSoundEnabled]);
+src\app\six-animal\page.tsx:1325:  if (!gameSoundEnabled) return;
+src\app\six-animal\page.tsx:1326:  if (!roomAudioUnlockedRef.current) return;
+src\app\six-animal\page.tsx:1329:  const soundRoundId = roundId || "boot";
+src\app\six-animal\page.tsx:1331:const phaseSoundEvent: SixAnimalSoundEvent | null =
+src\app\six-animal\page.tsx:1338:  if (!phaseSoundEvent) return;
+src\app\six-animal\page.tsx:1340:  const soundKey = `${phaseSoundEvent}:${soundRoundId}:${
+src\app\six-animal\page.tsx:1344:  if (lastPhaseSoundKeyRef.current === soundKey) return;
+src\app\six-animal\page.tsx:1346:  lastPhaseSoundKeyRef.current = soundKey;
+src\app\six-animal\page.tsx:1347:  playRoomSound(phaseSoundEvent);
+src\app\six-animal\page.tsx:1349:}, [phase, roundId, isWaitingForNextRound, gameSoundEnabled]);
+src\app\six-animal\page.tsx:1353:    sixAnimalAudioEngine.stopAll();
+src\app\six-animal\page.tsx:1371:  if (!gameSoundEnabled) return;
+src\app\six-animal\page.tsx:1374:    roomAudioUnlockedRef.current &&
+src\app\six-animal\page.tsx:1386:}, [gameSoundEnabled, showRoomIntro, isWaitingForNextRound, isQuitting]);
+src\app\six-animal\page.tsx:1421:function playSettlementResultSound(resultNames: string[]) {
+src\app\six-animal\page.tsx:1423:    sixAnimalAudioEngine.playSettlementLose();
+src\app\six-animal\page.tsx:1439:    sixAnimalAudioEngine.playSettlementWin({
+src\app\six-animal\page.tsx:1445:  sixAnimalAudioEngine.playSettlementLose();
+src\app\six-animal\page.tsx:1473:  playNewResultAnimalSounds(resultNames);
+src\app\six-animal\page.tsx:1518:playSettlementResultSound(resultNames);
+src\app\six-animal\page.tsx:1544:  sixAnimalAudioEngine.playDiceRelease();
+src\app\six-animal\page.tsx:1547:function handleDiceTableAudioEvent(
+src\app\six-animal\page.tsx:1548:  event: DiceTableAudioEvent,
+src\app\six-animal\page.tsx:1559:  if (!gameSoundEnabled) return;
+src\app\six-animal\page.tsx:1560:  if (!roomAudioUnlockedRef.current) return;
+src\app\six-animal\page.tsx:1562:  sixAnimalAudioEngine.handleDiceTableAudioEvent(event);
+src\app\six-animal\page.tsx:1593:  playNewResultAnimalSounds(resultNames);
+src\app\six-animal\page.tsx:1602:  playRoomSound("ui-click");
+src\app\six-animal\page.tsx:1626:  playRoomSound("ui-click");
+src\app\six-animal\page.tsx:1646:  playRoomSound("ui-click");
+src\app\six-animal\page.tsx:1653:  playRoomSound("ui-click");
+src\app\six-animal\page.tsx:1660:  playRoomSound("ui-click");
+src\app\six-animal\page.tsx:1784:    playRoomSound("bet-locked");
+src\app\six-animal\page.tsx:1859:  playRoomSound("bet-locked");
+src\app\six-animal\page.tsx:1879:  playRoomSound("bet-invalid");
+src\app\six-animal\page.tsx:1893:      onPointerDownCapture={unlockRoomAudio}
+src\app\six-animal\page.tsx:1990:  isAudioUnlocked={isRoomAudioUnlocked}
+src\app\six-animal\page.tsx:2024:    onDiceAudioEvent={handleDiceTableAudioEvent}
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:14:  ROOM_SOUND_ENABLED,
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:18:  isRoomAudioUnlockedRef: MutableRefObject<boolean>;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:22:  isRoomAudioUnlockedRef,
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:26:  const backgroundMusicAudioRef = useRef<HTMLAudioElement | null>(null);
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:29:  function getBackgroundMusicAudio() {
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:30:    if (backgroundMusicAudioRef.current) {
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:31:      return backgroundMusicAudioRef.current;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:34:    const audio = new Audio(ROOM_BACKGROUND_MUSIC_SRC);
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:35:    audio.preload = "auto";
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:36:    audio.loop = true;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:37:    audio.volume = ROOM_BACKGROUND_MUSIC_VOLUME;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:39:    backgroundMusicAudioRef.current = audio;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:41:    return audio;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:52:    const audio = getBackgroundMusicAudio();
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:56:    const startVolume = audio.volume;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:65:      audio.volume = startVolume + (targetVolume - startVolume) * progress;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:70:      audio.volume = targetVolume;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:73:        audio.pause();
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:79:    if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:81:    const audio = getBackgroundMusicAudio();
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:83:    if (!isRoomAudioUnlockedRef.current || isBackgroundMusicMuted) {
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:89:      if (audio.paused) {
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:90:        audio.volume = 0;
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:92:        void audio
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:93:          .play()
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:149:      if (backgroundMusicAudioRef.current) {
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:150:        backgroundMusicAudioRef.current.pause();
+src\components\games\six-animal\hooks\useSixAnimalBackgroundMusic.ts:151:        backgroundMusicAudioRef.current = null;
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:19:export const ROOM_SOUND_ENABLED = true;
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:20:export const ROOM_SOUND_VOLUME = 0.72;
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:23:  "/assets/nagani/sounds/six-animal/room-bgm.mp3";
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:29:  "nagani-six-animal-bgm-muted";
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:84:export type SixAnimalSoundEvent =
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:107:export const SIX_ANIMAL_SOUND_SRC: Record<SixAnimalSoundEvent, string> = {
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:108:  loading: "/assets/nagani/sounds/six-animal/loading.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:109:  "betting-round": "/assets/nagani/sounds/six-animal/betting-round.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:110:  "bets-closed": "/assets/nagani/sounds/six-animal/bets-closed.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:111:  "countdown-hit": "/assets/nagani/sounds/six-animal/countdown-hit.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:112:  "dice-drop": "/assets/nagani/sounds/six-animal/dice-drop.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:113:  "settlement-round": "/assets/nagani/sounds/six-animal/settlement-round.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:114:  "settlement-win": "/assets/nagani/sounds/six-animal/settlement-win.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:115:  "settlement-lose": "/assets/nagani/sounds/six-animal/settlement-lose.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:116:  "bet-locked": "/assets/nagani/sounds/six-animal/bet-locked.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:117:  "exit-button": "/assets/nagani/sounds/six-animal/exit-button.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:118:  "bet-invalid": "/assets/nagani/sounds/six-animal/bet-invalid.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:119:  "ui-click": "/assets/nagani/sounds/six-animal/ui-click.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:122:export const SIX_ANIMAL_SOUND_VOLUME: Record<SixAnimalSoundEvent, number> = {
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:137:export const SIX_ANIMAL_RESULT_SOUND_SRC: Record<SixAnimalKey, string> = {
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:138:  tiger: "/assets/nagani/sounds/six-animal/results/tiger.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:139:  dragon: "/assets/nagani/sounds/six-animal/results/dragon.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:140:  rooster: "/assets/nagani/sounds/six-animal/results/rooster.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:141:  fish: "/assets/nagani/sounds/six-animal/results/fish.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:142:  crab: "/assets/nagani/sounds/six-animal/results/crab.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:143:  elephant: "/assets/nagani/sounds/six-animal/results/elephant.mp3",
+src\components\games\six-animal\sixAnimalRoomHelpers.ts:146:export const SIX_ANIMAL_RESULT_SOUND_VOLUME: Record<SixAnimalKey, number> = {
+src\components\games\six-animal\SixAnimalRoomWaitLayer.tsx:13:  isAudioUnlocked?: boolean;
+src\components\games\six-animal\SixAnimalRoomWaitLayer.tsx:45:  isAudioUnlocked = false,
+src\components\games\six-animal\SixAnimalRoomWaitLayer.tsx:52:    if (!isAudioUnlocked) return;
+src\components\games\six-animal\SixAnimalRoomWaitLayer.tsx:61:  }, [announcementKey, isAudioUnlocked, onAnnounce]);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:1:// src/components/games/six-animal/sound/DiceSoundDirector.ts
+src\components\games\six-animal\sound\DiceSoundDirector.ts:3:import type { DiceTableAudioEvent } from "../ThreeDicePhysicsStage";
+src\components\games\six-animal\sound\DiceSoundDirector.ts:5:type DiceSoundKey =
+src\components\games\six-animal\sound\DiceSoundDirector.ts:13:type DiceSoundVariant = {
+src\components\games\six-animal\sound\DiceSoundDirector.ts:14:  key: DiceSoundKey;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:20:  source: AudioBufferSourceNode;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:24:const DICE_SOUND_VARIANTS: DiceSoundVariant[] = [
+src\components\games\six-animal\sound\DiceSoundDirector.ts:27:    src: "/assets/nagani/sounds/six-animal/dice/release-01.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:32:    src: "/assets/nagani/sounds/six-animal/dice/deflector-hit-01.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:37:    src: "/assets/nagani/sounds/six-animal/dice/deflector-hit-02.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:42:    src: "/assets/nagani/sounds/six-animal/dice/tray-impact-01.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:47:    src: "/assets/nagani/sounds/six-animal/dice/tray-impact-02.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:52:    src: "/assets/nagani/sounds/six-animal/dice/roll-loop-soft.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:57:    src: "/assets/nagani/sounds/six-animal/dice/tap-01.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:62:    src: "/assets/nagani/sounds/six-animal/dice/tap-02.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:67:    src: "/assets/nagani/sounds/six-animal/dice/tap-03.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:72:    src: "/assets/nagani/sounds/six-animal/dice/settle-01.wav",
+src\components\games\six-animal\sound\DiceSoundDirector.ts:79:function getAudioContextConstructor() {
+src\components\games\six-animal\sound\DiceSoundDirector.ts:83:    window.AudioContext ||
+src\components\games\six-animal\sound\DiceSoundDirector.ts:84:    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+src\components\games\six-animal\sound\DiceSoundDirector.ts:85:      .webkitAudioContext ||
+src\components\games\six-animal\sound\DiceSoundDirector.ts:98:class DiceSoundDirector {
+src\components\games\six-animal\sound\DiceSoundDirector.ts:99:  private audioContext: AudioContext | null = null;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:100:  private buffers = new Map<string, AudioBuffer>();
+src\components\games\six-animal\sound\DiceSoundDirector.ts:107:  private lastOneShotAt = new Map<DiceSoundKey, number>();
+src\components\games\six-animal\sound\DiceSoundDirector.ts:112:    const AudioContextConstructor = getAudioContextConstructor();
+src\components\games\six-animal\sound\DiceSoundDirector.ts:114:    if (!AudioContextConstructor) return;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:116:    if (!this.audioContext) {
+src\components\games\six-animal\sound\DiceSoundDirector.ts:117:      this.audioContext = new AudioContextConstructor();
+src\components\games\six-animal\sound\DiceSoundDirector.ts:120:    if (this.audioContext.state === "suspended") {
+src\components\games\six-animal\sound\DiceSoundDirector.ts:121:      await this.audioContext.resume().catch(() => undefined);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:134:        DICE_SOUND_VARIANTS.map(async (variant) => {
+src\components\games\six-animal\sound\DiceSoundDirector.ts:137:          const audioContext = this.audioContext;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:139:          if (!audioContext) return;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:147:            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:149:            this.buffers.set(variant.src, audioBuffer);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:151:            // Missing dice sound files must never break the game.
+src\components\games\six-animal\sound\DiceSoundDirector.ts:170:  handleTableAudioEvent(event: DiceTableAudioEvent) {
+src\components\games\six-animal\sound\DiceSoundDirector.ts:180:      const impactKey: DiceSoundKey =
+src\components\games\six-animal\sound\DiceSoundDirector.ts:193:      const bounceKey: DiceSoundKey =
+src\components\games\six-animal\sound\DiceSoundDirector.ts:228:        this.handleTableAudioEvent({
+src\components\games\six-animal\sound\DiceSoundDirector.ts:240:        this.handleTableAudioEvent({
+src\components\games\six-animal\sound\DiceSoundDirector.ts:252:        this.handleTableAudioEvent({
+src\components\games\six-animal\sound\DiceSoundDirector.ts:264:        this.handleTableAudioEvent({
+src\components\games\six-animal\sound\DiceSoundDirector.ts:309:    soundKey: DiceSoundKey,
+src\components\games\six-animal\sound\DiceSoundDirector.ts:314:    const lastPlayedAt = this.lastOneShotAt.get(soundKey) ?? 0;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:318:    this.lastOneShotAt.set(soundKey, now);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:319:    this.playOneShot(soundKey, volumeScale);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:322:  private playOneShot(soundKey: DiceSoundKey, volumeScale = 1) {
+src\components\games\six-animal\sound\DiceSoundDirector.ts:323:    const audioContext = this.audioContext;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:325:    if (!audioContext || audioContext.state !== "running") return;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:327:    const variants = DICE_SOUND_VARIANTS.filter(
+src\components\games\six-animal\sound\DiceSoundDirector.ts:328:      (variant) => variant.key === soundKey
+src\components\games\six-animal\sound\DiceSoundDirector.ts:338:    const source = audioContext.createBufferSource();
+src\components\games\six-animal\sound\DiceSoundDirector.ts:339:    const gain = audioContext.createGain();
+src\components\games\six-animal\sound\DiceSoundDirector.ts:349:    gain.connect(audioContext.destination);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:368:    const audioContext = this.audioContext;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:370:    if (!audioContext || audioContext.state !== "running") return;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:378:        gain.gain.cancelScheduledValues(audioContext.currentTime);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:379:        gain.gain.setValueAtTime(gain.gain.value, audioContext.currentTime);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:382:          audioContext.currentTime + 0.08
+src\components\games\six-animal\sound\DiceSoundDirector.ts:391:    const variant = DICE_SOUND_VARIANTS.find((item) => item.key === "rollLoop");
+src\components\games\six-animal\sound\DiceSoundDirector.ts:399:    const source = audioContext.createBufferSource();
+src\components\games\six-animal\sound\DiceSoundDirector.ts:400:    const gain = audioContext.createGain();
+src\components\games\six-animal\sound\DiceSoundDirector.ts:409:      audioContext.currentTime + 0.1
+src\components\games\six-animal\sound\DiceSoundDirector.ts:413:    gain.connect(audioContext.destination);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:421:    const audioContext = this.audioContext;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:424:    if (!audioContext || !activeRollLoop) return;
+src\components\games\six-animal\sound\DiceSoundDirector.ts:429:      activeRollLoop.gain.gain.cancelScheduledValues(audioContext.currentTime);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:432:        audioContext.currentTime
+src\components\games\six-animal\sound\DiceSoundDirector.ts:436:        audioContext.currentTime + fadeMs / 1000
+src\components\games\six-animal\sound\DiceSoundDirector.ts:438:      activeRollLoop.source.stop(audioContext.currentTime + fadeMs / 1000 + 0.03);
+src\components\games\six-animal\sound\DiceSoundDirector.ts:440:      // Keep sound cleanup safe.
+src\components\games\six-animal\sound\DiceSoundDirector.ts:445:export const diceSoundDirector = new DiceSoundDirector();src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:1://src/components/games/six-animal/sound/SixAnimalAudioEngine.ts
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:5:import type { DiceTableAudioEvent } from "@/components/games/six-animal/ThreeDicePhysicsStage";
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:7:  ROOM_SOUND_ENABLED,
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:8:  SIX_ANIMAL_RESULT_SOUND_SRC,
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:9:  SIX_ANIMAL_RESULT_SOUND_VOLUME,
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:10:  SIX_ANIMAL_SOUND_SRC,
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:11:  SIX_ANIMAL_SOUND_VOLUME,
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:16:type RoomAudioKey =
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:17:  | "roomBgm"
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:24:type DiceAudioKey =
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:32:type LegacyRoomUiSoundKey =
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:44:  source: AudioBufferSourceNode;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:48:const BACKGROUND_MUTED_STORAGE_KEY = "nagani-six-animal-room-bgm-muted";
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:50:const ROOM_AUDIO_SRC: Record<RoomAudioKey, string> = {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:51:  roomBgm: "/assets/nagani/sounds/six-animal/room-bgm.mp3",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:52:  crowdBed: "/assets/nagani/sounds/six-animal/room/crowd-bed-soft-v1.mp3",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:54:    "/assets/nagani/sounds/six-animal/room/crowd-reaction-soft-01.mp3",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:56:    "/assets/nagani/sounds/six-animal/room/crowd-reaction-soft-02.mp3",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:58:    "/assets/nagani/sounds/six-animal/room/result-celebrate-small-v1.mp3",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:60:    "/assets/nagani/sounds/six-animal/room/result-celebrate-big-v1.mp3",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:63:const ROOM_AUDIO_VOLUME: Record<RoomAudioKey, number> = {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:64:  roomBgm: 0.16,
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:72:const DICE_AUDIO_SRC: Record<DiceAudioKey, string> = {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:73:  release: "/assets/nagani/sounds/six-animal/dice/release-01.wav",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:74:  deflectorHit: "/assets/nagani/sounds/six-animal/dice/deflector-hit-01.wav",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:75:  trayImpact: "/assets/nagani/sounds/six-animal/dice/tray-impact-01.wav",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:76:  rollLoop: "/assets/nagani/sounds/six-animal/dice/roll-loop-soft.wav",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:77:  tap: "/assets/nagani/sounds/six-animal/dice/tap-01.wav",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:78:  settle: "/assets/nagani/sounds/six-animal/dice/settle-01.wav",
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:81:const DICE_AUDIO_VOLUME: Record<DiceAudioKey, number> = {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:91:const ACTIVE_LEGACY_UI_SOUND_KEYS: LegacyRoomUiSoundKey[] = [
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:103:function getAudioContextConstructor() {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:107:    window.AudioContext ||
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:108:    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:109:      .webkitAudioContext ||
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:118:class SixAnimalAudioEngine {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:122:  private htmlAudioPool = new Map<string, HTMLAudioElement>();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:123:  private hasPreloadedHtmlAudio = false;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:125:  private audioContext: AudioContext | null = null;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:126:  private diceBuffers = new Map<DiceAudioKey, AudioBuffer>();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:131:  private lastDiceOneShotAt = new Map<DiceAudioKey, number>();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:141:  async unlockAudio() {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:142:    if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:146:    const AudioContextConstructor = getAudioContextConstructor();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:148:    if (AudioContextConstructor && !this.audioContext) {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:149:      this.audioContext = new AudioContextConstructor();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:152:    if (this.audioContext?.state === "suspended") {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:153:      await this.audioContext.resume().catch(() => undefined);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:156:    if (!this.hasPreloadedHtmlAudio) {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:157:      this.preloadHtmlAudio();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:158:      this.hasPreloadedHtmlAudio = true;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:161:    void this.preloadDiceAudio();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:165:  if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:169:    this.startLoopingRoomSound("crowdBed");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:170:    this.startLoopingRoomSound("roomBgm");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:175:    this.stopLoopingRoomSound("crowdBed");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:176:    this.stopLoopingRoomSound("roomBgm");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:184:    this.stopLoopingRoomSound("crowdBed");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:185:    this.stopLoopingRoomSound("roomBgm");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:189:  this.startLoopingRoomSound("crowdBed");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:190:  this.startLoopingRoomSound("roomBgm");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:201:  playUiSound(soundKey: LegacyRoomUiSoundKey) {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:202:    if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:205:    const src = SIX_ANIMAL_SOUND_SRC[soundKey];
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:206:    const volume = SIX_ANIMAL_SOUND_VOLUME[soundKey] ?? 0.5;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:212:    if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:219:        SIX_ANIMAL_RESULT_SOUND_SRC[animalKey],
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:220:        SIX_ANIMAL_RESULT_SOUND_VOLUME[animalKey] ?? 0.9
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:228:    if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:231:    const soundKey: RoomAudioKey = options?.bigWin
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:235:    this.playHtmlOneShot(ROOM_AUDIO_SRC[soundKey], ROOM_AUDIO_VOLUME[soundKey]);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:239:    if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:242:    this.playUiSound("settlement-lose");
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:245:  handleDiceTableAudioEvent(event: DiceTableAudioEvent) {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:246:    if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:252:      const impactKey: DiceAudioKey =
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:288:    if (!ROOM_SOUND_ENABLED) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:298:    this.htmlAudioPool.forEach((audio) => {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:300:        audio.pause();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:301:        audio.currentTime = 0;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:315:  private preloadHtmlAudio() {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:316:    Object.values(ROOM_AUDIO_SRC).forEach((src) => {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:317:      this.getHtmlAudio(src).load();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:320:    Object.values(SIX_ANIMAL_RESULT_SOUND_SRC).forEach((src) => {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:321:      this.getHtmlAudio(src).load();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:324:    ACTIVE_LEGACY_UI_SOUND_KEYS.forEach((soundKey) => {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:325:      this.getHtmlAudio(SIX_ANIMAL_SOUND_SRC[soundKey]).load();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:329:  private async preloadDiceAudio() {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:330:    if (!this.audioContext) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:337:        (Object.keys(DICE_AUDIO_SRC) as DiceAudioKey[]).map(
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:338:          async (soundKey) => {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:339:            if (this.diceBuffers.has(soundKey)) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:342:              const response = await fetch(DICE_AUDIO_SRC[soundKey]);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:347:              const audioBuffer =
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:348:                await this.audioContext?.decodeAudioData(arrayBuffer);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:350:              if (audioBuffer) {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:351:                this.diceBuffers.set(soundKey, audioBuffer);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:354:              // Missing sound file must never break game flow.
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:364:  private getHtmlAudio(src: string) {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:365:    const existingAudio = this.htmlAudioPool.get(src);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:367:    if (existingAudio) return existingAudio;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:369:    const audio = new Audio(src);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:371:    audio.preload = "auto";
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:373:    this.htmlAudioPool.set(src, audio);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:375:    return audio;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:379:    const audio = this.getHtmlAudio(src);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:382:      audio.pause();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:383:      audio.currentTime = 0;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:384:      audio.volume = clamp(volume, 0, 1);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:386:      void audio.play().catch(() => {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:390:      // Audio must never block game flow.
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:394:    private startLoopingRoomSound(soundKey: RoomAudioKey) {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:395:    const audio = this.getHtmlAudio(ROOM_AUDIO_SRC[soundKey]);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:397:    audio.loop = true;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:398:    audio.volume = ROOM_AUDIO_VOLUME[soundKey];
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:400:    if (!audio.paused) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:402:    void audio.play().catch(() => {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:403:      // Audio must never block room flow.
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:407:  private stopLoopingRoomSound(soundKey: RoomAudioKey) {
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:408:    const audio = this.htmlAudioPool.get(ROOM_AUDIO_SRC[soundKey]);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:410:    if (!audio) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:413:      audio.pause();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:414:      audio.currentTime = 0;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:422:    const soundKey: RoomAudioKey = useFirst ? "crowdOhh01" : "crowdOhh02";
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:424:    this.playHtmlOneShot(ROOM_AUDIO_SRC[soundKey], ROOM_AUDIO_VOLUME[soundKey]);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:443:    soundKey: DiceAudioKey,
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:447:    const audioContext = this.audioContext;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:449:    if (!audioContext || audioContext.state !== "running") return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:452:    const lastPlayedAt = this.lastDiceOneShotAt.get(soundKey) ?? 0;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:456:    this.lastDiceOneShotAt.set(soundKey, now);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:458:    const buffer = this.diceBuffers.get(soundKey);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:462:    const source = audioContext.createBufferSource();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:463:    const gain = audioContext.createGain();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:469:      DICE_AUDIO_VOLUME[soundKey] * volumeScale * DICE_MASTER_VOLUME;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:472:    gain.connect(audioContext.destination);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:478:    const audioContext = this.audioContext;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:480:    if (!audioContext || audioContext.state !== "running") return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:483:      clamp(volume, 0.12, 0.72) * DICE_AUDIO_VOLUME.rollLoop * DICE_MASTER_VOLUME;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:488:          audioContext.currentTime
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:492:          audioContext.currentTime
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:496:          audioContext.currentTime + 0.08
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:509:    const source = audioContext.createBufferSource();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:510:    const gain = audioContext.createGain();
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:519:      audioContext.currentTime + 0.12
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:523:    gain.connect(audioContext.destination);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:542:    const audioContext = this.audioContext;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:545:    if (!audioContext || !activeRollLoop) return;
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:550:      activeRollLoop.gain.gain.cancelScheduledValues(audioContext.currentTime);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:553:        audioContext.currentTime
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:557:        audioContext.currentTime + fadeMs / 1000
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:559:      activeRollLoop.source.stop(audioContext.currentTime + fadeMs / 1000 + 0.03);
+src\components\games\six-animal\sound\SixAnimalAudioEngine.ts:589:export const sixAnimalAudioEngine = new SixAnimalAudioEngine();src\components\games\six-animal\ThreeDicePhysicsStage.tsx:95:export type DiceTableAudioEventType =
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:101:export type DiceTableAudioEvent = {
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:102:  type: DiceTableAudioEventType;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:757:type RecordedDiceAudioCue = {
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:758:  type: DiceTableAudioEventType;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:764:function createRecordedDiceAudioCues(
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:766:): RecordedDiceAudioCue[] {
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:789:  const cues: RecordedDiceAudioCue[] = [
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:865:onDiceAudioEvent = null,
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:887:onDiceAudioEvent?: ((event: DiceTableAudioEvent) => void) | null;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:900:const lastCollisionAudioAtRef = useRef(0);
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:901:const firstImpactAudioPlayedRef = useRef(false);
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:902:const lastRollAudioAtRef = useRef(0);
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:903:const lastSettleAudioAtRef = useRef(0);
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:909:function emitDiceAudioEvent(
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:910:  type: DiceTableAudioEventType,
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:914:  if (!onDiceAudioEvent) return;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:916:  onDiceAudioEvent({
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:925:function emitDiceSettleAudio(movementSpeed: number) {
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:928:  if (now - lastSettleAudioAtRef.current < 420) return;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:930:  lastSettleAudioAtRef.current = now;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:932:  emitDiceAudioEvent(
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1129:lastCollisionAudioAtRef.current = 0;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1130:firstImpactAudioPlayedRef.current = false;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1131:lastRollAudioAtRef.current = 0;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1132:lastSettleAudioAtRef.current = 0;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1320:const audioNow = performance.now();
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1327:  audioNow - lastRollAudioAtRef.current > 230
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1329:  lastRollAudioAtRef.current = audioNow;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1331:  emitDiceAudioEvent(
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1387:emitDiceSettleAudio(movementSpeed);
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1550:emitDiceSettleAudio(movementSpeed);
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1591:emitDiceSettleAudio(movementSpeed);
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1643:    if (now - lastCollisionAudioAtRef.current < 90) return;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1655:    lastCollisionAudioAtRef.current = now;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1657:    const eventType: DiceTableAudioEventType =
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1658:      firstImpactAudioPlayedRef.current ? "dice-bounce" : "dice-drop";
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1660:    firstImpactAudioPlayedRef.current = true;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1662:    emitDiceAudioEvent(
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1877:onDiceAudioEvent = null,
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1909:  onDiceAudioEvent?: ((event: DiceTableAudioEvent) => void) | null;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1929:  if (!shouldRenderRecordedDice || !recordedTrajectoryFrames || !onDiceAudioEvent) {
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1933:  const cues = createRecordedDiceAudioCues(recordedTrajectoryFrames);
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1937:      onDiceAudioEvent({
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:1952:  onDiceAudioEvent,
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:2051:  onDiceAudioEvent={onDiceAudioEvent}
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:2104:onDiceAudioEvent = null,
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:2136:  onDiceAudioEvent?: ((event: DiceTableAudioEvent) => void) | null;
+src\components\games\six-animal\ThreeDicePhysicsStage.tsx:2202:  onDiceAudioEvent={onDiceAudioEvent}
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:12:  type DiceTableAudioEvent,
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:42:    onDiceAudioEvent?: (
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:43:    event: DiceTableAudioEvent,
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:123:  onDiceAudioEvent,
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:166:  const onDiceAudioEventRef = useRef(onDiceAudioEvent);
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:167:  const lastDiceDropSoundKeyRef = useRef<string | null>(null);
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:274:    lastDiceDropSoundKeyRef.current = null;
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:318:    onDiceAudioEventRef.current = onDiceAudioEvent;
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:319:  }, [onDiceAudioEvent]);
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:321:  const handleDiceAudioEvent = useCallback((event: DiceTableAudioEvent) => {
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:326:    onDiceAudioEventRef.current?.(event, ownerRoundId);
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:421:    const soundKey = `${ownerRoundId}:${dieNumber}:${resetKey}:approved-replay`;
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:423:    if (lastDiceDropSoundKeyRef.current === soundKey) return;
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:426:    lastDiceDropSoundKeyRef.current = soundKey;
+src\components\games\six-animal\ThreeDiceSequenceController.tsx:594:        onDiceAudioEvent={handleDiceAudioEvent}
+src\components\nagani-v2\NaganiHomeTopControls.tsx:7:const BGM_MUTED_KEY = "nagani-lobby-bgm-muted-v1";
+src\components\nagani-v2\NaganiHomeTopControls.tsx:12:  const [isBgmMuted, setIsBgmMuted] = useState(false);
+src\components\nagani-v2\NaganiHomeTopControls.tsx:16:    setIsBgmMuted(localStorage.getItem(BGM_MUTED_KEY) === "1");
+src\components\nagani-v2\NaganiHomeTopControls.tsx:22:    function syncBgmMutedState(event: Event) {
+src\components\nagani-v2\NaganiHomeTopControls.tsx:26:        setIsBgmMuted(customEvent.detail.muted);
+src\components\nagani-v2\NaganiHomeTopControls.tsx:30:      setIsBgmMuted(localStorage.getItem(BGM_MUTED_KEY) === "1");
+src\components\nagani-v2\NaganiHomeTopControls.tsx:36:    window.addEventListener("nagani:lobby-bgm-muted-change", syncBgmMutedState);
+src\components\nagani-v2\NaganiHomeTopControls.tsx:41:        "nagani:lobby-bgm-muted-change",
+src\components\nagani-v2\NaganiHomeTopControls.tsx:42:        syncBgmMutedState
+src\components\nagani-v2\NaganiHomeTopControls.tsx:47:  function handleBgmClick() {
+src\components\nagani-v2\NaganiHomeTopControls.tsx:48:    window.dispatchEvent(new Event("nagani:lobby-bgm-toggle"));
+src\components\nagani-v2\NaganiHomeTopControls.tsx:82:          onClick={handleBgmClick}
+src\components\nagani-v2\NaganiHomeTopControls.tsx:84:            animation: isBgmMuted
+src\components\nagani-v2\NaganiHomeTopControls.tsx:89:            isBgmMuted
+src\components\nagani-v2\NaganiHomeTopControls.tsx:94:            isBgmMuted ? "·Äî·Ä±·Ä¨·ÄÄ·Ä∫·ÄÅ·Ä∂·Äê·Ä±·Ä∏·ÄÇ·ÄÆ·Äê ·Äñ·ÄΩ·ÄÑ·Ä∑·Ä∫·Äõ·Äî·Ä∫" : "·Äî·Ä±·Ä¨·ÄÄ·Ä∫·ÄÅ·Ä∂·Äê·Ä±·Ä∏·ÄÇ·ÄÆ·Äê ·Äï·Ä≠·Äê·Ä∫·Äõ·Äî·Ä∫"
+src\components\nagani-v2\NaganiHomeTopControls.tsx:98:          <span className="relative z-10">{isBgmMuted ? "üîá" : "üîä"}</span>
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:7:const WELCOME_SRC = "/assets/nagani/sounds/welcome.mp3";
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:11:  const audioRef = useRef<HTMLAudioElement | null>(null);
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:15:    const audio = audioRef.current;
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:16:    if (!audio) return;
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:18:    audio.volume = 0.95;
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:20:    const restoreBgm = () => {
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:21:      window.dispatchEvent(new Event("nagani:lobby-bgm-restore"));
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:29:      audio.currentTime = 0;
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:31:      window.dispatchEvent(new Event("nagani:lobby-bgm-duck"));
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:33:      void audio
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:34:        .play()
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:40:          restoreBgm();
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:44:    audio.addEventListener("ended", restoreBgm);
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:45:    audio.addEventListener("pause", restoreBgm);
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:65:      audio.removeEventListener("ended", restoreBgm);
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:66:      audio.removeEventListener("pause", restoreBgm);
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:73:      audio.pause();
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:74:      audio.currentTime = 0;
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:75:      restoreBgm();
+src\components\nagani-v2\NaganiHomeWelcomeAnnouncement.tsx:79:  return <audio ref={audioRef} src={WELCOME_SRC} preload="auto" playsInline />;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:1://src/components/nagani-v2/NaganiLobbyBgm.tsx
+src\components\nagani-v2\NaganiLobbyBgm.tsx:7:const LOBBY_BGM_SRC = "/assets/nagani/sounds/lobby-palace-bgm-v1.mp3";
+src\components\nagani-v2\NaganiLobbyBgm.tsx:8:const BGM_MUTED_KEY = "nagani-lobby-bgm-muted-v1";
+src\components\nagani-v2\NaganiLobbyBgm.tsx:12:export default function NaganiLobbyBgm() {
+src\components\nagani-v2\NaganiLobbyBgm.tsx:13:  const audioRef = useRef<HTMLAudioElement | null>(null);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:16:    const audio = audioRef.current;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:17:    if (!audio) return;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:19:    const isMuted = localStorage.getItem(BGM_MUTED_KEY) === "1";
+src\components\nagani-v2\NaganiLobbyBgm.tsx:21:    audio.loop = true;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:22:    audio.volume = isMuted ? 0 : NORMAL_VOLUME;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:23:    audio.muted = isMuted;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:25:    const startBgm = () => {
+src\components\nagani-v2\NaganiLobbyBgm.tsx:26:      if (localStorage.getItem(BGM_MUTED_KEY) === "1") return;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:27:      void audio.play().catch(() => {});
+src\components\nagani-v2\NaganiLobbyBgm.tsx:30:    const duckBgm = () => {
+src\components\nagani-v2\NaganiLobbyBgm.tsx:31:      if (localStorage.getItem(BGM_MUTED_KEY) === "1") return;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:32:      audio.volume = DUCKED_VOLUME;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:35:    const restoreBgm = () => {
+src\components\nagani-v2\NaganiLobbyBgm.tsx:36:      if (localStorage.getItem(BGM_MUTED_KEY) === "1") return;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:37:      audio.volume = NORMAL_VOLUME;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:40:    const toggleBgm = () => {
+src\components\nagani-v2\NaganiLobbyBgm.tsx:41:      const nextMuted = localStorage.getItem(BGM_MUTED_KEY) !== "1";
+src\components\nagani-v2\NaganiLobbyBgm.tsx:43:      localStorage.setItem(BGM_MUTED_KEY, nextMuted ? "1" : "0");
+src\components\nagani-v2\NaganiLobbyBgm.tsx:45:      audio.muted = nextMuted;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:46:      audio.volume = nextMuted ? 0 : NORMAL_VOLUME;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:49:        audio.pause();
+src\components\nagani-v2\NaganiLobbyBgm.tsx:51:        void audio.play().catch(() => {});
+src\components\nagani-v2\NaganiLobbyBgm.tsx:55:        new CustomEvent("nagani:lobby-bgm-muted-change", {
+src\components\nagani-v2\NaganiLobbyBgm.tsx:61:    window.addEventListener("pointerdown", startBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:62:    window.addEventListener("touchend", startBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:63:    window.addEventListener("click", startBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:64:    window.addEventListener("keydown", startBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:66:    window.addEventListener("nagani:lobby-bgm-duck", duckBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:67:    window.addEventListener("nagani:lobby-bgm-restore", restoreBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:68:    window.addEventListener("nagani:lobby-bgm-toggle", toggleBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:70:    void audio.play().catch(() => {});
+src\components\nagani-v2\NaganiLobbyBgm.tsx:73:      window.removeEventListener("pointerdown", startBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:74:      window.removeEventListener("touchend", startBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:75:      window.removeEventListener("click", startBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:76:      window.removeEventListener("keydown", startBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:78:      window.removeEventListener("nagani:lobby-bgm-duck", duckBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:79:      window.removeEventListener("nagani:lobby-bgm-restore", restoreBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:80:      window.removeEventListener("nagani:lobby-bgm-toggle", toggleBgm);
+src\components\nagani-v2\NaganiLobbyBgm.tsx:82:      audio.pause();
+src\components\nagani-v2\NaganiLobbyBgm.tsx:83:      audio.currentTime = 0;
+src\components\nagani-v2\NaganiLobbyBgm.tsx:87:  return <audio ref={audioRef} src={LOBBY_BGM_SRC} preload="auto" playsInline />;
+src\lib\naganiAssets.ts:57:    sounds: {
+src\lib\naganiAssets.ts:58:      base: "/assets/nagani/six-animal/sounds",
+src\lib\naganiAssets.ts:59:      betLocked: "/assets/nagani/six-animal/sounds/bet-locked.mp3",
+src\lib\naganiAssets.ts:60:      betsClosed: "/assets/nagani/six-animal/sounds/bets-closed.mp3",
+src\lib\naganiAssets.ts:61:      diceReveal: "/assets/nagani/six-animal/sounds/dice-reveal.mp3",
+src\lib\naganiAssets.ts:62:      result: "/assets/nagani/six-animal/sounds/result.mp3",
+src\lib\naganiAssets.ts:63:      win: "/assets/nagani/six-animal/sounds/win.mp3",
+src\lib\naganiAssets.ts:64:      noMatch: "/assets/nagani/six-animal/sounds/no-match.mp3",
+src\lib\naganiAssets.ts:65:      nextRound: "/assets/nagani/six-animal/sounds/next-round.mp3",

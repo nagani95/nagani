@@ -12,6 +12,7 @@ import {
   getAnimalByNameMm,
 } from "@/components/games/six-animal/sixAnimalRoomHelpers";
 import type { SixAnimalKey } from "@/types/games";
+import { getNaganiMixedVolume } from "@/lib/nagani-sound/soundMixerSettings";
 
 type RoomAudioKey =
   | "roomBgm"
@@ -34,6 +35,7 @@ type LegacyRoomUiSoundKey =
   | "betting-round"
   | "bets-closed"
   | "countdown-hit"
+  | "settlement-win"
   | "settlement-lose"
   | "bet-locked"
   | "exit-button"
@@ -48,16 +50,17 @@ type ActiveLoop = {
 const BACKGROUND_MUTED_STORAGE_KEY = "nagani-six-animal-room-bgm-muted";
 
 const ROOM_AUDIO_SRC: Record<RoomAudioKey, string> = {
-  roomBgm: "/assets/nagani/sounds/six-animal/room-bgm.mp3",
-  crowdBed: "/assets/nagani/sounds/six-animal/room/crowd-bed-soft-v1.mp3",
+  roomBgm: "/assets/nagani/sounds/six-animal/bgm/room-bgm.mp3",
+  crowdBed:
+    "/assets/nagani/sounds/six-animal/ambience/crowd-bed-soft-v1.mp3",
   crowdOhh01:
-    "/assets/nagani/sounds/six-animal/room/crowd-reaction-soft-01.mp3",
+    "/assets/nagani/sounds/six-animal/ambience/crowd-reaction-soft-01.mp3",
   crowdOhh02:
-    "/assets/nagani/sounds/six-animal/room/crowd-reaction-soft-02.mp3",
+    "/assets/nagani/sounds/six-animal/ambience/crowd-reaction-soft-02.mp3",
   settlementWinSmall:
-    "/assets/nagani/sounds/six-animal/room/result-celebrate-small-v1.mp3",
+    "/assets/nagani/sounds/six-animal/ambience/result-celebrate-small-v1.mp3",
   settlementWinBig:
-    "/assets/nagani/sounds/six-animal/room/result-celebrate-big-v1.mp3",
+    "/assets/nagani/sounds/six-animal/ambience/result-celebrate-big-v1.mp3",
 };
 
 const ROOM_AUDIO_VOLUME: Record<RoomAudioKey, number> = {
@@ -67,6 +70,24 @@ const ROOM_AUDIO_VOLUME: Record<RoomAudioKey, number> = {
   crowdOhh02: 0.62,
   settlementWinSmall: 0.72,
   settlementWinBig: 0.88,
+};
+
+const ROOM_AUDIO_CHANNEL: Record<RoomAudioKey, "roomBgm" | "ambience"> = {
+  roomBgm: "roomBgm",
+  crowdBed: "ambience",
+  crowdOhh01: "ambience",
+  crowdOhh02: "ambience",
+  settlementWinSmall: "ambience",
+  settlementWinBig: "ambience",
+};
+
+const ROOM_AUDIO_ITEM_KEY: Record<RoomAudioKey, string> = {
+  roomBgm: "roomBgm",
+  crowdBed: "crowdBed",
+  crowdOhh01: "crowdOhh01",
+  crowdOhh02: "crowdOhh02",
+  settlementWinSmall: "resultCelebrateSmall",
+  settlementWinBig: "resultCelebrateBig",
 };
 
 const DICE_AUDIO_SRC: Record<DiceAudioKey, string> = {
@@ -87,12 +108,61 @@ const DICE_AUDIO_VOLUME: Record<DiceAudioKey, number> = {
   settle: 0.82,
 };
 
+const DICE_AUDIO_ITEM_KEY: Record<DiceAudioKey, string> = {
+  release: "diceRelease",
+  deflectorHit: "diceDeflectorHit",
+  trayImpact: "diceTrayImpact",
+  rollLoop: "diceRollLoop",
+  tap: "diceTap",
+  settle: "diceSettle",
+};
+
 const DICE_MASTER_VOLUME = 1.12;
+
+const LEGACY_UI_SOUND_CHANNEL: Record<
+  LegacyRoomUiSoundKey,
+  "announcement" | "resultAnnouncement" | "countdown" | "ui"
+> = {
+  loading: "announcement",
+  "betting-round": "announcement",
+  "bets-closed": "announcement",
+  "countdown-hit": "countdown",
+  "settlement-win": "resultAnnouncement",
+  "settlement-lose": "resultAnnouncement",
+  "bet-locked": "ui",
+  "exit-button": "ui",
+  "bet-invalid": "ui",
+  "ui-click": "ui",
+};
+
+const LEGACY_UI_SOUND_ITEM_KEY: Record<LegacyRoomUiSoundKey, string> = {
+  loading: "loading",
+  "betting-round": "bettingRound",
+  "bets-closed": "betsClosed",
+  "countdown-hit": "countdownHit",
+  "settlement-win": "settlementWin",
+  "settlement-lose": "settlementLose",
+  "bet-locked": "betLocked",
+  "exit-button": "exitButton",
+  "bet-invalid": "betInvalid",
+  "ui-click": "uiClick",
+};
+
+const RESULT_SOUND_ITEM_KEY: Record<SixAnimalKey, string> = {
+  tiger: "tiger",
+  dragon: "dragon",
+  rooster: "rooster",
+  fish: "fish",
+  crab: "crab",
+  elephant: "elephant",
+};
+
 const ACTIVE_LEGACY_UI_SOUND_KEYS: LegacyRoomUiSoundKey[] = [
   "loading",
   "betting-round",
   "bets-closed",
   "countdown-hit",
+  "settlement-win",
   "settlement-lose",
   "bet-locked",
   "exit-button",
@@ -132,6 +202,12 @@ class SixAnimalAudioEngine {
 
   constructor() {
     this.isBackgroundMuted = this.readBackgroundMutedPreference();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("nagani:sound-mixer-change", () => {
+        this.syncActiveLoopVolumes();
+      });
+    }
   }
 
   getBackgroundMuted() {
@@ -203,7 +279,7 @@ setBackgroundMuted(nextMuted: boolean) {
     if (!this.isUnlocked) return;
 
     const src = SIX_ANIMAL_SOUND_SRC[soundKey];
-    const volume = SIX_ANIMAL_SOUND_VOLUME[soundKey] ?? 0.5;
+    const volume = this.getMixedLegacyUiVolume(soundKey);
 
     this.playHtmlOneShot(src, volume);
   }
@@ -217,7 +293,11 @@ setBackgroundMuted(nextMuted: boolean) {
     if (animalKey) {
       this.playHtmlOneShot(
         SIX_ANIMAL_RESULT_SOUND_SRC[animalKey],
-        SIX_ANIMAL_RESULT_SOUND_VOLUME[animalKey] ?? 0.9
+        getNaganiMixedVolume(
+          "resultAnnouncement",
+          SIX_ANIMAL_RESULT_SOUND_VOLUME[animalKey] ?? 0.9,
+          RESULT_SOUND_ITEM_KEY[animalKey]
+        )
       );
     }
 
@@ -228,11 +308,18 @@ setBackgroundMuted(nextMuted: boolean) {
     if (!ROOM_SOUND_ENABLED) return;
     if (!this.isUnlocked) return;
 
+    this.playUiSound("settlement-win");
+
     const soundKey: RoomAudioKey = options?.bigWin
       ? "settlementWinBig"
       : "settlementWinSmall";
 
-    this.playHtmlOneShot(ROOM_AUDIO_SRC[soundKey], ROOM_AUDIO_VOLUME[soundKey]);
+    window.setTimeout(() => {
+      this.playHtmlOneShot(
+        ROOM_AUDIO_SRC[soundKey],
+        this.getMixedRoomAudioVolume(soundKey)
+      );
+    }, 220);
   }
 
   playSettlementLose() {
@@ -395,7 +482,7 @@ if (event.type === "dice-settle") {
     const audio = this.getHtmlAudio(ROOM_AUDIO_SRC[soundKey]);
 
     audio.loop = true;
-    audio.volume = ROOM_AUDIO_VOLUME[soundKey];
+    audio.volume = this.getMixedRoomAudioVolume(soundKey);
 
     if (!audio.paused) return;
 
@@ -421,7 +508,10 @@ if (event.type === "dice-settle") {
     const useFirst = Math.random() > 0.45;
     const soundKey: RoomAudioKey = useFirst ? "crowdOhh01" : "crowdOhh02";
 
-    this.playHtmlOneShot(ROOM_AUDIO_SRC[soundKey], ROOM_AUDIO_VOLUME[soundKey]);
+    this.playHtmlOneShot(
+      ROOM_AUDIO_SRC[soundKey],
+      this.getMixedRoomAudioVolume(soundKey)
+    );
   }
 
   private resolveAnimalKey(value: string): SixAnimalKey | null {
@@ -465,8 +555,11 @@ if (event.type === "dice-settle") {
     source.buffer = buffer;
     source.playbackRate.value = 0.96 + Math.random() * 0.08;
 
-    gain.gain.value =
-      DICE_AUDIO_VOLUME[soundKey] * volumeScale * DICE_MASTER_VOLUME;
+    gain.gain.value = getNaganiMixedVolume(
+      "dice",
+      DICE_AUDIO_VOLUME[soundKey] * volumeScale * DICE_MASTER_VOLUME,
+      DICE_AUDIO_ITEM_KEY[soundKey]
+    );
 
     source.connect(gain);
     gain.connect(audioContext.destination);
@@ -479,8 +572,13 @@ if (event.type === "dice-settle") {
 
     if (!audioContext || audioContext.state !== "running") return;
 
-    const targetVolume =
-      clamp(volume, 0.12, 0.72) * DICE_AUDIO_VOLUME.rollLoop * DICE_MASTER_VOLUME;
+    const targetVolume = getNaganiMixedVolume(
+      "dice",
+      clamp(volume, 0.12, 0.72) *
+        DICE_AUDIO_VOLUME.rollLoop *
+        DICE_MASTER_VOLUME,
+      DICE_AUDIO_ITEM_KEY.rollLoop
+    );
 
     if (this.activeRollLoop) {
       try {
@@ -560,6 +658,44 @@ if (event.type === "dice-settle") {
     } catch {
       // Safe cleanup.
     }
+  }
+
+    private syncActiveLoopVolumes() {
+    (["crowdBed", "roomBgm"] as RoomAudioKey[]).forEach((soundKey) => {
+      const audio = this.htmlAudioPool.get(ROOM_AUDIO_SRC[soundKey]);
+
+      if (!audio) return;
+      if (audio.paused) return;
+
+      audio.volume = this.getMixedRoomAudioVolume(soundKey);
+    });
+
+    if (this.activeRollLoop && this.audioContext) {
+      try {
+        this.activeRollLoop.gain.gain.setValueAtTime(
+          getNaganiMixedVolume("dice", this.activeRollLoop.gain.gain.value),
+          this.audioContext.currentTime
+        );
+      } catch {
+        // Mixer live sync must never affect game flow.
+      }
+    }
+  }
+
+  private getMixedRoomAudioVolume(soundKey: RoomAudioKey) {
+    return getNaganiMixedVolume(
+      ROOM_AUDIO_CHANNEL[soundKey],
+      ROOM_AUDIO_VOLUME[soundKey],
+      ROOM_AUDIO_ITEM_KEY[soundKey]
+    );
+  }
+
+  private getMixedLegacyUiVolume(soundKey: LegacyRoomUiSoundKey) {
+    return getNaganiMixedVolume(
+      LEGACY_UI_SOUND_CHANNEL[soundKey],
+      SIX_ANIMAL_SOUND_VOLUME[soundKey] ?? 0.5,
+      LEGACY_UI_SOUND_ITEM_KEY[soundKey]
+    );
   }
 
   private readBackgroundMutedPreference() {

@@ -86,8 +86,6 @@ export type SixAnimalSoundEvent =
   | "betting-round"
   | "bets-closed"
   | "countdown-hit"
-  | "dice-drop"
-  | "settlement-round"
   | "settlement-win"
   | "settlement-lose"
   | "bet-locked"
@@ -105,18 +103,21 @@ export const ANIMAL_ASSETS: Record<SixAnimalKey, string> = {
 };
 
 export const SIX_ANIMAL_SOUND_SRC: Record<SixAnimalSoundEvent, string> = {
-  loading: "/assets/nagani/sounds/six-animal/loading.mp3",
-  "betting-round": "/assets/nagani/sounds/six-animal/betting-round.mp3",
-  "bets-closed": "/assets/nagani/sounds/six-animal/bets-closed.mp3",
-  "countdown-hit": "/assets/nagani/sounds/six-animal/countdown-hit.mp3",
-  "dice-drop": "/assets/nagani/sounds/six-animal/dice-drop.mp3",
-  "settlement-round": "/assets/nagani/sounds/six-animal/settlement-round.mp3",
-  "settlement-win": "/assets/nagani/sounds/six-animal/settlement-win.mp3",
-  "settlement-lose": "/assets/nagani/sounds/six-animal/settlement-lose.mp3",
-  "bet-locked": "/assets/nagani/sounds/six-animal/bet-locked.mp3",
-  "exit-button": "/assets/nagani/sounds/six-animal/exit-button.mp3",
-  "bet-invalid": "/assets/nagani/sounds/six-animal/bet-invalid.mp3",
-  "ui-click": "/assets/nagani/sounds/six-animal/ui-click.mp3",
+  loading: "/assets/nagani/sounds/six-animal/announcement/loading.mp3",
+  "betting-round":
+    "/assets/nagani/sounds/six-animal/announcement/betting-round.mp3",
+  "bets-closed":
+    "/assets/nagani/sounds/six-animal/announcement/bets-closed.mp3",
+  "countdown-hit":
+    "/assets/nagani/sounds/six-animal/countdown/countdown-hit.mp3",
+  "settlement-win":
+    "/assets/nagani/sounds/six-animal/announcement/settlement-win.mp3",
+  "settlement-lose":
+    "/assets/nagani/sounds/six-animal/announcement/settlement-lose.mp3",
+  "bet-locked": "/assets/nagani/sounds/six-animal/ui/bet-locked.mp3",
+  "exit-button": "/assets/nagani/sounds/six-animal/ui/exit-button.mp3",
+  "bet-invalid": "/assets/nagani/sounds/six-animal/ui/bet-invalid.mp3",
+  "ui-click": "/assets/nagani/sounds/six-animal/ui/ui-click.mp3",
 };
 
 export const SIX_ANIMAL_SOUND_VOLUME: Record<SixAnimalSoundEvent, number> = {
@@ -124,8 +125,6 @@ export const SIX_ANIMAL_SOUND_VOLUME: Record<SixAnimalSoundEvent, number> = {
   "betting-round": 0.76,
   "bets-closed": 0.82,
   "countdown-hit": 0.88,
-  "dice-drop": 0.9,
-  "settlement-round": 0.82,
   "settlement-win": 0.9,
   "settlement-lose": 0.86,
   "bet-locked": 0.68,
@@ -135,14 +134,14 @@ export const SIX_ANIMAL_SOUND_VOLUME: Record<SixAnimalSoundEvent, number> = {
 };
 
 export const SIX_ANIMAL_RESULT_SOUND_SRC: Record<SixAnimalKey, string> = {
-  tiger: "/assets/nagani/sounds/six-animal/results/tiger.mp3",
-  dragon: "/assets/nagani/sounds/six-animal/results/dragon.mp3",
-  rooster: "/assets/nagani/sounds/six-animal/results/rooster.mp3",
-  fish: "/assets/nagani/sounds/six-animal/results/fish.mp3",
-  crab: "/assets/nagani/sounds/six-animal/results/crab.mp3",
-  elephant: "/assets/nagani/sounds/six-animal/results/elephant.mp3",
+  tiger: "/assets/nagani/sounds/six-animal/announcement/results/tiger.mp3",
+  dragon: "/assets/nagani/sounds/six-animal/announcement/results/dragon.mp3",
+  rooster: "/assets/nagani/sounds/six-animal/announcement/results/rooster.mp3",
+  fish: "/assets/nagani/sounds/six-animal/announcement/results/fish.mp3",
+  crab: "/assets/nagani/sounds/six-animal/announcement/results/crab.mp3",
+  elephant:
+    "/assets/nagani/sounds/six-animal/announcement/results/elephant.mp3",
 };
-
 export const SIX_ANIMAL_RESULT_SOUND_VOLUME: Record<SixAnimalKey, number> = {
   tiger: 0.92,
   dragon: 0.92,

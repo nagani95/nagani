@@ -830,10 +830,6 @@ function playRoomSound(eventName: SixAnimalSoundEvent) {
     return;
   }
 
-  if (eventName === "dice-drop" || eventName === "settlement-round") {
-    return;
-  }
-
   sixAnimalAudioEngine.playUiSound(eventName);
 }
 
