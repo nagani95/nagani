@@ -200,6 +200,7 @@ class SixAnimalAudioEngine {
   private rollFadeTimer: number | null = null;
   private lastDiceOneShotAt = new Map<DiceAudioKey, number>();
   private trayLandingPlayedByDie = new Set<number>();
+  private lastDeflectorHitAtByDie = new Map<number, number>();
 
   constructor() {
     this.isBackgroundMuted = this.readBackgroundMutedPreference();
@@ -339,6 +340,7 @@ setBackgroundMuted(nextMuted: boolean) {
 
     if (event.type === "dice-drop") {
       this.trayLandingPlayedByDie.delete(event.dieIndex);
+      this.lastDeflectorHitAtByDie.set(event.dieIndex, performance.now());
 
       // First contact = deflector bar bounce only.
       // Do not start rolling loop here.
@@ -348,6 +350,13 @@ setBackgroundMuted(nextMuted: boolean) {
 
     if (event.type === "dice-bounce") {
       if (!hasTrayLanding) {
+        const deflectorHitAt =
+          this.lastDeflectorHitAtByDie.get(event.dieIndex) ?? performance.now();
+
+        const airGapMs = performance.now() - deflectorHitAt;
+
+        if (airGapMs < 180) return;
+
         this.trayLandingPlayedByDie.add(event.dieIndex);
 
         // First bounce after deflector = tray landing.
@@ -375,6 +384,7 @@ setBackgroundMuted(nextMuted: boolean) {
 
     if (event.type === "dice-settle") {
       this.trayLandingPlayedByDie.delete(event.dieIndex);
+      this.lastDeflectorHitAtByDie.delete(event.dieIndex);
 
       this.fadeOutRollLoop(320);
       this.playDiceOneShot("settle", 0.72 + intensity * 0.78, 180);
@@ -409,6 +419,7 @@ setBackgroundMuted(nextMuted: boolean) {
 
     this.lastDiceOneShotAt.clear();
     this.trayLandingPlayedByDie.clear();
+    this.lastDeflectorHitAtByDie.clear();
   }
 
   private preloadHtmlAudio() {
