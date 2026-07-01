@@ -210,60 +210,66 @@ export function createRandomSlotColumns() {
   );
 }
 
+const demoSpinResultCycles: NaganiSlotSymbolKey[][] = [
+  // 1) No win
+  // No 3-of-kind, no wild assist, bonus below 3.
+  [
+    "dragon", "gold_pot", "buffalo",
+    "bell", "ruby", "harp",
+    "bagan", "ever_stand", "bonus",
+    "dragon", "gold_pot", "buffalo",
+    "bell", "ruby", "harp",
+  ],
+
+  // 2) Small win
+  // 3 gold pots only.
+  [
+    "gold_pot", "gold_pot", "gold_pot",
+    "dragon", "buffalo", "bell",
+    "ruby", "harp", "bagan",
+    "ever_stand", "bonus", "dragon",
+    "buffalo", "bell", "ruby",
+  ],
+
+  // 3) Medium win
+  // 4 dragons + 3 bells.
+  [
+    "dragon", "dragon", "dragon",
+    "dragon", "bell", "bell",
+    "bell", "gold_pot", "buffalo",
+    "ruby", "harp", "bagan",
+    "ever_stand", "bonus", "gold_pot",
+  ],
+
+  // 4) Big win
+  // 5 bonus + 4 dragons.
+  [
+    "bonus", "bonus", "bonus",
+    "bonus", "bonus", "dragon",
+    "dragon", "dragon", "dragon",
+    "gold_pot", "buffalo", "bell",
+    "ruby", "harp", "bagan",
+  ],
+];
+
+let demoSpinResultCycleIndex = 0;
+
+function buildSlotColumnsFromKeys(keys: NaganiSlotSymbolKey[]) {
+  return Array.from({ length: 5 }, (_, columnIndex) =>
+    Array.from({ length: 3 }, (_, rowIndex) => {
+      const flatIndex = columnIndex * 3 + rowIndex;
+      return getSymbolByKey(keys[flatIndex]);
+    })
+  );
+}
+
 export function createDemoSpinResultColumns() {
-  const columns = createRandomSlotColumns();
+  const cycleKeys =
+    demoSpinResultCycles[demoSpinResultCycleIndex % demoSpinResultCycles.length];
 
-  const forceRoll = Math.random();
+  demoSpinResultCycleIndex += 1;
 
-  // Around 44% pure random, 56% guided reward demo.
-  if (forceRoll >= 0.56) {
-    return columns;
-  }
-
-  const allPositions: NaganiSlotPosition[] = [];
-
-  for (let columnIndex = 0; columnIndex < 5; columnIndex += 1) {
-    for (let rowIndex = 0; rowIndex < 3; rowIndex += 1) {
-      allPositions.push({ columnIndex, rowIndex });
-    }
-  }
-
-  const shuffledPositions = [...allPositions].sort(() => Math.random() - 0.5);
-
-  const firstRewardSymbol = getRandomPaySymbol();
-
-  const firstCount =
-    forceRoll < 0.08 ? 5 : forceRoll < 0.24 ? 4 : 3;
-
-  shuffledPositions.slice(0, firstCount).forEach((position) => {
-    columns[position.columnIndex][position.rowIndex] = firstRewardSymbol;
-  });
-
-  const shouldAddSecondGroup =
-    forceRoll < 0.1 || (forceRoll >= 0.24 && Math.random() < 0.16);
-
-  if (shouldAddSecondGroup) {
-    const secondRewardSymbol = getRandomPaySymbol(firstRewardSymbol.key);
-    const secondCount = forceRoll < 0.08 ? 4 : 3;
-
-    shuffledPositions.slice(firstCount, firstCount + secondCount).forEach(
-      (position) => {
-        columns[position.columnIndex][position.rowIndex] = secondRewardSymbol;
-      }
-    );
-  }
-
-  const shouldAddBonusScatter = forceRoll < 0.05 || Math.random() < 0.08;
-
-  if (shouldAddBonusScatter) {
-    const bonusSymbol = getSymbolByKey("bonus");
-
-    shuffledPositions.slice(10, 13).forEach((position) => {
-      columns[position.columnIndex][position.rowIndex] = bonusSymbol;
-    });
-  }
-
-  return columns;
+  return buildSlotColumnsFromKeys(cycleKeys);
 }
 
 export function getReelSpinStrip(columnIndex: number) {

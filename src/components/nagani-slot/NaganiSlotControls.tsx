@@ -195,20 +195,71 @@ const [betPickerOpen, setBetPickerOpen] = useState(false);
           }
         }
 
-        @keyframes naganiSlotDockBalanceCatch {
-          0% {
-            transform: scale(1);
-            filter: brightness(1);
-          }
-          36% {
-            transform: scale(1.045);
-            filter: brightness(1.32);
-          }
-          100% {
-            transform: scale(1);
-            filter: brightness(1.08);
-          }
-        }
+@keyframes naganiSlotDockBalanceCatch {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+    box-shadow:
+      0 10px 20px rgba(0,0,0,0.6),
+      0 0 20px rgba(255,190,74,0.15),
+      inset 0 1px 0 rgba(255,240,185,0.25);
+  }
+  22% {
+    transform: scale(1.075);
+    filter: brightness(1.42);
+    box-shadow:
+      0 13px 25px rgba(0,0,0,0.66),
+      0 0 32px rgba(255,232,163,0.46),
+      0 0 18px rgba(255,180,54,0.34),
+      inset 0 1px 0 rgba(255,255,255,0.38),
+      inset 0 -10px 18px rgba(95,0,0,0.34);
+  }
+  58% {
+    transform: scale(1.035);
+    filter: brightness(1.24);
+    box-shadow:
+      0 12px 23px rgba(0,0,0,0.64),
+      0 0 26px rgba(255,218,121,0.34),
+      inset 0 1px 0 rgba(255,240,185,0.3);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1.08);
+    box-shadow:
+      0 10px 20px rgba(0,0,0,0.6),
+      0 0 20px rgba(255,190,74,0.15),
+      inset 0 1px 0 rgba(255,240,185,0.25);
+  }
+}
+
+@keyframes naganiSlotDockBalanceLandRing {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.62);
+  }
+  24% {
+    opacity: 0.82;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.34);
+  }
+}
+
+@keyframes naganiSlotDockBalanceNumberPop {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  30% {
+    transform: scale(1.085);
+    filter: brightness(1.34);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1.06);
+  }
+}
 
         @keyframes naganiSlotDockBalanceGlow {
           0%, 100% {
@@ -299,11 +350,29 @@ const [betPickerOpen, setBetPickerOpen] = useState(false);
             />
           ) : null}
 
-          <div className="relative flex h-full items-center justify-center">
-            <p className="text-[18px] font-black leading-none text-[#fff1bd] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]">
-              {formatMMK(balance)}
-            </p>
-          </div>
+{showWinCatch ? (
+  <span
+    className="pointer-events-none absolute left-1/2 top-1/2 h-[62px] w-[150px] rounded-full border border-[#fff0b9]/48"
+    style={{
+      animation: "naganiSlotDockBalanceLandRing 620ms ease-out both",
+      boxShadow:
+        "0 0 22px rgba(255,232,163,0.42), inset 0 0 18px rgba(255,218,121,0.2)",
+    }}
+  />
+) : null}
+
+<div className="relative flex h-full items-center justify-center">
+  <p
+    className="text-[18px] font-black leading-none text-[#fff1bd] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]"
+    style={{
+      animation: showWinCatch
+        ? "naganiSlotDockBalanceNumberPop 620ms ease-out both"
+        : undefined,
+    }}
+  >
+    {formatMMK(balance)}
+  </p>
+</div>
         </div>
       </div>
 

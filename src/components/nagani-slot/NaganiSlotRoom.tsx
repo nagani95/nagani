@@ -75,6 +75,7 @@ const [rewardFlightVector, setRewardFlightVector] = useState({
   x: 96,
   y: 290,
 });
+const [showNoWinNotice, setShowNoWinNotice] = useState(false);
 
   const spinTimersRef = useRef<number[]>([]);
   const roomShellRef = useRef<HTMLDivElement | null>(null);
@@ -118,8 +119,9 @@ const flyingPotStyle = {
         return "ready";
       });
 
-      setWinEvaluation(null);
+setWinEvaluation(null);
 setRewardTransferPhase("idle");
+setShowNoWinNotice(false);
     }, READY_AGAIN_DELAY);
 
     spinTimersRef.current.push(readyTimer);
@@ -196,13 +198,14 @@ function setMaxBetAmount() {
 }
 
 function countWinAmount(targetAmount: number) {
-  if (targetAmount <= 0) {
-    setLastWin(0);
-    setRewardTransferPhase("idle");
-    setGameState("result");
-    scheduleReadyAgain();
-    return;
-  }
+if (targetAmount <= 0) {
+  setLastWin(0);
+  setRewardTransferPhase("idle");
+  setShowNoWinNotice(true);
+  setGameState("result");
+  scheduleReadyAgain();
+  return;
+}
 
   const displayStartAmount = Math.min(targetAmount, 1000);
 
@@ -258,10 +261,11 @@ function countWinAmount(targetAmount: number) {
     const nextColumns = createDemoSpinResultColumns();
 
     setBalance((current) => current - betAmount);
-    setLastWin(0);
-    setWinEvaluation(null);
-    setRewardTransferPhase("idle");
-    setGameState("spinning");
+setLastWin(0);
+setWinEvaluation(null);
+setRewardTransferPhase("idle");
+setShowNoWinNotice(false);
+setGameState("spinning");
     setStoppedReelCount(0);
     setSlotColumns(nextColumns);
 
@@ -545,6 +549,35 @@ function countWinAmount(targetAmount: number) {
           }
         }
 
+        @keyframes naganiSlotNoWinNoticeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+    filter: blur(1px);
+  }
+  28% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes naganiSlotNoWinSoftGlow {
+  0%, 100% {
+    opacity: 0.18;
+    transform: scaleX(0.86);
+  }
+  50% {
+    opacity: 0.36;
+    transform: scaleX(1);
+  }
+}
+
 @keyframes naganiSlotRewardPotFlyToBalance {
   0% {
     opacity: 0;
@@ -660,6 +693,33 @@ function countWinAmount(targetAmount: number) {
       />
     ))}
   </>
+) : null}
+
+{showNoWinNotice && winEvaluation?.tier === "none" ? (
+  <div className="pointer-events-none absolute inset-x-0 bottom-[220px] top-[96px] z-[54] flex items-center justify-center px-6">
+    <div
+      className="relative min-w-[220px] overflow-hidden rounded-[28px] border border-[#ffd979]/42 bg-[linear-gradient(180deg,rgba(78,12,6,0.92),rgba(18,0,0,0.94))] px-5 py-4 text-center shadow-[0_18px_42px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(255,240,185,0.18)]"
+      style={{
+        animation: "naganiSlotNoWinNoticeIn 360ms ease-out both",
+      }}
+    >
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 h-8 w-[78%] -translate-x-1/2 rounded-full bg-[#ffd979]/16 blur-xl"
+        style={{
+          animation: "naganiSlotNoWinSoftGlow 900ms ease-in-out infinite",
+        }}
+      />
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/58 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[#b97823]/42 to-transparent" />
+
+      <p className="relative text-[17px] font-black leading-none text-[#fff0b9] drop-shadow-[0_2px_6px_rgba(0,0,0,0.86)]">
+        မအောင်သေးပါ
+      </p>
+      <p className="relative mt-2 text-[12px] font-bold leading-none text-[#ffd979]/78 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+        နောက်တစ်ကြိမ် ထပ်လှည့်ပါ
+      </p>
+    </div>
+  </div>
 ) : null}
 
 {showRewardOverlay && winEvaluation ? (

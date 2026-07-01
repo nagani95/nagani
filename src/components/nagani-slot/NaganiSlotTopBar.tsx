@@ -10,6 +10,9 @@ type NaganiSlotTopBarProps = {
   gameState: NaganiSlotGameState;
 };
 
+const ROYAL_TOP_BAR_BOARD =
+  "/assets/nagani/six-animal/ui/royal-top-bar-board-v1.png";
+
 const ROYAL_EXIT_DOOR_BUTTON =
   "/assets/nagani/six-animal/ui/six-animal-royal-exit-door-button-v1.png";
 
@@ -18,7 +21,7 @@ const NAGANI_LOGO =
 
 function getRoomStateLabel(gameState: NaganiSlotGameState) {
   if (gameState === "spinning") return "လှည့်နေသည်";
-  if (gameState === "settling") return "ဆု";
+  if (gameState === "settling") return "ဆုစုနေသည်";
   if (gameState === "result") return "ရလဒ်";
   return "အသင့်";
 }
@@ -27,69 +30,102 @@ export default function NaganiSlotTopBar({ gameState }: NaganiSlotTopBarProps) {
   const router = useRouter();
 
   return (
-    <div className="relative z-40 mx-auto mt-0 h-[62px] w-[calc(100%-8px)] max-w-[424px] px-0.5">
+    <header className="relative z-40 mx-auto mt-1 h-[74px] w-[calc(100%-8px)] max-w-[424px] shrink-0 overflow-hidden rounded-[22px] border border-[#d6a84f]/24 bg-[linear-gradient(180deg,rgba(84,28,10,0.98),rgba(51,12,6,0.98),rgba(18,3,2,0.98))] shadow-[0_12px_26px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,215,122,0.18)]">
       <style>{`
-        @keyframes naganiSlotTopShellWarmth {
+        @keyframes naganiSlotTopLiveDot {
           0%, 100% {
-            opacity: 0.28;
-            transform: scaleX(0.88);
+            opacity: 0.58;
+            transform: scale(0.92);
           }
           50% {
-            opacity: 0.58;
-            transform: scaleX(1);
+            opacity: 1;
+            transform: scale(1.12);
+          }
+        }
+
+        @keyframes naganiSlotTopLogoGlow {
+          0%, 100% {
+            opacity: 0.18;
+            transform: translateX(-50%) scaleX(0.9);
+          }
+          50% {
+            opacity: 0.38;
+            transform: translateX(-50%) scaleX(1);
           }
         }
       `}</style>
 
-      <div className="pointer-events-none absolute inset-x-8 bottom-[-10px] z-0 h-8 rounded-full bg-[#ffd979]/12 blur-2xl" />
-      <div className="pointer-events-none absolute inset-x-12 bottom-0 z-0 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/42 to-transparent" />
+      <img
+        src={ROYAL_TOP_BAR_BOARD}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[74px] w-full object-fill opacity-100 drop-shadow-[0_10px_24px_rgba(0,0,0,0.55)]"
+        draggable={false}
+      />
 
-      <div className="relative z-10 h-[58px] overflow-hidden rounded-[19px] border border-[#ffd979]/42 bg-[linear-gradient(180deg,#6c1a0d_0%,#3a0704_48%,#120000_100%)] shadow-[0_14px_30px_rgba(0,0,0,0.66),0_0_24px_rgba(255,190,74,0.08),inset_0_1px_0_rgba(255,238,178,0.22),inset_0_-16px_28px_rgba(0,0,0,0.42)]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,221,128,0.2),transparent_38%),linear-gradient(90deg,rgba(0,0,0,0.34),transparent_26%,transparent_74%,rgba(0,0,0,0.34))]" />
+      <div className="pointer-events-none absolute inset-x-2 top-1 h-[68px] rounded-[20px] bg-[linear-gradient(180deg,rgba(255,215,122,0.06),rgba(0,0,0,0.16))]" />
 
-        <div
-          className="pointer-events-none absolute left-1/2 top-0 h-px w-[72%] -translate-x-1/2 bg-gradient-to-r from-transparent via-[#fff0b9]/78 to-transparent"
-          style={{
-            animation: "naganiSlotTopShellWarmth 2400ms ease-in-out infinite",
-          }}
-        />
-
+      <div className="relative z-10 flex min-h-[74px] items-center justify-between px-3 py-1">
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="absolute left-2 top-1/2 z-20 grid h-[46px] w-[46px] -translate-y-1/2 place-items-center rounded-[14px] transition-transform active:scale-[0.94]"
-          aria-label="Exit slot room"
+          aria-label="ထွက်ရန်"
+          className="group flex h-[48px] w-[76px] items-center justify-start gap-1 pl-1"
         >
-          <img
-            src={ROYAL_EXIT_DOOR_BUTTON}
-            alt=""
-            className="h-full w-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.72)]"
-            draggable={false}
-          />
+          <span className="sr-only">ထွက်ရန်</span>
+
+          <span className="relative h-[50px] w-[40px] overflow-visible">
+            <img
+              src={ROYAL_EXIT_DOOR_BUTTON}
+              alt=""
+              className="absolute left-1/2 top-1/2 h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_0_10px_rgba(251,191,36,0.42)] transition-transform duration-200 group-active:scale-[0.92]"
+              draggable={false}
+            />
+          </span>
+
+          <span className="relative z-10 text-xs font-black text-[#ffd77a] drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] transition-colors group-active:text-[#fff3d0]">
+            ထွက်
+          </span>
         </button>
 
-        <div className="pointer-events-none absolute left-[56px] top-1/2 z-20 -translate-y-1/2">
-          <p className="text-[12px] font-black text-[#ffd979] drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
-            ထွက်
-          </p>
+        <div className="pointer-events-none flex min-w-0 flex-1 justify-center px-2">
+          <div className="relative flex h-[50px] w-[104px] items-center justify-center overflow-visible">
+            <div
+              className="absolute left-1/2 bottom-0 h-5 w-[86px] -translate-x-1/2 rounded-full bg-[#ffd979]/22 blur-xl"
+              style={{
+                animation: "naganiSlotTopLogoGlow 2400ms ease-in-out infinite",
+              }}
+            />
+
+            <img
+              src={NAGANI_LOGO}
+              alt="နဂါးနီ"
+              className="relative h-[58px] w-[98px] scale-[1.01] object-contain brightness-110 drop-shadow-[0_0_12px_rgba(251,191,36,0.30)]"
+              draggable={false}
+            />
+          </div>
         </div>
 
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 grid h-[56px] w-[92px] -translate-x-1/2 -translate-y-1/2 place-items-center">
-          <div className="absolute inset-x-2 bottom-0 h-4 rounded-full bg-[#ffd979]/18 blur-lg" />
-          <img
-            src={NAGANI_LOGO}
-            alt=""
-            className="relative h-full w-full object-contain drop-shadow-[0_5px_12px_rgba(0,0,0,0.76)]"
-            draggable={false}
-          />
-        </div>
+        <div className="flex w-[92px] flex-col items-end gap-1.5 pr-1">
+          <div className="flex items-center gap-1.5 rounded-full border border-[#ffd979]/30 bg-black/30 px-2.5 py-1 shadow-[inset_0_1px_0_rgba(255,232,163,0.1)]">
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-[#fff0b9] shadow-[0_0_8px_rgba(255,232,163,0.9)]"
+              style={{
+                animation: "naganiSlotTopLiveDot 1100ms ease-in-out infinite",
+              }}
+            />
+            <span className="text-[8px] font-black leading-none tracking-[0.08em] text-[#fff0b9] drop-shadow-[0_1px_3px_rgba(0,0,0,0.82)]">
+              Live
+            </span>
+          </div>
 
-        <div className="pointer-events-none absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-[#ffd979]/18 bg-black/24 px-2.5 py-1">
-          <p className="text-[7px] font-black tracking-[0.14em] text-[#ffd979]/56">
-            {getRoomStateLabel(gameState)}
-          </p>
+          <div className="min-w-[50px] rounded-full border border-[#ffd979]/24 bg-[linear-gradient(180deg,rgba(66,10,5,0.72),rgba(5,0,0,0.72))] px-2.5 py-1 text-center shadow-[inset_0_1px_0_rgba(255,232,163,0.1)]">
+            <p className="text-[8px] font-black leading-none text-[#ffd979]/82 drop-shadow-[0_1px_3px_rgba(0,0,0,0.82)]">
+              {getRoomStateLabel(gameState)}
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
