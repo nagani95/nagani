@@ -20,8 +20,8 @@ import type {
 } from "@/lib/naganiSlot/types";
 
 const MIN_BET = 1000;
-const BET_STEP = 1000;
 const MAX_BET = 50000;
+const BET_STEP = 1000;
 
 const REEL_STOP_TIMINGS = [1200, 1450, 1700, 1950, 2250];
 const RESULT_REVEAL_DELAY = 2550;
@@ -60,7 +60,7 @@ function getRewardOverlayTone(
 export default function NaganiSlotRoom() {
   const [roomReady, setRoomReady] = useState(false);
   const [balance, setBalance] = useState(500000);
-  const [betAmount, setBetAmount] = useState(1000);
+  const [betAmount, setBetAmount] = useState(MIN_BET);
   const [lastWin, setLastWin] = useState(0);
   const [slotColumns, setSlotColumns] = useState<NaganiSlotSymbol[][]>(() =>
     getInitialSlotColumns()
@@ -89,6 +89,7 @@ const showRewardOverlay =
   roomReady &&
   hasRewardWin &&
   gameState !== "spinning" &&
+  rewardTransferPhase !== "idle" &&
   rewardTransferPhase !== "landed";
 
 const showFlyingRewardPot =
@@ -135,17 +136,43 @@ setRewardTransferPhase("idle");
     };
   }, []);
 
-  function increaseBet() {
-    if (controlsLocked) return;
+function getPlayableMaxBet() {
+  if (balance < MIN_BET) return MIN_BET;
 
-    setBetAmount((current) => Math.min(MAX_BET, current + BET_STEP));
-  }
+  const rawPlayableMaxBet = Math.min(balance, MAX_BET);
+  return Math.floor(rawPlayableMaxBet / BET_STEP) * BET_STEP;
+}
 
-  function decreaseBet() {
-    if (controlsLocked) return;
+function normalizeBetAmount(amount: number) {
+  const playableMaxBet = getPlayableMaxBet();
+  const steppedAmount = Math.round(amount / BET_STEP) * BET_STEP;
 
-    setBetAmount((current) => Math.max(MIN_BET, current - BET_STEP));
-  }
+  return Math.min(playableMaxBet, Math.max(MIN_BET, steppedAmount));
+}
+
+function increaseBet() {
+  if (controlsLocked) return;
+
+  setBetAmount((current) => normalizeBetAmount(current + BET_STEP));
+}
+
+function decreaseBet() {
+  if (controlsLocked) return;
+
+  setBetAmount((current) => normalizeBetAmount(current - BET_STEP));
+}
+
+function selectBetAmount(amount: number) {
+  if (controlsLocked) return;
+
+  setBetAmount(normalizeBetAmount(amount));
+}
+
+function setMaxBetAmount() {
+  if (controlsLocked) return;
+
+  setBetAmount(getPlayableMaxBet());
+}
 
   function prepareRewardFlightPath() {
   const roomRect = roomShellRef.current?.getBoundingClientRect();
@@ -223,8 +250,8 @@ function countWinAmount(targetAmount: number) {
 }
 
   function handleSpin() {
-    if (controlsLocked) return;
-    if (balance < betAmount) return;
+    if (gameState !== "ready" && gameState !== "result") return;
+    if (balance < betAmount || betAmount < MIN_BET) return;
 
     clearSpinTimers();
 
@@ -315,7 +342,115 @@ function countWinAmount(targetAmount: number) {
             opacity: 0.82;
           }
         }
-                  @keyframes naganiSlotRewardOverlayIn {
+                  @keyframes naganiSlotIdlePalaceWarmth {
+          0%, 100% {
+            opacity: 0.22;
+            transform: scale(0.96);
+          }
+          50% {
+            opacity: 0.42;
+            transform: scale(1.04);
+          }
+        }
+
+        @keyframes naganiSlotIdleGoldMist {
+          0%, 100% {
+            opacity: 0.16;
+            transform: translateY(0) scaleX(0.92);
+          }
+          50% {
+            opacity: 0.34;
+            transform: translateY(-6px) scaleX(1);
+          }
+        }
+
+        @keyframes naganiSlotIdleDustFloat {
+          0% {
+            opacity: 0;
+            transform: translateY(12px) scale(0.6);
+          }
+          28% {
+            opacity: 0.56;
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-34px) scale(1);
+          }
+        }
+        
+                @keyframes naganiSlotRoomBridgeBreath {
+          0%, 100% {
+            opacity: 0.2;
+            transform: translateX(-50%) scaleX(0.92);
+          }
+          50% {
+            opacity: 0.42;
+            transform: translateX(-50%) scaleX(1);
+          }
+        }
+
+        @keyframes naganiSlotRoomGoldVein {
+          0%, 100% {
+            opacity: 0.24;
+            filter: brightness(1);
+          }
+          50% {
+            opacity: 0.48;
+            filter: brightness(1.22);
+          }
+        }
+
+        @keyframes naganiSlotRoomFineDust {
+          0% {
+            opacity: 0;
+            transform: translateY(16px) scale(0.52);
+          }
+          24% {
+            opacity: 0.48;
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-42px) scale(1);
+          }
+        }
+
+                @keyframes naganiSlotBottomFloorGlow {
+          0%, 100% {
+            opacity: 0.26;
+            transform: translateX(-50%) scaleX(0.88);
+          }
+          50% {
+            opacity: 0.52;
+            transform: translateX(-50%) scaleX(1);
+          }
+        }
+
+        @keyframes naganiSlotBottomGoldDust {
+          0% {
+            opacity: 0;
+            transform: translateY(12px) scale(0.5);
+          }
+          28% {
+            opacity: 0.48;
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-26px) scale(1);
+          }
+        }
+
+        @keyframes naganiSlotBottomCarpetBreath {
+          0%, 100% {
+            opacity: 0.18;
+            filter: brightness(1);
+          }
+          50% {
+            opacity: 0.34;
+            filter: brightness(1.12);
+          }
+        }
+
+         @keyframes naganiSlotRewardOverlayIn {
           0% {
             opacity: 0;
             transform: translateY(24px) scale(0.84);
@@ -454,14 +589,77 @@ function countWinAmount(targetAmount: number) {
           <div className="absolute right-0 top-[96px] h-[78%] w-[58px] bg-[linear-gradient(270deg,rgba(0,0,0,0.84),rgba(91,11,7,0.38),transparent)]" />
 
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,transparent_0%,rgba(0,0,0,0.04)_42%,rgba(0,0,0,0.76)_100%)]" />
+                    <div
+            className="pointer-events-none absolute left-1/2 top-[70px] z-[4] h-[190px] w-[82%] -translate-x-1/2 rounded-b-[46px] border-x border-[#ffd979]/10 bg-[radial-gradient(circle_at_50%_0%,rgba(255,232,163,0.14),rgba(122,18,9,0.16)_38%,transparent_74%)]"
+            style={{
+              animation: "naganiSlotRoomBridgeBreath 3600ms ease-in-out infinite",
+            }}
+          />
+
+          <div
+            className="pointer-events-none absolute left-1/2 top-[118px] z-[4] h-[58%] w-[2px] -translate-x-1/2 bg-gradient-to-b from-[#fff0b9]/28 via-[#ffd979]/12 to-transparent"
+            style={{
+              animation: "naganiSlotRoomGoldVein 2600ms ease-in-out infinite",
+            }}
+          />
+
+          {roomReady ? (
+            <>
+              {Array.from({ length: 9 }).map((_, index) => (
+                <span
+                  key={`nagani-slot-room-fine-dust-${index}`}
+                  className="pointer-events-none absolute z-[5] h-1 w-1 rounded-full bg-[#fff0b9]"
+                  style={{
+                    left: `${14 + ((index * 19) % 72)}%`,
+                    top: `${22 + ((index * 17) % 52)}%`,
+                    animation: `naganiSlotRoomFineDust ${
+                      1800 + (index % 4) * 220
+                    }ms ease-out ${index * 310}ms infinite`,
+                    boxShadow: "0 0 8px rgba(255,232,163,0.5)",
+                  }}
+                />
+              ))}
+            </>
+          ) : null}
 
 {gameState === "ready" && !winEvaluation ? (
-  <div
-    className="pointer-events-none absolute inset-x-10 top-[42%] z-10 h-[220px] rounded-full bg-[#ffd979]/10 blur-3xl"
-    style={{
-      animation: "naganiSlotReadyFade 2200ms ease-in-out infinite",
-    }}
-  />
+  <>
+    <div
+      className="pointer-events-none absolute inset-x-10 top-[38%] z-10 h-[230px] rounded-full bg-[#ffd979]/10 blur-3xl"
+      style={{
+        animation: "naganiSlotReadyFade 2400ms ease-in-out infinite",
+      }}
+    />
+
+    <div
+      className="pointer-events-none absolute left-1/2 top-[28%] z-10 h-[260px] w-[72%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,218,121,0.13),rgba(116,22,11,0.12)_42%,transparent_72%)] blur-2xl"
+      style={{
+        animation: "naganiSlotIdlePalaceWarmth 3600ms ease-in-out infinite",
+      }}
+    />
+
+    <div
+      className="pointer-events-none absolute left-1/2 top-[68%] z-10 h-[90px] w-[62%] -translate-x-1/2 rounded-full bg-[#ffd979]/10 blur-2xl"
+      style={{
+        animation: "naganiSlotIdleGoldMist 3100ms ease-in-out infinite",
+      }}
+    />
+
+    {Array.from({ length: 6 }).map((_, index) => (
+      <span
+        key={`nagani-slot-idle-dust-${index}`}
+        className="pointer-events-none absolute z-10 h-1 w-1 rounded-full bg-[#fff0b9]"
+        style={{
+          left: `${18 + ((index * 17) % 64)}%`,
+          top: `${42 + ((index * 19) % 30)}%`,
+          animation: `naganiSlotIdleDustFloat ${
+            1500 + (index % 3) * 180
+          }ms ease-out ${index * 260}ms infinite`,
+          boxShadow: "0 0 8px rgba(255,232,163,0.58)",
+        }}
+      />
+    ))}
+  </>
 ) : null}
 
 {showRewardOverlay && winEvaluation ? (
@@ -534,23 +732,17 @@ function countWinAmount(targetAmount: number) {
 
       <div className="relative mx-auto mt-2 h-px w-[70%] bg-gradient-to-r from-transparent via-[#ffd979]/54 to-transparent" />
 
-{lastWin > 0 ? (
-  <p
-    className="relative mt-2 text-[30px] font-black leading-none text-[#fff4c7] drop-shadow-[0_3px_9px_rgba(0,0,0,0.9)]"
-    style={{
-      animation:
-        gameState === "settling"
-          ? "naganiSlotRewardAmountPulse 520ms ease-in-out infinite"
-          : undefined,
-    }}
-  >
-    + {formatMMK(lastWin)}
-  </p>
-) : (
-  <p className="relative mt-2 text-[18px] font-black leading-none text-[#fff0b9]/88 drop-shadow-[0_2px_7px_rgba(0,0,0,0.86)]">
-    ဆုငွေတွက်နေသည်
-  </p>
-)}
+<p
+  className="relative mt-2 text-[30px] font-black leading-none text-[#fff4c7] drop-shadow-[0_3px_9px_rgba(0,0,0,0.9)]"
+  style={{
+    animation:
+      gameState === "settling"
+        ? "naganiSlotRewardAmountPulse 520ms ease-in-out infinite"
+        : undefined,
+  }}
+>
+  + {formatMMK(lastWin)}
+</p>
 
       <div
         className="pointer-events-none absolute inset-y-0 left-0 w-[48%] bg-[linear-gradient(90deg,transparent,rgba(255,240,185,0.18),transparent)]"
@@ -577,29 +769,83 @@ function countWinAmount(targetAmount: number) {
   </div>
 ) : null}
 
-<div className="relative flex h-full flex-col overflow-hidden pb-[max(4px,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
-            <NaganiSlotTopBar balance={balance} gameState={gameState} />
+<div className="relative flex h-full flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+16px)] pt-[env(safe-area-inset-top)]">
+            <div className="pointer-events-none absolute inset-x-2 top-[58px] z-[12] h-[146px] rounded-b-[38px] border-x border-[#ffd979]/12 bg-[linear-gradient(180deg,rgba(255,218,121,0.08),rgba(108,18,8,0.12),transparent)] shadow-[inset_0_1px_0_rgba(255,240,185,0.08)]" />
+            <div className="pointer-events-none absolute left-1/2 top-[66px] z-[13] h-[84px] w-[76%] -translate-x-1/2 rounded-full bg-[#ffd979]/10 blur-2xl" />
 
-            <div className="relative z-20 flex min-h-0 flex-1 flex-col pt-0">
-              <NaganiSlotBoard
-                columns={slotColumns}
-                spinning={spinning}
-                stoppedReelCount={stoppedReelCount}
-                winEvaluation={winEvaluation}
-              />
+<NaganiSlotTopBar gameState={gameState} />
 
-              <div className="shrink-0">
+            <div className="relative z-20 flex min-h-0 flex-1 flex-col pt-1">
+              <div className="relative mx-auto h-[clamp(390px,60dvh,510px)] w-full max-w-[430px] shrink-0">
+                <NaganiSlotBoard
+                  columns={slotColumns}
+                  spinning={spinning}
+                  stoppedReelCount={stoppedReelCount}
+                  winEvaluation={winEvaluation}
+                />
+              </div>
+
+              <div className="pointer-events-none relative z-[21] -mt-2 h-2 shrink-0">
+                <div className="absolute inset-x-12 top-0 h-5 rounded-full bg-[#ffd979]/10 blur-xl" />
+                <div className="absolute inset-x-14 top-1 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/42 to-transparent" />
+              </div>
+
+              <div className="relative z-[22] shrink-0">
 <NaganiSlotControls
   betAmount={betAmount}
-  balanceAmount={balance}
-  lastWinAmount={lastWin}
-  balancePulse={rewardTransferPhase === "landed"}
-  balanceTargetRef={balanceTargetRef}
+  balance={balance}
   gameState={gameState}
+  balancePulse={rewardTransferPhase === "landed"}
+  lastWinAmount={lastWin}
+  balanceTargetRef={balanceTargetRef}
   onDecrease={decreaseBet}
   onIncrease={increaseBet}
+  onSelectBetAmount={selectBetAmount}
+  onMaxBet={setMaxBetAmount}
   onSpin={handleSpin}
 />
+              </div>
+
+              <div className="pointer-events-none relative z-[18] mt-[-2px] min-h-[54px] flex-1 overflow-hidden">
+                <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd979]/34 to-transparent" />
+
+                <div
+                  className="absolute left-1/2 top-2 h-16 w-[82%] -translate-x-1/2 rounded-full bg-[#ffd979]/10 blur-2xl"
+                  style={{
+                    animation:
+                      "naganiSlotBottomFloorGlow 3000ms ease-in-out infinite",
+                  }}
+                />
+
+                <div
+                  className="absolute left-1/2 top-0 h-[92px] w-[54%] -translate-x-1/2 rounded-b-[44px] bg-[linear-gradient(180deg,rgba(145,18,12,0.2),rgba(79,7,4,0.12),transparent)]"
+                  style={{
+                    animation:
+                      "naganiSlotBottomCarpetBreath 3600ms ease-in-out infinite",
+                  }}
+                />
+
+                <div className="absolute inset-x-10 top-5 h-px bg-gradient-to-r from-transparent via-[#b97823]/34 to-transparent" />
+                <div className="absolute inset-x-16 top-11 h-px bg-gradient-to-r from-transparent via-[#7f4614]/22 to-transparent" />
+
+                {roomReady ? (
+                  <>
+                    {Array.from({ length: 7 }).map((_, index) => (
+                      <span
+                        key={`nagani-slot-bottom-floor-dust-${index}`}
+                        className="absolute h-1 w-1 rounded-full bg-[#fff0b9]"
+                        style={{
+                          left: `${18 + ((index * 13) % 62)}%`,
+                          top: `${18 + ((index * 11) % 46)}%`,
+                          animation: `naganiSlotBottomGoldDust ${
+                            1800 + (index % 4) * 220
+                          }ms ease-out ${index * 360}ms infinite`,
+                          boxShadow: "0 0 8px rgba(255,232,163,0.42)",
+                        }}
+                      />
+                    ))}
+                  </>
+                ) : null}
               </div>
             </div>
 

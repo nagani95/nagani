@@ -208,14 +208,14 @@ function ReelSymbol({
       <div className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd979]/14 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,214,122,0.075),transparent_54%)]" />
 
-      <div
-        className={`relative z-20 grid h-[92%] w-[132%] place-items-center overflow-visible ${getSymbolGlow(
-          symbol
-        )} ${spinning ? "opacity-95" : ""} transition-transform duration-300`}
-        style={{
-          transform: winning ? "scale(1.1)" : undefined,
-        }}
-      >
+<div
+  className={`relative z-20 grid h-[88%] w-[122%] place-items-center overflow-visible ${getSymbolGlow(
+    symbol
+  )} ${spinning ? "opacity-95" : ""} transition-transform duration-300`}
+  style={{
+    transform: winning ? "scale(1.08)" : undefined,
+  }}
+>
         {symbol.imageSrc ? (
           <>
             <img
@@ -371,9 +371,9 @@ function SpinningReel({
           animation: `naganiSlotReelScroll ${
             anticipating ? 860 : 1120 + columnIndex * 60
           }ms linear infinite`,
-          filter: anticipating
-            ? "blur(0.58px) brightness(1.16)"
-            : "blur(0.42px)",
+filter: anticipating
+  ? "blur(0.42px) brightness(1.14)"
+  : "blur(0.28px) brightness(1.04)",
         }}
       >
         {spinStrip.map((symbol, stripIndex) => (
@@ -439,12 +439,13 @@ const isMediumWin = winEvaluation?.tier === "medium";
 const isBigWin = winEvaluation?.tier === "big";
 const showMajorCelebration = Boolean(isMediumWin || isBigWin);
 const showBoardCelebrationAura = hasWin && !spinning;
+const isIdleReady = !spinning && !winEvaluation;
   const winningPositions = winEvaluation?.winningPositions ?? [];
   const dimNonWinning = hasWin && !spinning;
   const boardGoldDustCount = isBigWin ? 18 : isMediumWin ? 12 : hasWin ? 6 : 0;
 
   return (
-    <section className="relative z-20 mx-auto mt-0 flex min-h-0 w-full max-w-[430px] flex-1 px-0.5">
+     <section className="relative z-20 mx-auto mt-0 flex h-full min-h-0 w-full max-w-[426px] shrink-0 px-1">
       <style>{`
         @keyframes naganiSlotReelScroll {
           0% {
@@ -575,6 +576,86 @@ const showBoardCelebrationAura = hasWin && !spinning;
           }
           50% {
             opacity: 0.42;
+          }
+        }
+
+                @keyframes naganiSlotIdleBoardBreath {
+          0%, 100% {
+            filter: brightness(1);
+            box-shadow:
+              0 24px 66px rgba(0,0,0,0.88),
+              inset 0 0 44px rgba(0,0,0,0.94),
+              0 0 0 rgba(255,218,121,0);
+          }
+          50% {
+            filter: brightness(1.035);
+            box-shadow:
+              0 24px 66px rgba(0,0,0,0.88),
+              inset 0 0 44px rgba(0,0,0,0.94),
+              0 0 18px rgba(255,218,121,0.1);
+          }
+        }
+
+                @keyframes naganiSlotRoyalFrameBreath {
+          0%, 100% {
+            opacity: 0.42;
+            filter: brightness(1);
+          }
+          50% {
+            opacity: 0.72;
+            filter: brightness(1.18);
+          }
+        }
+
+        @keyframes naganiSlotRoyalCornerGlow {
+          0%, 100% {
+            opacity: 0.46;
+            transform: scale(0.96);
+            filter: brightness(1);
+          }
+          50% {
+            opacity: 0.9;
+            transform: scale(1.04);
+            filter: brightness(1.22);
+          }
+        }
+
+        @keyframes naganiSlotBoardBaseHeat {
+          0%, 100% {
+            opacity: 0.18;
+            transform: translateX(-50%) scaleX(0.9);
+          }
+          50% {
+            opacity: 0.42;
+            transform: translateX(-50%) scaleX(1);
+          }
+        }
+
+        @keyframes naganiSlotIdleBoardSheen {
+          0% {
+            opacity: 0;
+            transform: translateX(-135%) skewX(-16deg);
+          }
+          18% {
+            opacity: 0.2;
+          }
+          44%, 100% {
+            opacity: 0;
+            transform: translateX(135%) skewX(-16deg);
+          }
+        }
+
+        @keyframes naganiSlotIdleReelSheen {
+          0% {
+            opacity: 0;
+            transform: translateY(-110%);
+          }
+          22% {
+            opacity: 0.22;
+          }
+          58%, 100% {
+            opacity: 0;
+            transform: translateY(110%);
           }
         }
 
@@ -862,26 +943,73 @@ const showBoardCelebrationAura = hasWin && !spinning;
         }
       `}</style>
 
-      <div className="pointer-events-none absolute -inset-x-4 top-12 h-[74%] rounded-[34px] bg-[#ffd979]/16 blur-2xl" />
+      <div className="pointer-events-none absolute inset-x-6 -top-2 z-[2] h-12 rounded-t-[34px] border-t border-[#fff0b9]/28 bg-[linear-gradient(180deg,rgba(255,232,163,0.16),rgba(120,24,10,0.14),transparent)]" />
+      <div className="pointer-events-none absolute left-1/2 -top-1 z-[3] h-7 w-[58%] -translate-x-1/2 rounded-full bg-[#ffd979]/16 blur-xl" />
+      <div className="pointer-events-none absolute -inset-x-4 top-12 z-[1] h-[74%] rounded-[34px] bg-[#ffd979]/16 blur-2xl" />
+      <div
+        className="pointer-events-none absolute left-1/2 -bottom-6 z-[1] h-16 w-[78%] -translate-x-1/2 rounded-full bg-[#ffd979]/14 blur-2xl"
+        style={{
+          animation: "naganiSlotBoardBaseHeat 2600ms ease-in-out infinite",
+        }}
+      />
+      <div className="pointer-events-none absolute inset-y-8 -left-1 z-[2] w-px bg-gradient-to-b from-transparent via-[#ffd979]/24 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-8 -right-1 z-[2] w-px bg-gradient-to-b from-transparent via-[#ffd979]/24 to-transparent" />
 
 <div
-  className={`relative h-full min-h-0 w-full overflow-hidden rounded-[20px] border bg-[#050000] shadow-[0_28px_78px_rgba(0,0,0,0.9),inset_0_0_44px_rgba(0,0,0,0.94)] ${
+    className={`relative z-10 h-full min-h-0 w-full overflow-hidden rounded-[24px] border bg-[#050000] shadow-[0_24px_66px_rgba(0,0,0,0.88),0_0_30px_rgba(255,190,74,0.075),inset_0_0_44px_rgba(0,0,0,0.94)] ${
           spinning
             ? "border-[#ffe8a3]/75"
             : hasWin && winEvaluation
               ? getWinTierBoardBorder(winEvaluation.tier)
               : getWinTierBoardBorder()
         }`}
-        style={
-          isBigWin
-            ? {
-                animation:
-                  "naganiSlotMajorBoardShake 520ms ease-in-out 1 both",
-              }
-            : undefined
+style={
+  isBigWin
+    ? {
+        animation:
+          "naganiSlotMajorBoardShake 520ms ease-in-out 1 both",
+      }
+    : isIdleReady
+      ? {
+          animation:
+            "naganiSlotIdleBoardBreath 3200ms ease-in-out infinite",
         }
+      : undefined
+}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,225,142,0.18),transparent_21%),linear-gradient(180deg,rgba(116,22,11,0.42),rgba(8,0,0,0.96)_30%,#030000_100%)]" />
+                <div className="pointer-events-none absolute inset-x-8 top-0 z-[4] h-px bg-gradient-to-r from-transparent via-[#fff0b9]/76 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-10 bottom-0 z-[4] h-px bg-gradient-to-r from-transparent via-[#c9872f]/62 to-transparent" />
+        <div className="pointer-events-none absolute left-1/2 top-1 z-[5] h-5 w-[62%] -translate-x-1/2 rounded-full bg-[#ffd979]/10 blur-lg" />
+                <div
+          className="pointer-events-none absolute inset-x-3 top-2 z-[6] h-[18px] rounded-t-[18px] border-t border-[#fff0b9]/22 bg-[linear-gradient(180deg,rgba(255,232,163,0.12),rgba(139,34,12,0.08),transparent)]"
+          style={{
+            animation: "naganiSlotRoyalFrameBreath 2800ms ease-in-out infinite",
+          }}
+        />
+
+        <div className="pointer-events-none absolute left-3 top-3 z-[7] h-7 w-7 rounded-br-[18px] border-b border-r border-[#ffd979]/26 bg-[radial-gradient(circle_at_0%_0%,rgba(255,232,163,0.28),rgba(120,26,9,0.14)_42%,transparent_72%)]" />
+        <div className="pointer-events-none absolute right-3 top-3 z-[7] h-7 w-7 rounded-bl-[18px] border-b border-l border-[#ffd979]/26 bg-[radial-gradient(circle_at_100%_0%,rgba(255,232,163,0.28),rgba(120,26,9,0.14)_42%,transparent_72%)]" />
+        <div className="pointer-events-none absolute bottom-3 left-3 z-[7] h-7 w-7 rounded-tr-[18px] border-r border-t border-[#ffd979]/20 bg-[radial-gradient(circle_at_0%_100%,rgba(255,218,121,0.18),rgba(88,18,7,0.12)_42%,transparent_72%)]" />
+        <div className="pointer-events-none absolute bottom-3 right-3 z-[7] h-7 w-7 rounded-tl-[18px] border-l border-t border-[#ffd979]/20 bg-[radial-gradient(circle_at_100%_100%,rgba(255,218,121,0.18),rgba(88,18,7,0.12)_42%,transparent_72%)]" />
+
+        <div
+          className="pointer-events-none absolute left-1/2 top-2.5 z-[8] h-2 w-[34%] -translate-x-1/2 rounded-full bg-[#fff0b9]/20 blur-md"
+          style={{
+            animation: "naganiSlotRoyalCornerGlow 2400ms ease-in-out infinite",
+          }}
+        />
+
+        <div className="pointer-events-none absolute inset-x-2 top-[34px] z-[6] h-px bg-gradient-to-r from-transparent via-[#d69a37]/38 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-2 bottom-[34px] z-[6] h-px bg-gradient-to-r from-transparent via-[#b97823]/34 to-transparent" />
+        {isIdleReady ? (
+  <div
+    className="pointer-events-none absolute inset-y-0 left-0 z-[18] w-[46%] bg-[linear-gradient(90deg,transparent,rgba(255,240,185,0.09),transparent)]"
+    style={{
+      animation: "naganiSlotIdleBoardSheen 4200ms ease-in-out infinite",
+    }}
+  />
+) : null}
 
         {spinning ? (
           <div
@@ -975,7 +1103,7 @@ const showBoardCelebrationAura = hasWin && !spinning;
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[36px] bg-[linear-gradient(180deg,rgba(255,218,121,0.22),rgba(83,12,7,0.34),transparent)]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[34px] bg-[linear-gradient(0deg,rgba(255,218,121,0.12),rgba(45,4,3,0.48),transparent)]" />
 
-        <div className="absolute inset-x-1.5 bottom-1.5 top-[7px] z-10 overflow-hidden rounded-[16px] border border-[#d6a84e]/62 bg-[#020000] shadow-[inset_0_0_40px_rgba(0,0,0,0.98)]">
+                <div className="absolute inset-x-2.5 bottom-2.5 top-[13px] z-10 overflow-hidden rounded-[17px] border border-[#d6a84e]/68 bg-[#020000] shadow-[0_8px_18px_rgba(0,0,0,0.42),inset_0_0_46px_rgba(0,0,0,0.98),inset_0_1px_0_rgba(255,232,163,0.08)]">
           <div className="grid h-full grid-cols-5 gap-1 p-1.5">
             {columns.map((column, columnIndex) => {
 const reelIsStopped = !spinning || columnIndex < stoppedReelCount;
@@ -985,11 +1113,12 @@ const reelIsFinal = columnIndex === columns.length - 1;
 const reelIsAnticipating =
   spinning && !reelIsStopped && reelIsFinal && stoppedReelCount >= 4;
 const spinStrip = getReelSpinStrip(columnIndex);
+const reelIsIdle = isIdleReady;
 
               return (
                 <div
                   key={`nagani-slot-reel-${columnIndex}`}
-                  className={`relative min-w-0 overflow-hidden rounded-[14px] border bg-[linear-gradient(180deg,rgba(75,17,9,0.38),rgba(3,0,0,0.98)_13%,rgba(3,0,0,0.98)_87%,rgba(75,17,9,0.34))] shadow-[inset_0_0_24px_rgba(0,0,0,0.9),0_8px_18px_rgba(0,0,0,0.48)] ${
+                  className={`relative min-w-0 overflow-hidden rounded-[14px] border bg-[linear-gradient(180deg,rgba(92,22,10,0.42),rgba(5,0,0,0.96)_14%,rgba(5,0,0,0.96)_86%,rgba(92,22,10,0.36))] shadow-[inset_0_0_20px_rgba(0,0,0,0.86),0_7px_15px_rgba(0,0,0,0.44)] ${
   reelIsAnticipating
     ? "border-[#fff0b9]/72"
     : reelJustStopped
@@ -998,12 +1127,21 @@ const spinStrip = getReelSpinStrip(columnIndex);
 }`}
                 >
                   <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,217,121,0.07),transparent_14%,transparent_86%,rgba(255,217,121,0.055))]" />
+                  {reelIsIdle ? (
+  <div
+    className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[34%] bg-[linear-gradient(180deg,transparent,rgba(255,232,163,0.11),transparent)]"
+    style={{
+      animation: "naganiSlotIdleReelSheen 3600ms ease-in-out infinite",
+      animationDelay: `${columnIndex * 260}ms`,
+    }}
+  />
+) : null}
 
-                  <div className="pointer-events-none absolute left-0 right-0 top-[33.333%] z-20 h-px bg-gradient-to-r from-transparent via-[#ffd979]/18 to-transparent" />
-                  <div className="pointer-events-none absolute left-0 right-0 top-[66.666%] z-20 h-px bg-gradient-to-r from-transparent via-[#ffd979]/18 to-transparent" />
+<div className="pointer-events-none absolute left-0 right-0 top-[33.333%] z-20 h-px bg-gradient-to-r from-transparent via-[#ffd979]/13 to-transparent" />
+<div className="pointer-events-none absolute left-0 right-0 top-[66.666%] z-20 h-px bg-gradient-to-r from-transparent via-[#ffd979]/13 to-transparent" />
 
-                  <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-[18%] bg-gradient-to-b from-black/78 via-black/34 to-transparent" />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[18%] bg-gradient-to-t from-black/80 via-black/34 to-transparent" />
+<div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-[15%] bg-gradient-to-b from-black/68 via-black/28 to-transparent" />
+<div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[15%] bg-gradient-to-t from-black/70 via-black/28 to-transparent" />
 
                   <div className="pointer-events-none absolute inset-y-0 right-0 z-30 w-px bg-gradient-to-b from-transparent via-[#ffd979]/18 to-transparent" />
                   <div className="pointer-events-none absolute inset-y-0 left-0 z-30 w-px bg-gradient-to-b from-transparent via-black/75 to-transparent" />
