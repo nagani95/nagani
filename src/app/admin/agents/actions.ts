@@ -27,6 +27,21 @@ function normalizeNaganiPhoneAuthEmail(value: string) {
   return digits ? `${digits}@nagani.local` : "";
 }
 
+function getFriendlyAgentErrorMessage(message: string) {
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes("email address has already been registered") ||
+    lower.includes("already been registered") ||
+    lower.includes("user already registered") ||
+    lower.includes("already exists")
+  ) {
+    return "This login phone already has an account. Use another phone, or link the existing Auth user manually.";
+  }
+
+  return message;
+}
+
 async function assertNoDuplicateAgentIdentity(params: {
   agentCode: string;
   cleanPhone: string;
@@ -207,8 +222,10 @@ createdAuthUserId = await createAgentAuthUser({
       await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
     }
 
-    errorMessage =
-      error instanceof Error ? error.message : "Failed to create agent";
+errorMessage =
+  error instanceof Error
+    ? getFriendlyAgentErrorMessage(error.message)
+    : "Failed to create agent";
   }
 
   if (errorMessage) {
@@ -305,8 +322,10 @@ if (existingAuthUserId) {
       await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
     }
 
-    errorMessage =
-      error instanceof Error ? error.message : "Failed to create agent login";
+errorMessage =
+  error instanceof Error
+    ? getFriendlyAgentErrorMessage(error.message)
+    : "Failed to create agent login";
   }
 
   if (errorMessage) {
