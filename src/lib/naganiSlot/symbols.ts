@@ -104,7 +104,7 @@ export const naganiSlotSymbols: NaganiSlotSymbol[] = [
   },
 ];
 
-function getSymbolByKey(key: NaganiSlotSymbolKey) {
+export function getNaganiSlotSymbolByKey(key: NaganiSlotSymbolKey) {
   const symbol = naganiSlotSymbols.find((item) => item.key === key);
 
   if (!symbol) {
@@ -192,7 +192,7 @@ const reelStripKeys: NaganiSlotSymbolKey[] = [
 
 export function getInitialSlotColumns() {
   return initialSlotColumnKeys.map((column) =>
-    column.map((key) => getSymbolByKey(key))
+    column.map((key) => getNaganiSlotSymbolByKey(key))
   );
 }
 
@@ -258,9 +258,25 @@ function buildSlotColumnsFromKeys(keys: NaganiSlotSymbolKey[]) {
   return Array.from({ length: 5 }, (_, columnIndex) =>
     Array.from({ length: 3 }, (_, rowIndex) => {
       const flatIndex = columnIndex * 3 + rowIndex;
-      return getSymbolByKey(keys[flatIndex]);
+      return getNaganiSlotSymbolByKey(keys[flatIndex]);
     })
   );
+}
+
+export function buildSlotColumnsFromBackendGrid(grid: string[][]) {
+  if (!Array.isArray(grid) || grid.length !== 5) {
+    throw new Error("Invalid Nagani slot backend grid column count.");
+  }
+
+  return grid.map((column) => {
+    if (!Array.isArray(column) || column.length !== 3) {
+      throw new Error("Invalid Nagani slot backend grid row count.");
+    }
+
+    return column.map((key) =>
+      getNaganiSlotSymbolByKey(key as NaganiSlotSymbolKey)
+    );
+  });
 }
 
 export function createDemoSpinResultColumns() {
@@ -278,7 +294,7 @@ export function getReelSpinStrip(columnIndex: number) {
 
   return Array.from({ length: seamlessStripLength }, (_, index) => {
     const symbolKey = reelStripKeys[(index + offset) % reelStripKeys.length];
-    return getSymbolByKey(symbolKey);
+    return getNaganiSlotSymbolByKey(symbolKey);
   });
 }
 
