@@ -10,8 +10,8 @@ type NaganiSlotTopBarProps = {
   gameState: NaganiSlotGameState;
 };
 
-const ROYAL_TOP_BAR_BOARD =
-  "/assets/nagani/six-animal/ui/royal-top-bar-board-v1.png";
+const SLOT_TOP_BAR_SKIN =
+  "/assets/nagani/slot/ui/top-bar-skin-v1.png";
 
 const ROYAL_EXIT_DOOR_BUTTON =
   "/assets/nagani/six-animal/ui/six-animal-royal-exit-door-button-v1.png";
@@ -30,7 +30,7 @@ export default function NaganiSlotTopBar({ gameState }: NaganiSlotTopBarProps) {
   const router = useRouter();
 
   return (
-    <header className="relative z-40 mx-auto mt-1 h-[74px] w-[calc(100%-8px)] max-w-[424px] shrink-0 overflow-hidden rounded-[22px] border border-[#d6a84f]/24 bg-[linear-gradient(180deg,rgba(84,28,10,0.98),rgba(51,12,6,0.98),rgba(18,3,2,0.98))] shadow-[0_12px_26px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,215,122,0.18)]">
+    <header className="relative z-40 mx-auto mt-1 h-[74px] w-[calc(100%-8px)] max-w-[424px] shrink-0 overflow-hidden rounded-[22px] bg-[#160403] shadow-[0_12px_26px_rgba(0,0,0,0.52)]">
       <style>{`
         @keyframes naganiSlotTopLiveDot {
           0%, 100% {
@@ -55,15 +55,15 @@ export default function NaganiSlotTopBar({ gameState }: NaganiSlotTopBarProps) {
         }
       `}</style>
 
-      <img
-        src={ROYAL_TOP_BAR_BOARD}
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[74px] w-full object-fill opacity-100 drop-shadow-[0_10px_24px_rgba(0,0,0,0.55)]"
-        draggable={false}
-      />
+<img
+  src={SLOT_TOP_BAR_SKIN}
+  alt=""
+  aria-hidden="true"
+  className="pointer-events-none absolute inset-0 h-full w-full object-fill opacity-100 drop-shadow-[0_10px_24px_rgba(0,0,0,0.58)]"
+  draggable={false}
+/>
 
-      <div className="pointer-events-none absolute inset-x-2 top-1 h-[68px] rounded-[20px] bg-[linear-gradient(180deg,rgba(255,215,122,0.06),rgba(0,0,0,0.16))]" />
+      <div className="pointer-events-none absolute inset-x-3 top-1.5 h-[66px] rounded-[20px] bg-[linear-gradient(180deg,rgba(255,232,163,0.035),rgba(0,0,0,0.10))]" />
 
       <div className="relative z-10 flex min-h-[74px] items-center justify-between px-3 py-1">
         <button

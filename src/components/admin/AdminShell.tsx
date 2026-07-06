@@ -24,6 +24,8 @@ const adminNavItems = [
   { href: "/admin/six-animal", label: "6 Animal" },
   { href: "/admin/backend-health", label: "Backend" },
   { href: "/admin/financial-integrity", label: "Finance" },
+  { href: "/admin/slot-launch", label: "Slot Launch" },
+  { href: "/admin/risk", label: "Risk" },
   { href: "/admin/audit-log", label: "Audit" },
   { href: "/admin/settings", label: "Settings" },
 ];

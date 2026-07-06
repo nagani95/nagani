@@ -21,6 +21,13 @@ type ProfileRow = {
   member_code: string | null;
   phone_number: string | null;
   created_at: string;
+  account_trust_status: string | null;
+  activated_at: string | null;
+  manual_review_required: boolean | null;
+  risk_level: string | null;
+  risk_score: number | string | null;
+  risk_reasons: string[] | null;
+  withdrawal_unlocked: boolean | null;
 };
 
 type WalletRow = {
@@ -72,6 +79,79 @@ function getSafePage(value: string | undefined) {
   return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
 }
 
+function getTrustLabel(value: string | null | undefined) {
+  switch (value) {
+    case "activated":
+      return "Activated";
+    case "manual_review":
+      return "Review";
+    case "restricted":
+      return "Restricted";
+    case "blocked":
+      return "Blocked";
+    case "unverified":
+    default:
+      return "Unverified";
+  }
+}
+
+function getTrustBadgeClass(value: string | null | undefined) {
+  switch (value) {
+    case "activated":
+      return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
+    case "manual_review":
+      return "border-yellow-300/25 bg-yellow-400/10 text-yellow-100";
+    case "restricted":
+      return "border-orange-300/25 bg-orange-400/10 text-orange-100";
+    case "blocked":
+      return "border-red-300/25 bg-red-400/10 text-red-100";
+    case "unverified":
+    default:
+      return "border-white/10 bg-white/[0.04] text-white/60";
+  }
+}
+
+function getRiskLabel(value: string | null | undefined) {
+  switch (value) {
+    case "watch":
+      return "Watch";
+    case "medium":
+      return "Medium";
+    case "high":
+      return "High";
+    case "blocked":
+      return "Blocked";
+    case "normal":
+    default:
+      return "Normal";
+  }
+}
+
+function getRiskBadgeClass(value: string | null | undefined) {
+  switch (value) {
+    case "watch":
+      return "border-yellow-300/25 bg-yellow-400/10 text-yellow-100";
+    case "medium":
+      return "border-orange-300/25 bg-orange-400/10 text-orange-100";
+    case "high":
+    case "blocked":
+      return "border-red-300/25 bg-red-400/10 text-red-100";
+    case "normal":
+    default:
+      return "border-emerald-300/20 bg-emerald-400/10 text-emerald-100";
+  }
+}
+
+function getWithdrawalLabel(value: boolean | null | undefined) {
+  return value ? "Yes" : "No";
+}
+
+function getWithdrawalBadgeClass(value: boolean | null | undefined) {
+  return value
+    ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-100"
+    : "border-white/10 bg-white/[0.04] text-white/50";
+}
+
 function isWinTransaction(transaction: WalletTransactionRow) {
   const text = `${transaction.transaction_type ?? ""} ${
     transaction.description ?? ""
@@ -101,7 +181,10 @@ export default async function AdminUsersPage({
     count: profileCount,
   } = await supabase
     .from("profiles")
-    .select("id, username, member_code, phone_number, created_at", { count: "exact" })
+    .select(
+  "id, username, member_code, phone_number, created_at, account_trust_status, activated_at, manual_review_required, risk_level, risk_score, risk_reasons, withdrawal_unlocked",
+  { count: "exact" },
+)
     .order("created_at", { ascending: false })
     .range(from, to)
     .returns<ProfileRow[]>();
@@ -177,6 +260,17 @@ export default async function AdminUsersPage({
   );
 
   const totalLoadedBalance = totalCashBalance + totalBonusBalance;
+  const manualReviewCount = (profiles ?? []).filter(
+  (profile) => profile.manual_review_required,
+).length;
+
+const watchRiskCount = (profiles ?? []).filter((profile) =>
+  ["watch", "medium", "high", "blocked"].includes(profile.risk_level ?? ""),
+).length;
+
+const unlockedCount = (profiles ?? []).filter(
+  (profile) => profile.withdrawal_unlocked,
+).length;
 
   const errors = [
     profilesError ? `Profiles: ${profilesError.message}` : null,
@@ -250,6 +344,35 @@ export default async function AdminUsersPage({
         </div>
       </section>
 
+      <section className="grid gap-3 md:grid-cols-3">
+  <div className="rounded-2xl border border-yellow-300/15 bg-yellow-400/10 p-4 text-center">
+    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-yellow-100/55">
+      Manual Review
+    </p>
+    <p className="mt-2 text-2xl font-black text-yellow-100">
+      {formatAmount(manualReviewCount)}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-orange-300/15 bg-orange-400/10 p-4 text-center">
+    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-100/55">
+      Risk Watch
+    </p>
+    <p className="mt-2 text-2xl font-black text-orange-100">
+      {formatAmount(watchRiskCount)}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-4 text-center">
+    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-100/55">
+      Withdrawal Unlocked
+    </p>
+    <p className="mt-2 text-2xl font-black text-emerald-100">
+      {formatAmount(unlockedCount)}
+    </p>
+  </div>
+</section>
+
       <section className="mt-4 rounded-2xl border border-amber-300/12 bg-black/35 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -274,18 +397,21 @@ export default async function AdminUsersPage({
 
 <div className="mt-4 overflow-hidden rounded-xl border border-amber-300/15 bg-[#050202] shadow-[0_0_0_1px_rgba(251,191,36,0.04)]">
   <div className="overflow-x-auto">
-    <table className="w-full min-w-[1180px] border-collapse text-sm">
-      <colgroup>
-        <col className="w-[130px]" />
-        <col className="w-[170px]" />
-        <col className="w-[135px]" />
-        <col className="w-[135px]" />
-        <col className="w-[145px]" />
-        <col className="w-[135px]" />
-        <col className="w-[135px]" />
-        <col className="w-[150px]" />
-        <col className="w-[105px]" />
-      </colgroup>
+    <table className="w-full min-w-[1560px] border-collapse text-sm">
+<colgroup>
+  <col className="w-[130px]" />
+  <col className="w-[170px]" />
+  <col className="w-[140px]" />
+  <col className="w-[130px]" />
+  <col className="w-[105px]" />
+  <col className="w-[135px]" />
+  <col className="w-[135px]" />
+  <col className="w-[145px]" />
+  <col className="w-[135px]" />
+  <col className="w-[135px]" />
+  <col className="w-[150px]" />
+  <col className="w-[105px]" />
+</colgroup>
 
       <thead>
         <tr className="bg-[#24100b] text-[10px] font-black uppercase tracking-[0.16em] text-amber-100/70">
@@ -295,6 +421,15 @@ export default async function AdminUsersPage({
           <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
             Phone
           </th>
+          <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+  Trust
+</th>
+<th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+  Risk
+</th>
+<th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
+  W/D
+</th>
           <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
             Cash
           </th>
@@ -323,7 +458,7 @@ export default async function AdminUsersPage({
         {loadedCount === 0 ? (
           <tr>
             <td
-              colSpan={9}
+              colSpan={12}
               className="px-4 py-8 text-center text-sm font-bold text-white/45"
             >
               No players found.
@@ -353,6 +488,48 @@ export default async function AdminUsersPage({
 <td className="border-r border-white/[0.05] px-4 py-3 text-left font-bold text-white/70 group-focus:text-amber-50">
   <span className="break-all">
     {profile.phone_number || profile.username || "—"}
+  </span>
+</td>
+
+<td className="border-r border-white/[0.05] px-4 py-3 text-center">
+  <span
+    className={`inline-flex min-w-[96px] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-black ${getTrustBadgeClass(
+      profile.account_trust_status,
+    )}`}
+  >
+    {getTrustLabel(profile.account_trust_status)}
+  </span>
+
+  {profile.manual_review_required ? (
+    <p className="mt-1 text-[10px] font-black text-yellow-100/75">
+      Manual
+    </p>
+  ) : null}
+</td>
+
+<td className="border-r border-white/[0.05] px-4 py-3 text-center">
+  <span
+    className={`inline-flex min-w-[86px] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-black ${getRiskBadgeClass(
+      profile.risk_level,
+    )}`}
+  >
+    {getRiskLabel(profile.risk_level)}
+  </span>
+
+  {Number(profile.risk_score ?? 0) > 0 ? (
+    <p className="mt-1 text-[10px] font-black text-white/45">
+      Score {Number(profile.risk_score ?? 0)}
+    </p>
+  ) : null}
+</td>
+
+<td className="border-r border-white/[0.05] px-4 py-3 text-center">
+  <span
+    className={`inline-flex min-w-[58px] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-black ${getWithdrawalBadgeClass(
+      profile.withdrawal_unlocked,
+    )}`}
+  >
+    {getWithdrawalLabel(profile.withdrawal_unlocked)}
   </span>
 </td>
 

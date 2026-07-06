@@ -35,6 +35,17 @@ type WalletRow = {
   balance: number | string | null;
 };
 
+type WalletRequestRiskSnapshotRow = {
+  wallet_request_id: string;
+  same_device_profile_count: number | string | null;
+  same_ip_profile_count: number | string | null;
+  same_payment_profile_count: number | string | null;
+  same_referral_cluster_count: number | string | null;
+  risk_score: number | string | null;
+  risk_level: string | null;
+  risk_reasons: string[] | null;
+};
+
 type AdminWalletRequestsPageProps = {
   searchParams?: Promise<{
     message?: string;
@@ -177,8 +188,9 @@ export default async function AdminWalletRequestsPage({
           .returns<WalletRequestRow[]>(),
   ]);
 
-  const requestRows = requestResult.data ?? [];
-  const profileIds = Array.from(
+const requestRows = requestResult.data ?? [];
+const requestIds = requestRows.map((request) => request.id);
+const profileIds = Array.from(
     new Set(requestRows.map((request) => request.profile_id))
   );
 
@@ -207,6 +219,24 @@ export default async function AdminWalletRequestsPage({
   const walletBalanceByProfileId = new Map(
     (wallets ?? []).map((wallet) => [wallet.profile_id, wallet.balance])
   );
+
+  const { data: riskSnapshots, error: riskSnapshotsError } =
+  requestIds.length > 0
+    ? await supabase
+        .from("wallet_request_risk_snapshots")
+        .select(
+          "wallet_request_id, same_device_profile_count, same_ip_profile_count, same_payment_profile_count, same_referral_cluster_count, risk_score, risk_level, risk_reasons"
+        )
+        .in("wallet_request_id", requestIds)
+        .returns<WalletRequestRiskSnapshotRow[]>()
+    : { data: [], error: null };
+
+const riskSnapshotByRequestId = new Map(
+  (riskSnapshots ?? []).map((snapshot) => [
+    snapshot.wallet_request_id,
+    snapshot,
+  ])
+);
 
   const matchedRows = searchTerm
     ? requestRows.filter((request) =>
@@ -240,17 +270,21 @@ export default async function AdminWalletRequestsPage({
       walletBalanceByProfileId.get(request.profile_id) ?? 0
     );
 
-    return {
-      ...request,
-      current_balance: Number.isFinite(currentBalance) ? currentBalance : 0,
-      profile: profileById.get(request.profile_id) ?? null,
-    };
+return {
+  ...request,
+  current_balance: Number.isFinite(currentBalance) ? currentBalance : 0,
+  profile: profileById.get(request.profile_id) ?? null,
+  risk_snapshot: riskSnapshotByRequestId.get(request.id) ?? null,
+};
   });
 
   const errors = [
     requestResult.error ? `Wallet requests: ${requestResult.error.message}` : null,
     profilesError ? `Profiles: ${profilesError.message}` : null,
     walletsError ? `Wallets: ${walletsError.message}` : null,
+    riskSnapshotsError
+  ? `Risk snapshots: ${riskSnapshotsError.message}`
+  : null,
     allCountResult.error ? `All count: ${allCountResult.error.message}` : null,
     pendingCountResult.error
       ? `Pending count: ${pendingCountResult.error.message}`

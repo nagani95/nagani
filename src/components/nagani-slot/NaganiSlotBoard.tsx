@@ -7,6 +7,8 @@ import type {
   NaganiSlotWinEvaluation,
   NaganiSlotWinTier,
 } from "@/lib/naganiSlot/types";
+const REEL_BLACKWOOD_IMAGE = "/assets/nagani/slot/ui/reel-blackwood-v1.png";
+const BOARD_CABINET_SKIN_IMAGE = "/assets/nagani/slot/ui/board-cabinet-skin-v2.png";
 
 type NaganiSlotBoardProps = {
   columns: NaganiSlotSymbol[][];
@@ -18,9 +20,14 @@ type NaganiSlotBoardProps = {
 function shouldShowSymbolLabel(_symbol: NaganiSlotSymbol) {
   return false;
 }
+
 function getSymbolGlow(symbol: NaganiSlotSymbol) {
-  if (symbol.tier === "special") {
-    return "drop-shadow-[0_0_18px_rgba(255,232,163,0.66)]";
+  if (symbol.key === "crown") {
+    return "drop-shadow-[0_0_22px_rgba(255,240,185,0.76)] drop-shadow-[0_0_14px_rgba(255,184,66,0.32)]";
+  }
+
+  if (symbol.key === "star") {
+    return "drop-shadow-[0_0_20px_rgba(255,218,121,0.72)] drop-shadow-[0_0_14px_rgba(255,42,42,0.28)]";
   }
 
   if (symbol.tier === "high") {
@@ -32,6 +39,124 @@ function getSymbolGlow(symbol: NaganiSlotSymbol) {
   }
 
   return "drop-shadow-[0_0_12px_rgba(184,104,44,0.34)]";
+}
+
+function getSymbolBoxClass(symbol: NaganiSlotSymbol) {
+  if (symbol.key === "crown") {
+    return "h-[91%] w-[112%]";
+  }
+
+  if (symbol.key === "star") {
+    return "h-[88%] w-[112%]";
+  }
+
+  if (symbol.key === "dragon") {
+    return "h-[91%] w-[118%]";
+  }
+
+  if (symbol.key === "buffalo") {
+    return "h-[86%] w-[116%]";
+  }
+
+  if (symbol.key === "harp") {
+    return "h-[86%] w-[112%]";
+  }
+
+  if (symbol.key === "bell") {
+    return "h-[88%] w-[112%]";
+  }
+
+if (symbol.key === "bagan") {
+  return "h-[90%] w-[112%]";
+}
+
+  return "h-[86%] w-[114%]";
+}
+
+function getWinningSymbolScale(symbol: NaganiSlotSymbol) {
+  if (symbol.key === "crown") return 1.1;
+  if (symbol.key === "star") return 1.1;
+  return 1.08;
+}
+
+function getSpecialSymbolAuraClass(symbol: NaganiSlotSymbol) {
+  if (symbol.key === "crown") {
+    return "h-[76%] w-[92%] bg-[radial-gradient(circle,rgba(255,240,185,0.24),rgba(255,184,66,0.12)_42%,transparent_72%)]";
+  }
+
+  if (symbol.key === "star") {
+    return "h-[74%] w-[92%] bg-[radial-gradient(circle,rgba(255,232,163,0.24),rgba(255,35,35,0.12)_42%,transparent_72%)]";
+  }
+
+  return "";
+}
+
+function getSymbolFootShadowStyle(symbol: NaganiSlotSymbol) {
+  const isPremium =
+    symbol.key === "crown" ||
+    symbol.key === "star" ||
+    symbol.key === "dragon" ||
+    symbol.tier === "high";
+
+  return {
+    width: isPremium ? "78%" : "68%",
+    height: isPremium ? "13%" : "10%",
+    opacity: isPremium ? 0.46 : 0.34,
+    background:
+      "radial-gradient(ellipse, rgba(0,0,0,0.82), rgba(0,0,0,0.38) 46%, transparent 72%)",
+    filter: "blur(5px)",
+  };
+}
+
+function getSymbolImageStyle(symbol: NaganiSlotSymbol) {
+  const baseScale = symbol.imageScale ?? 1;
+
+  const fitScale =
+    symbol.key === "dragon"
+      ? 0.94
+      : symbol.key === "star"
+        ? 0.96
+        : symbol.key === "crown"
+          ? 0.96
+          : symbol.key === "buffalo"
+            ? 0.95
+            : 1;
+
+  const yOffset =
+    symbol.key === "dragon"
+      ? "1.5%"
+: symbol.key === "bagan"
+  ? "-1%"
+        : symbol.key === "crown"
+          ? "-1%"
+          : "0%";
+
+  const brightness =
+    symbol.key === "star" || symbol.key === "crown"
+      ? "brightness(1.08) contrast(1.05) saturate(1.08)"
+      : symbol.tier === "high"
+        ? "brightness(1.05) contrast(1.04) saturate(1.04)"
+        : "brightness(1.02) contrast(1.03) saturate(1.02)";
+
+  return {
+    transform: `translateY(${yOffset}) scale(${baseScale * fitScale})`,
+    filter: `${brightness} drop-shadow(0 10px 10px rgba(0,0,0,0.52))`,
+  };
+}
+
+function getSymbolBackplateStyle(symbol: NaganiSlotSymbol) {
+  const isPremium =
+    symbol.key === "crown" ||
+    symbol.key === "star" ||
+    symbol.key === "dragon" ||
+    symbol.tier === "high";
+
+  return {
+    opacity: isPremium ? 0.2 : 0.12,
+    background: isPremium
+      ? "radial-gradient(circle, rgba(255,230,151,0.3), rgba(255,170,58,0.08) 42%, transparent 70%)"
+      : "radial-gradient(circle, rgba(255,214,122,0.18), rgba(255,170,58,0.05) 42%, transparent 72%)",
+  };
 }
 
 function getWinningSymbolSparkCount(tier?: NaganiSlotWinTier) {
@@ -128,6 +253,31 @@ function getWinTierLineStyle(tier: NaganiSlotWinTier) {
   };
 }
 
+function getReelSpinDuration(columnIndex: number, anticipating: boolean) {
+  if (anticipating) return 760;
+  return 980 + columnIndex * 92;
+}
+
+function getReelSpinFilter(anticipating: boolean) {
+  if (anticipating) {
+    return "blur(0.48px) brightness(1.2) saturate(1.14)";
+  }
+
+  return "blur(0.34px) brightness(1.08) saturate(1.08)";
+}
+
+function getReelSpinOpacity(anticipating: boolean) {
+  return anticipating ? 0.96 : 0.92;
+}
+
+function getReelStopAnimation(isLastReel: boolean) {
+  if (isLastReel) {
+    return "naganiSlotFinalReelStopBounce 520ms cubic-bezier(.13,.94,.24,1.18)";
+  }
+
+  return "naganiSlotReelStopBounce 390ms cubic-bezier(.16,.92,.32,1.18)";
+}
+
 function ReelSymbol({
   symbol,
   spinning = false,
@@ -142,6 +292,10 @@ function ReelSymbol({
   winTier?: NaganiSlotWinTier;
 }) {
   const sparkCount = getWinningSymbolSparkCount(winTier);
+  const symbolBoxClass = getSymbolBoxClass(symbol);
+  const winningScale = getWinningSymbolScale(symbol);
+  const specialAuraClass = getSpecialSymbolAuraClass(symbol);
+  const symbolImageStyle = getSymbolImageStyle(symbol);
 
   return (
     <div
@@ -209,11 +363,30 @@ function ReelSymbol({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,214,122,0.075),transparent_54%)]" />
 
 <div
-  className={`relative z-20 grid h-[88%] w-[122%] place-items-center overflow-visible ${getSymbolGlow(
+  className="pointer-events-none absolute left-1/2 top-1/2 z-[9] h-[76%] w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-md"
+  style={getSymbolBackplateStyle(symbol)}
+/>
+
+<div
+  className="pointer-events-none absolute left-1/2 bottom-[13%] z-[11] -translate-x-1/2 rounded-full"
+  style={getSymbolFootShadowStyle(symbol)}
+/>
+
+{specialAuraClass ? (
+  <div
+    className={`pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full blur-md ${specialAuraClass}`}
+    style={{
+      animation: "naganiSlotSpecialSymbolAuraBreath 1900ms ease-in-out infinite",
+    }}
+  />
+) : null}
+
+<div
+  className={`relative z-20 grid ${symbolBoxClass} place-items-center overflow-visible ${getSymbolGlow(
     symbol
   )} ${spinning ? "opacity-95" : ""} transition-transform duration-300`}
   style={{
-    transform: winning ? "scale(1.08)" : undefined,
+    transform: winning ? `scale(${winningScale})` : undefined,
   }}
 >
         {symbol.imageSrc ? (
@@ -222,9 +395,7 @@ function ReelSymbol({
               src={symbol.imageSrc}
               alt=""
               className="h-full w-full max-w-none object-contain"
-              style={{
-                transform: `scale(${symbol.imageScale ?? 1})`,
-              }}
+style={symbolImageStyle}
               draggable={false}
               onError={(event) => {
                 event.currentTarget.style.display = "none";
@@ -240,9 +411,7 @@ function ReelSymbol({
 
             <span
               className="hidden text-[clamp(44px,12vw,64px)] leading-none"
-              style={{
-                transform: `scale(${symbol.imageScale ?? 1})`,
-              }}
+style={symbolImageStyle}
             >
               {symbol.emoji}
             </span>
@@ -250,9 +419,7 @@ function ReelSymbol({
         ) : (
           <span
             className="text-[clamp(44px,12vw,64px)] leading-none"
-            style={{
-              transform: `scale(${symbol.imageScale ?? 1})`,
-            }}
+style={symbolImageStyle}
           >
             {symbol.emoji}
           </span>
@@ -288,15 +455,15 @@ winTier,
   return (
     <div
       className="relative h-full overflow-hidden"
-      style={
-        reelJustStopped
-          ? {
-              animation: isLastReel
-                ? "naganiSlotFinalReelStopBounce 460ms cubic-bezier(.15,.92,.28,1.34)"
-                : "naganiSlotReelStopBounce 360ms cubic-bezier(.17,.89,.32,1.28)",
-            }
-          : undefined
+style={
+  reelJustStopped
+    ? {
+        animation: getReelStopAnimation(isLastReel),
+        transformOrigin: "50% 50%",
+        willChange: "transform, filter",
       }
+    : undefined
+}
     >
       {reelJustStopped ? (
         <>
@@ -362,19 +529,20 @@ function SpinningReel({
   spinStrip: NaganiSlotSymbol[];
   anticipating: boolean;
 }) {
+  const spinDuration = getReelSpinDuration(columnIndex, anticipating);
+
   return (
     <>
       <div
         className="absolute inset-x-0 top-0 will-change-transform"
-        style={{
-          height: `${(spinStrip.length / 3) * 100}%`,
-          animation: `naganiSlotReelScroll ${
-            anticipating ? 860 : 1120 + columnIndex * 60
-          }ms linear infinite`,
-filter: anticipating
-  ? "blur(0.42px) brightness(1.14)"
-  : "blur(0.28px) brightness(1.04)",
-        }}
+style={{
+  height: `${(spinStrip.length / 3) * 100}%`,
+  animation: `naganiSlotReelScroll ${spinDuration}ms linear -${
+    columnIndex * 115
+  }ms infinite`,
+  filter: getReelSpinFilter(anticipating),
+  opacity: getReelSpinOpacity(anticipating),
+}}
       >
         {spinStrip.map((symbol, stripIndex) => (
           <div
@@ -387,6 +555,22 @@ filter: anticipating
           </div>
         ))}
       </div>
+
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 z-30 h-[32%] bg-[linear-gradient(180deg,rgba(255,232,163,0.12),transparent)]"
+        style={{
+          animation: "naganiSlotReelMotionVeil 520ms ease-in-out infinite",
+        }}
+      />
+
+      <div
+        className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[34%] -translate-x-1/2 bg-[linear-gradient(180deg,transparent,rgba(255,240,185,0.085),transparent)]"
+        style={{
+          animation: `naganiSlotReelSpeedLines ${
+            anticipating ? 420 : 560
+          }ms linear infinite`,
+        }}
+      />
 
       {anticipating ? (
         <>
@@ -455,40 +639,102 @@ const isIdleReady = !spinning && !winEvaluation;
             transform: translate3d(0, 0%, 0);
           }
         }
+          
+        @keyframes naganiSlotReelMotionVeil {
+  0%, 100% {
+    opacity: 0.12;
+    transform: translateY(-8%);
+  }
+  50% {
+    opacity: 0.32;
+    transform: translateY(8%);
+  }
+}
 
-        @keyframes naganiSlotReelStopBounce {
-          0% {
-            transform: translateY(-20px) scaleY(1.035);
-            filter: brightness(1.22);
-          }
-          58% {
-            transform: translateY(7px) scaleY(0.985);
-            filter: brightness(1.06);
-          }
-          100% {
-            transform: translateY(0) scaleY(1);
+@keyframes naganiSlotReelSpeedLines {
+  0% {
+    opacity: 0.1;
+    transform: translate(-50%, -22%);
+  }
+  42% {
+    opacity: 0.28;
+  }
+  100% {
+    opacity: 0.08;
+    transform: translate(-50%, 22%);
+  }
+}
+
+@keyframes naganiSlotSpinVignetteBreath {
+  0%, 100% {
+    opacity: 0.34;
+  }
+  50% {
+    opacity: 0.58;
+  }
+}
+
+@keyframes naganiSlotSpinPressureRing {
+  0%, 100% {
+    opacity: 0.16;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  50% {
+    opacity: 0.38;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+        @keyframes naganiSlotSpecialSymbolAuraBreath {
+          0%, 100% {
+            opacity: 0.52;
+            transform: translate(-50%, -50%) scale(0.94);
             filter: brightness(1);
+          }
+          50% {
+            opacity: 0.92;
+            transform: translate(-50%, -50%) scale(1.04);
+            filter: brightness(1.16);
           }
         }
 
-                @keyframes naganiSlotFinalReelStopBounce {
-          0% {
-            transform: translateY(-28px) scaleY(1.055);
-            filter: brightness(1.36);
-          }
-          45% {
-            transform: translateY(10px) scaleY(0.975);
-            filter: brightness(1.14);
-          }
-          72% {
-            transform: translateY(-3px) scaleY(1.012);
-            filter: brightness(1.08);
-          }
-          100% {
-            transform: translateY(0) scaleY(1);
-            filter: brightness(1);
-          }
-        }
+@keyframes naganiSlotReelStopBounce {
+  0% {
+    transform: translateY(-22px) scaleY(1.04);
+    filter: blur(0.6px) brightness(1.26);
+  }
+  48% {
+    transform: translateY(8px) scaleY(0.984);
+    filter: blur(0.2px) brightness(1.1);
+  }
+  74% {
+    transform: translateY(-2px) scaleY(1.006);
+    filter: brightness(1.05);
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes naganiSlotFinalReelStopBounce {
+  0% {
+    transform: translateY(-30px) scaleY(1.06);
+    filter: blur(0.7px) brightness(1.42);
+  }
+  42% {
+    transform: translateY(11px) scaleY(0.972);
+    filter: blur(0.25px) brightness(1.18);
+  }
+  68% {
+    transform: translateY(-4px) scaleY(1.014);
+    filter: brightness(1.1);
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    filter: brightness(1);
+  }
+}
 
         @keyframes naganiSlotReelStopGoldFlash {
           0% {
@@ -942,9 +1188,7 @@ const isIdleReady = !spinning && !winEvaluation;
           }
         }
       `}</style>
-
-      <div className="pointer-events-none absolute inset-x-6 -top-2 z-[2] h-12 rounded-t-[34px] border-t border-[#fff0b9]/28 bg-[linear-gradient(180deg,rgba(255,232,163,0.16),rgba(120,24,10,0.14),transparent)]" />
-      <div className="pointer-events-none absolute left-1/2 -top-1 z-[3] h-7 w-[58%] -translate-x-1/2 rounded-full bg-[#ffd979]/16 blur-xl" />
+      
       <div className="pointer-events-none absolute -inset-x-4 top-12 z-[1] h-[74%] rounded-[34px] bg-[#ffd979]/16 blur-2xl" />
       <div
         className="pointer-events-none absolute left-1/2 -bottom-6 z-[1] h-16 w-[78%] -translate-x-1/2 rounded-full bg-[#ffd979]/14 blur-2xl"
@@ -952,8 +1196,19 @@ const isIdleReady = !spinning && !winEvaluation;
           animation: "naganiSlotBoardBaseHeat 2600ms ease-in-out infinite",
         }}
       />
-      <div className="pointer-events-none absolute inset-y-8 -left-1 z-[2] w-px bg-gradient-to-b from-transparent via-[#ffd979]/24 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-8 -right-1 z-[2] w-px bg-gradient-to-b from-transparent via-[#ffd979]/24 to-transparent" />
+
+<img
+  src={BOARD_CABINET_SKIN_IMAGE}
+  alt=""
+  className="pointer-events-none absolute inset-0 z-[8] h-full w-full object-fill"
+  style={{
+    transform: "scale(1.01)",
+    transformOrigin: "center center",
+    filter:
+      "drop-shadow(0 10px 22px rgba(0,0,0,0.74)) drop-shadow(0 0 10px rgba(255,190,74,0.14))",
+  }}
+  draggable={false}
+/>
 
 <div
     className={`relative z-10 h-full min-h-0 w-full overflow-hidden rounded-[24px] border bg-[#050000] shadow-[0_24px_66px_rgba(0,0,0,0.88),0_0_30px_rgba(255,190,74,0.075),inset_0_0_44px_rgba(0,0,0,0.94)] ${
@@ -1011,14 +1266,30 @@ style={
   />
 ) : null}
 
-        {spinning ? (
-          <div
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,218,121,0.22),transparent_52%)]"
-            style={{
-              animation: "naganiSlotBoardSpinGlow 620ms ease-in-out infinite",
-            }}
-          />
-        ) : null}
+{spinning ? (
+  <>
+    <div
+      className="pointer-events-none absolute inset-0 z-[18] bg-[radial-gradient(circle_at_50%_42%,rgba(255,218,121,0.22),transparent_52%)]"
+      style={{
+        animation: "naganiSlotBoardSpinGlow 620ms ease-in-out infinite",
+      }}
+    />
+
+    <div
+      className="pointer-events-none absolute inset-0 z-[19] bg-[linear-gradient(180deg,rgba(0,0,0,0.28),transparent_24%,transparent_76%,rgba(0,0,0,0.36))]"
+      style={{
+        animation: "naganiSlotSpinVignetteBreath 840ms ease-in-out infinite",
+      }}
+    />
+
+    <div
+      className="pointer-events-none absolute left-1/2 top-1/2 z-[19] h-[82%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] border border-[#ffd979]/16"
+      style={{
+        animation: "naganiSlotSpinPressureRing 760ms ease-in-out infinite",
+      }}
+    />
+  </>
+) : null}
 
         {hasWin ? (
           <>
@@ -1116,24 +1387,31 @@ const spinStrip = getReelSpinStrip(columnIndex);
 const reelIsIdle = isIdleReady;
 
               return (
-                <div
-                  key={`nagani-slot-reel-${columnIndex}`}
-                  className={`relative min-w-0 overflow-hidden rounded-[14px] border bg-[linear-gradient(180deg,rgba(92,22,10,0.42),rgba(5,0,0,0.96)_14%,rgba(5,0,0,0.96)_86%,rgba(92,22,10,0.36))] shadow-[inset_0_0_20px_rgba(0,0,0,0.86),0_7px_15px_rgba(0,0,0,0.44)] ${
-  reelIsAnticipating
-    ? "border-[#fff0b9]/72"
-    : reelJustStopped
-      ? "border-[#ffe08a]/66"
-      : "border-[#8e5a1d]/48"
-}`}
-                >
+<div
+  key={`nagani-slot-reel-${columnIndex}`}
+  className={`relative min-w-0 overflow-hidden rounded-[14px] border bg-[#030000] shadow-[inset_0_0_20px_rgba(0,0,0,0.86),0_7px_15px_rgba(0,0,0,0.44)] ${
+    reelIsAnticipating
+      ? "border-[#fff0b9]/72"
+      : reelJustStopped
+        ? "border-[#ffe08a]/66"
+        : "border-[#8e5a1d]/48"
+  }`}
+  style={{
+    backgroundImage: `linear-gradient(180deg,rgba(255,217,121,0.055),transparent 14%,transparent 86%,rgba(255,217,121,0.045)), url(${REEL_BLACKWOOD_IMAGE})`,
+    backgroundPosition: "center, center",
+    backgroundRepeat: "no-repeat, no-repeat",
+    backgroundSize: "100% 100%, 100% 100%",
+  }}
+>
                   <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,217,121,0.07),transparent_14%,transparent_86%,rgba(255,217,121,0.055))]" />
                   {reelIsIdle ? (
   <div
     className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[34%] bg-[linear-gradient(180deg,transparent,rgba(255,232,163,0.11),transparent)]"
-    style={{
-      animation: "naganiSlotIdleReelSheen 3600ms ease-in-out infinite",
-      animationDelay: `${columnIndex * 260}ms`,
-    }}
+style={{
+  animation: `naganiSlotIdleReelSheen 3600ms ease-in-out ${
+    columnIndex * 260
+  }ms infinite`,
+}}
   />
 ) : null}
 
@@ -1186,6 +1464,7 @@ const reelIsIdle = isIdleReady;
           <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-40 h-px bg-gradient-to-r from-transparent via-[#ffd979]/22 to-transparent" />
           <div className="pointer-events-none absolute inset-0 z-40 rounded-[16px] shadow-[inset_0_0_30px_rgba(255,210,105,0.08)]" />
         </div>
+
       </div>
     </section>
   );

@@ -20,6 +20,16 @@ export type AdminWalletRequestStatusFilter =
 
 export type AdminWalletRequestType = "deposit" | "withdraw";
 export type AdminWalletRequestTypeFilter = AdminWalletRequestType | "all";
+export type AdminWalletRequestRiskSnapshot = {
+  wallet_request_id: string;
+  same_device_profile_count: number | string | null;
+  same_ip_profile_count: number | string | null;
+  same_payment_profile_count: number | string | null;
+  same_referral_cluster_count: number | string | null;
+  risk_score: number | string | null;
+  risk_level: string | null;
+  risk_reasons: string[] | null;
+};
 
 export type AdminWalletRequestItem = {
   id: string;
@@ -37,6 +47,7 @@ export type AdminWalletRequestItem = {
   payment_provider_name: string | null;
   payment_account_name: string | null;
   payment_account_number: string | null;
+  risk_snapshot: AdminWalletRequestRiskSnapshot | null;
   profile: {
     username: string | null;
     member_code: string | null;
@@ -142,6 +153,76 @@ function getStatusClass(status: AdminWalletRequestStatus) {
   }
 
   return "border-amber-300/25 bg-amber-300/10 text-amber-100";
+}
+
+function getRiskLabel(value: string | null | undefined) {
+  if (value === "watch") return "Watch";
+  if (value === "medium") return "Medium";
+  if (value === "high") return "High";
+  if (value === "blocked") return "Blocked";
+
+  return "Normal";
+}
+
+function getRiskClass(value: string | null | undefined) {
+  if (value === "high" || value === "blocked") {
+    return "border-red-300/30 bg-red-500/12 text-red-100";
+  }
+
+  if (value === "medium") {
+    return "border-orange-300/30 bg-orange-400/12 text-orange-100";
+  }
+
+  if (value === "watch") {
+    return "border-yellow-300/30 bg-yellow-400/12 text-yellow-100";
+  }
+
+  return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
+}
+
+function RiskBadge({
+  level,
+  score,
+}: {
+  level: string | null | undefined;
+  score: number | string | null | undefined;
+}) {
+  return (
+    <span
+      className={cx(
+        "inline-flex rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em]",
+        getRiskClass(level)
+      )}
+    >
+      {getRiskLabel(level)}
+      {Number(score ?? 0) > 0 ? ` ${Number(score ?? 0)}` : ""}
+    </span>
+  );
+}
+
+function RequestRiskCell({ request }: { request: AdminWalletRequestItem }) {
+  const snapshot = request.risk_snapshot;
+
+  if (!snapshot) {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <RiskBadge level="normal" score={0} />
+        <p className="text-[10px] font-bold text-white/30">No snapshot</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-w-[150px] flex-col items-start gap-1">
+      <RiskBadge level={snapshot.risk_level} score={snapshot.risk_score} />
+
+      <p className="text-[10px] font-black leading-4 text-white/48">
+        Device {Number(snapshot.same_device_profile_count ?? 0)} · IP{" "}
+        {Number(snapshot.same_ip_profile_count ?? 0)} · Pay{" "}
+        {Number(snapshot.same_payment_profile_count ?? 0)}
+      </p>
+    </div>
+  );
 }
 
 function getTypeClass(type: AdminWalletRequestType) {
@@ -500,12 +581,13 @@ export default function AdminWalletRequestQueue({
 
         <div className="overflow-hidden rounded-xl border border-amber-300/15 bg-[#050202]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1580px] border-collapse text-sm">
+            <table className="w-full min-w-[1740px] border-collapse text-sm">
 <colgroup>
   <col className="w-[135px]" />
   <col className="w-[135px]" />
   <col className="w-[150px]" />
   <col className="w-[110px]" />
+  <col className="w-[170px]" />
   <col className="w-[145px]" />
   <col className="w-[145px]" />
   <col className="w-[155px]" />
@@ -529,6 +611,9 @@ export default function AdminWalletRequestQueue({
                   <th className="border-b border-r border-amber-300/15 px-4 py-4 text-center">
                     Type
                   </th>
+                  <th className="border-b border-r border-amber-300/15 px-4 py-4 text-left">
+  Risk
+</th>
 <th className="border-b border-r border-amber-300/15 px-4 py-4 text-right">
   Request
 </th>
@@ -557,7 +642,7 @@ export default function AdminWalletRequestQueue({
                 {requests.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={11}
+                      colSpan={12}
                       className="px-4 py-8 text-center text-sm font-bold text-white/45"
                     >
                       No wallet requests match this view.
@@ -628,6 +713,9 @@ const isInsufficientWithdraw =
                       <td className="border-r border-white/[0.05] px-4 py-3 text-center">
                         <TypeBadge type={request.request_type} />
                       </td>
+                      <td className="border-r border-white/[0.05] px-4 py-3 text-left">
+  <RequestRiskCell request={request} />
+</td>
 
 <td
   className={cx(

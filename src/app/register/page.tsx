@@ -71,11 +71,11 @@ const loginHref = referralCode
                 </h2>
               </div>
 
-              {errorMessage ? (
-                <div className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
-                  အကောင့်ဖွင့်မှု မအောင်မြင်ပါ။ အချက်အလက်များကို ပြန်စစ်ပါ။
-                </div>
-              ) : null}
+{errorMessage ? (
+  <div className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-bold leading-6 text-red-100">
+    {errorMessage}
+  </div>
+) : null}
 
               {successMessage ? (
                 <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-100">

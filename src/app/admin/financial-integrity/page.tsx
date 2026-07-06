@@ -24,6 +24,15 @@ type FinancialIntegrityRow = {
   latest_timeline: unknown;
 };
 
+type LossbackPreviewSummaryRow = {
+  target_date: string | null;
+  eligible_player_count: number | string | null;
+  total_cash_bet: number | string | null;
+  total_cash_payout: number | string | null;
+  total_eligible_net_loss: number | string | null;
+  total_preview_lossback_amount: number | string | null;
+};
+
 type JsonRecord = Record<string, unknown>;
 
 function toNumber(value: unknown) {
@@ -78,6 +87,10 @@ function formatTime(value: string | null) {
   }).format(new Date(value));
 }
 
+function toUtcDateInput(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
 function getStatusTone(status: "healthy" | "watch" | "danger") {
   if (status === "healthy") {
     return "border-emerald-400/20 bg-emerald-400/10 text-emerald-100";
@@ -122,12 +135,130 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+function LossbackSummaryCard({
+  title,
+  description,
+  summary,
+  errorMessage,
+}: {
+  title: string;
+  description: string;
+  summary: LossbackPreviewSummaryRow | null;
+  errorMessage?: string | null;
+}) {
+  return (
+    <article className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-100/55">
+            Lossback 2% Preview
+          </p>
+          <h2 className="mt-1 text-xl font-black text-amber-100">{title}</h2>
+        </div>
+
+        <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+          Preview Only
+        </span>
+      </div>
+
+      <p className="mt-2 text-xs font-semibold leading-5 text-white/45">
+        {description}
+      </p>
+
+      {errorMessage ? (
+        <p className="mt-3 rounded-xl border border-red-400/25 bg-red-950/25 p-3 text-xs font-bold text-red-100/80">
+          {errorMessage}
+        </p>
+      ) : null}
+
+      <p className="mt-4 text-[11px] font-black uppercase tracking-[0.2em] text-white/35">
+        Preview Bonus Amount
+      </p>
+      <p className="mt-1 text-3xl font-black text-amber-100">
+        {formatAmount(summary?.total_preview_lossback_amount)}
+      </p>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+            UTC Date
+          </p>
+          <p className="mt-1 text-sm font-black text-white/70">
+            {summary?.target_date ?? "No date"}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+            Eligible Players
+          </p>
+          <p className="mt-1 text-sm font-black text-white/70">
+            {toNumber(summary?.eligible_player_count)}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+            Cash Bet
+          </p>
+          <p className="mt-1 text-sm font-black text-white/70">
+            {formatAmount(summary?.total_cash_bet)}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+            Cash Payout
+          </p>
+          <p className="mt-1 text-sm font-black text-white/70">
+            {formatAmount(summary?.total_cash_payout)}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-black/25 p-3 sm:col-span-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+            Eligible Net Loss
+          </p>
+          <p className="mt-1 text-sm font-black text-white/70">
+            {formatAmount(summary?.total_eligible_net_loss)}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default async function AdminFinancialIntegrityPage() {
   const supabase = await createClient();
+
+  const nowUtc = new Date();
+  const todayUtcDate = toUtcDateInput(nowUtc);
+  const yesterdayUtcDate = toUtcDateInput(
+    new Date(
+      Date.UTC(
+        nowUtc.getUTCFullYear(),
+        nowUtc.getUTCMonth(),
+        nowUtc.getUTCDate() - 1
+      )
+    )
+  );
 
   const { data: integrity, error } = await supabase
     .rpc("get_six_animal_financial_integrity")
     .maybeSingle<FinancialIntegrityRow>();
+
+  const { data: lossbackYesterday, error: lossbackYesterdayError } =
+    await supabase
+      .rpc("preview_lossback_2_percent_summary", {
+        p_target_date: yesterdayUtcDate,
+      })
+      .maybeSingle<LossbackPreviewSummaryRow>();
+
+  const { data: lossbackToday, error: lossbackTodayError } = await supabase
+    .rpc("preview_lossback_2_percent_summary", {
+      p_target_date: todayUtcDate,
+    })
+    .maybeSingle<LossbackPreviewSummaryRow>();
 
   const warnings = buildWarnings(integrity);
   const isHealthy = !error && warnings.length === 0;
@@ -182,6 +313,22 @@ export default async function AdminFinancialIntegrityPage() {
           </div>
         </section>
       ) : null}
+
+            <section className="mt-4 grid gap-4 xl:grid-cols-2">
+        <LossbackSummaryCard
+          title="Yesterday UTC"
+          description="Official preview target for daily lossback. Pure real-cash losses only. No bonus-funded play, mixed bonus play, or free spins."
+          summary={lossbackYesterday}
+          errorMessage={lossbackYesterdayError?.message ?? null}
+        />
+
+        <LossbackSummaryCard
+          title="Today UTC Smoke Check"
+          description="Operator check for today's current eligible play. This helps verify tests before tomorrow's official preview."
+          summary={lossbackToday}
+          errorMessage={lossbackTodayError?.message ?? null}
+        />
+      </section>
 
       <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div

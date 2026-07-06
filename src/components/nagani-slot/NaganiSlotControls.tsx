@@ -7,6 +7,9 @@ type NaganiSlotControlsProps = {
   betAmount: number;
   balance: number;
   gameState: NaganiSlotGameState;
+  hasActiveFreeSpins?: boolean;
+  activeFreeSpinsRemaining?: number;
+  activeFreeSpinsAwarded?: number;
   balancePulse?: boolean;
   lastWinAmount?: number;
   balanceTargetRef?: RefObject<HTMLDivElement | null>;
@@ -19,28 +22,43 @@ type NaganiSlotControlsProps = {
 
 const QUICK_BETS = [
   { amount: 1000, label: "1K" },
-  { amount: 3000, label: "3K" },
+  { amount: 2000, label: "2K" },
   { amount: 5000, label: "5K" },
   { amount: 10000, label: "10K" },
 ];
 
 const MIN_BET = 1000;
-const MAX_BET = 50000;
+const MAX_BET = 10000;
 const BET_STEP = 1000;
+const VALUE_CARD_SKIN_IMAGE = "/assets/nagani/slot/ui/value-card-skin-v1.png";
+const CHIP_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/chip-button-skin-v1.png";
+const AUTO_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/auto-v1.png";
+const MAX_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/max-v1.png";
+const SPIN_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/start-v1.png";
+const REDUCE_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/reduce-v1.png";
+const ADD_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/add-v1.png";
+const BOTTOM_DOCK_SKIN_IMAGE = "/assets/nagani/slot/ui/bottom-dock-blackwood-v1.png";
+const VALUE_LABEL_SKIN_IMAGE = "/assets/nagani/slot/ui/value-card-redwood-v1.png";
 
 const CUSTOM_BET_OPTIONS = [
   1000, 2000, 3000, 4000, 5000,
   6000, 7000, 8000, 9000, 10000,
-  15000, 20000, 30000, 40000, 50000,
 ];
 
 function formatMMK(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function getSpinButtonText(gameState: NaganiSlotGameState) {
+function getSpinButtonText({
+  gameState,
+  hasActiveFreeSpins,
+}: {
+  gameState: NaganiSlotGameState;
+  hasActiveFreeSpins: boolean;
+}) {
   if (gameState === "spinning") return "လှည့်နေသည်";
   if (gameState === "settling") return "ဆုစုနေသည်";
+  if (hasActiveFreeSpins) return "အခမဲ့ လှည့်မည်";
   if (gameState === "result") return "ထပ်လှည့်မည်";
   return "လှည့်မည်";
 }
@@ -49,6 +67,9 @@ export default function NaganiSlotControls({
   betAmount,
   balance,
   gameState,
+  hasActiveFreeSpins = false,
+  activeFreeSpinsRemaining = 0,
+  activeFreeSpinsAwarded = 0,
   balancePulse = false,
   lastWinAmount = 0,
   balanceTargetRef,
@@ -76,22 +97,35 @@ const [betPickerOpen, setBetPickerOpen] = useState(false);
       ? Math.floor(Math.min(balance, MAX_BET) / BET_STEP) * BET_STEP
       : MIN_BET;
 
-  const canDecreaseBet = !controlsLocked && betAmount > MIN_BET;
-  const canIncreaseBet =
-    !controlsLocked &&
-    balance >= MIN_BET &&
-    betAmount + BET_STEP <= playableMaxBet;
-  const canUseMaxBet = !controlsLocked && balance >= MIN_BET;
-  const canSpin =
-    readyToSpin &&
-    !controlsLocked &&
-    betAmount >= MIN_BET &&
-    balance >= betAmount;
+const betControlsLocked = controlsLocked || hasActiveFreeSpins;
+
+const canDecreaseBet = !betControlsLocked && betAmount > MIN_BET;
+const canIncreaseBet =
+  !betControlsLocked &&
+  balance >= MIN_BET &&
+  betAmount + BET_STEP <= playableMaxBet;
+const canUseMaxBet = !betControlsLocked && balance >= MIN_BET;
+const canSpin =
+  readyToSpin &&
+  !controlsLocked &&
+  (hasActiveFreeSpins || (betAmount >= MIN_BET && balance >= betAmount));
 
   const quickPresetActive = QUICK_BETS.some(
     (chip) => chip.amount === betAmount
   );
-  const betPlaqueLabel = quickPresetActive ? "လောင်းကြေး" : "စိတ်ကြိုက်";
+
+    const freeSpinTotal = Math.max(
+    activeFreeSpinsAwarded,
+    activeFreeSpinsRemaining
+  );
+
+  const freeSpinValue = activeFreeSpinsRemaining * betAmount;
+
+  const betPlaqueLabel = hasActiveFreeSpins
+    ? "အခမဲ့လှည့်ခွင့်"
+    : quickPresetActive
+      ? "လောင်းကြေး"
+      : "စိတ်ကြိုက်";
 
   return (
     <section className="relative z-30 mx-auto mt-5 w-[calc(100%-10px)] max-w-[420px]">
@@ -286,19 +320,32 @@ const [betPickerOpen, setBetPickerOpen] = useState(false);
       `}</style>
 
       <div className="absolute inset-x-6 -top-[25px] z-40 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          disabled={controlsLocked}
-          onClick={() => setBetPickerOpen(true)}
-          className="relative h-[46px] overflow-visible rounded-[19px] border border-[#ffd979]/60 bg-[radial-gradient(circle_at_50%_0%,rgba(255,232,163,0.25),rgba(70,10,5,0.98)_48%,rgba(9,0,0,0.98))] px-3 text-center shadow-[0_10px_20px_rgba(0,0,0,0.6),0_0_20px_rgba(255,190,74,0.13),inset_0_1px_0_rgba(255,240,185,0.25)] transition-transform active:scale-[0.97] disabled:opacity-[0.72]"
-          aria-label="Choose bet amount"
-        >
-          <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/76 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-[#b97823]/48 to-transparent" />
+<button
+  type="button"
+  disabled={betControlsLocked}
+  onClick={() => setBetPickerOpen(true)}
+  className="relative h-[46px] overflow-visible bg-transparent px-3 text-center transition-transform active:scale-[0.97] disabled:opacity-[0.72]"
+  aria-label="Choose bet amount"
+>
+  <img
+    src={VALUE_CARD_SKIN_IMAGE}
+    alt=""
+    className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[56px] w-[calc(100%+12px)] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_10px_18px_rgba(0,0,0,0.58)]"
+    draggable={false}
+  />
 
-<div className="pointer-events-none absolute left-1/2 top-[-13px] z-10 min-w-[88px] -translate-x-1/2 rounded-full border border-[#ffd979]/54 bg-[linear-gradient(180deg,#84200f,#2b0201)] px-3.5 py-[4px] text-center shadow-[0_5px_10px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,232,163,0.2)]">
+  <div className="relative z-10 flex h-full items-center justify-center">
+
+<div className="pointer-events-none absolute left-1/2 top-[-14px] z-10 h-[24px] min-w-[92px] -translate-x-1/2 px-4 text-center">
+  <img
+    src={VALUE_LABEL_SKIN_IMAGE}
+    alt=""
+    className="absolute left-1/2 top-1/2 z-0 h-[30px] w-full -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_5px_10px_rgba(0,0,0,0.58)]"
+    draggable={false}
+  />
+
   <p
-    className={`whitespace-nowrap text-[11px] font-black leading-none tracking-[0.02em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
+    className={`relative z-10 whitespace-nowrap pt-[6px] text-[11px] font-black leading-none tracking-[0.02em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
       quickPresetActive ? "text-[#ffd979]/92" : "text-[#fff0b9]"
     }`}
   >
@@ -306,34 +353,65 @@ const [betPickerOpen, setBetPickerOpen] = useState(false);
   </p>
 </div>
 
-          <div className="relative flex h-full items-center justify-center">
-            <p className="text-[18px] font-black leading-none text-[#fff1bd] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]">
-              {formatMMK(betAmount)}
-            </p>
-          </div>
+<div className="relative flex h-full items-center justify-center">
+  {hasActiveFreeSpins ? (
+    <div className="text-center">
+      <p className="text-[18px] font-black leading-none text-[#fff4c7] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]">
+        {formatMMK(freeSpinValue)}
+      </p>
+      <p className="mt-1 text-[9px] font-black leading-none text-[#ffd979]/82 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+        ကျန် {activeFreeSpinsRemaining}/
+        {freeSpinTotal || activeFreeSpinsRemaining}
+      </p>
+    </div>
+  ) : (
+    <p className="text-[18px] font-black leading-none text-[#fff1bd] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]">
+      {formatMMK(betAmount)}
+    </p>
+  )}
+</div>
 
-<span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#ffd979]/78 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
-  ▼
-</span>
-        </button>
+{hasActiveFreeSpins ? (
+  <span className="pointer-events-none absolute inset-x-5 bottom-1 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/50 to-transparent" />
+) : (
+  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#ffd979]/78 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+    ▼
+  </span>
+)}
 
-        <div
-          ref={balanceTargetRef}
-          className="relative h-[46px] overflow-visible rounded-[19px] border border-[#ffd979]/64 bg-[radial-gradient(circle_at_50%_0%,rgba(255,232,163,0.27),rgba(58,8,4,0.98)_48%,rgba(7,0,0,0.98))] px-3 text-center shadow-[0_10px_20px_rgba(0,0,0,0.6),0_0_20px_rgba(255,190,74,0.15),inset_0_1px_0_rgba(255,240,185,0.25)]"
-          style={{
-            animation: balancePulse
-              ? "naganiSlotDockBalanceCatch 620ms ease-out both"
-              : gameState === "settling" || gameState === "result"
-                ? "naganiSlotDockBalanceGlow 1050ms ease-in-out infinite"
-                : undefined,
-          }}
-        >
-          <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/76 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-[#b97823]/48 to-transparent" />
+  </div>
+</button>
 
-<div className="absolute left-1/2 top-[-13px] z-10 min-w-[96px] -translate-x-1/2 rounded-full border border-[#ffd979]/54 bg-[linear-gradient(180deg,#84200f,#2b0201)] px-3.5 py-[4px] text-center shadow-[0_5px_10px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,232,163,0.2)]">
+<div
+  ref={balanceTargetRef}
+  className="relative h-[46px] overflow-visible bg-transparent px-3 text-center"
+  style={{
+    animation: balancePulse
+      ? "naganiSlotDockBalanceCatch 620ms ease-out both"
+      : gameState === "settling" || gameState === "result"
+        ? "naganiSlotDockBalanceGlow 1050ms ease-in-out infinite"
+        : undefined,
+  }}
+>
+  <img
+    src={VALUE_CARD_SKIN_IMAGE}
+    alt=""
+    className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[56px] w-[calc(100%+12px)] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_10px_18px_rgba(0,0,0,0.58)]"
+    draggable={false}
+  />
+
+  <div className="relative z-10 flex h-full items-center justify-center">
+
+<div className="absolute left-1/2 top-[-14px] z-10 h-[24px] min-w-[102px] -translate-x-1/2 px-4 text-center">
+  <img
+    src={VALUE_LABEL_SKIN_IMAGE}
+    alt=""
+    className="absolute left-1/2 top-1/2 z-0 h-[30px] w-full -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_5px_10px_rgba(0,0,0,0.58)]"
+    draggable={false}
+  />
+
   <p
-    className={`whitespace-nowrap text-[11px] font-black leading-none tracking-[0.02em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
+    className={`relative z-10 whitespace-nowrap pt-[6px] text-[11px] font-black leading-none tracking-[0.02em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
       showWinCatch ? "text-[#fff0b9]" : "text-[#ffd979]/92"
     }`}
   >
@@ -361,25 +439,28 @@ const [betPickerOpen, setBetPickerOpen] = useState(false);
   />
 ) : null}
 
-<div className="relative flex h-full items-center justify-center">
-  <p
-    className="text-[18px] font-black leading-none text-[#fff1bd] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]"
-    style={{
-      animation: showWinCatch
-        ? "naganiSlotDockBalanceNumberPop 620ms ease-out both"
-        : undefined,
-    }}
-  >
-    {formatMMK(balance)}
-  </p>
+<p
+  className="text-[18px] font-black leading-none text-[#fff1bd] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]"
+  style={{
+    animation: showWinCatch
+      ? "naganiSlotDockBalanceNumberPop 620ms ease-out both"
+      : undefined,
+  }}
+>
+  {formatMMK(balance)}
+</p>
+
+  </div>
 </div>
-        </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-[28px] border border-[#ffd979]/52 bg-[linear-gradient(180deg,#74190c_0%,#390604_48%,#100000_100%)] px-3 pb-3 pt-[30px] shadow-[0_22px_54px_rgba(0,0,0,0.84),inset_0_1px_0_rgba(255,238,178,0.28),inset_0_-20px_34px_rgba(0,0,0,0.52)]">
-        <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-[radial-gradient(circle_at_50%_0%,rgba(255,227,146,0.16),transparent_34%),radial-gradient(circle_at_50%_100%,rgba(255,190,74,0.07),transparent_38%)]" />
-        <div className="pointer-events-none absolute inset-x-4 top-1 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/72 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-[#b97823]/72 to-transparent" />
+      <div className="relative overflow-visible px-3 pb-3 pt-[30px]">
+        <img
+          src={BOTTOM_DOCK_SKIN_IMAGE}
+          alt=""
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full object-fill drop-shadow-[0_22px_42px_rgba(0,0,0,0.78)]"
+          draggable={false}
+        />
 
         <div
           className="pointer-events-none absolute left-1/2 top-0 h-11 w-[74%] rounded-full bg-[#ffd979]/12 blur-2xl"
@@ -397,138 +478,172 @@ const [betPickerOpen, setBetPickerOpen] = useState(false);
           }}
         />
 
-        <div className="relative rounded-[22px] border border-[#b67322]/66 bg-[linear-gradient(180deg,rgba(8,0,0,0.72),rgba(38,4,2,0.76),rgba(5,0,0,0.8))] px-2 py-2 shadow-[inset_0_0_20px_rgba(0,0,0,0.88),0_7px_14px_rgba(0,0,0,0.3)]">
-          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd979]/52 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-[#8f551a]/52 to-transparent" />
+        <div className="relative z-10 px-2 py-1.5">
 
           <div className="grid grid-cols-4 gap-1.5">
 {QUICK_BETS.map((chip) => {
 const selected = betAmount === chip.amount;
-const chipDisabled = controlsLocked || chip.amount > playableMaxBet;
+const chipDisabled = betControlsLocked || chip.amount > playableMaxBet;
 
               return (
-                <button
-                  key={chip.amount}
-                  type="button"
-                  disabled={chipDisabled}
-                  aria-pressed={selected}
-                  onClick={() => onSelectBetAmount(chip.amount)}
-                  className={`relative h-[38px] overflow-hidden rounded-full border font-black transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.62] ${
-                    selected
-                      ? "border-[#ffe08a]/78 bg-[radial-gradient(circle_at_50%_18%,#ffe08a_0%,#ce8a2e_22%,#a72812_56%,#570403_100%)] text-[#fff7d4]"
-                      : "border-[#a66a20]/52 bg-[radial-gradient(circle_at_50%_18%,#64180b_0%,#280302_66%,#060000_100%)] text-[#ffe8a3]/78"
-                  }`}
-                  style={{
-                    animation: selected
-                      ? "naganiSlotSelectedCoinPulse 1350ms ease-in-out infinite"
-                      : undefined,
-                  }}
-                >
-                  <span className="pointer-events-none absolute inset-[3px] rounded-full border border-[#ffd979]/18" />
-                  <span className="pointer-events-none absolute inset-x-3 top-1 h-2 rounded-full bg-white/12 blur-[2px]" />
+<button
+  key={chip.amount}
+  type="button"
+  disabled={chipDisabled}
+  aria-pressed={selected}
+  onClick={() => onSelectBetAmount(chip.amount)}
+  className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-black transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.58] ${
+    selected ? "text-[#fff7d4]" : "text-[#ffe8a3]/82"
+  }`}
+  style={{
+    animation: selected
+      ? "naganiSlotSelectedCoinPulse 1350ms ease-in-out infinite"
+      : undefined,
+  }}
+>
+  <img
+    src={CHIP_BUTTON_SKIN_IMAGE}
+    alt=""
+    className={`pointer-events-none absolute left-1/2 top-1/2 z-0 h-[46px] w-[calc(100%+12px)] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_7px_12px_rgba(0,0,0,0.56)] ${
+      selected
+        ? "brightness-[1.16] saturate-[1.18]"
+        : "brightness-[0.82] saturate-[0.88]"
+    }`}
+    draggable={false}
+  />
 
-                  {selected ? (
-                    <span
-                      className="pointer-events-none absolute inset-y-0 left-0 w-[54%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)]"
-                      style={{
-                        animation: "naganiSlotCoinSheen 1350ms ease-out infinite",
-                      }}
-                    />
-                  ) : null}
+  {selected ? (
+    <>
+      <span className="pointer-events-none absolute inset-[-2px] z-10 rounded-full border border-[#fff0b9]/54 shadow-[0_0_14px_rgba(255,218,121,0.34)]" />
+      <span
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[54%] rounded-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)]"
+        style={{
+          animation: "naganiSlotCoinSheen 1350ms ease-out infinite",
+        }}
+      />
+    </>
+  ) : (
+    <span className="pointer-events-none absolute inset-[2px] z-10 rounded-full border border-[#ffd979]/12" />
+  )}
 
-                  <span className="relative block text-[13px] leading-none drop-shadow-[0_2px_5px_rgba(0,0,0,0.78)]">
-                    {chip.label}
-                  </span>
-                </button>
+  <span className="relative z-20 block text-[13px] leading-none drop-shadow-[0_2px_5px_rgba(0,0,0,0.86)]">
+    {chip.label}
+  </span>
+</button>
               );
             })}
           </div>
         </div>
 
-        <div className="relative mt-2.5 grid grid-cols-[68px_1fr_68px] items-center gap-2">
-          <button
-            type="button"
-disabled={controlsLocked}
-aria-pressed={autoMode}
-onClick={() => setAutoMode((current) => !current)}
-            className={`relative flex h-[58px] items-center justify-center overflow-hidden rounded-[20px] border text-[11px] font-black leading-none shadow-[inset_0_0_13px_rgba(0,0,0,0.76),0_8px_14px_rgba(0,0,0,0.34)] transition-transform active:scale-[0.96] disabled:opacity-[0.66] ${
-              autoMode
-                ? "border-[#fff0b9]/70 bg-[linear-gradient(180deg,rgba(137,33,13,0.96),rgba(16,0,0,0.92))] text-[#fff0b9]"
-                : "border-[#9e641d]/58 bg-[linear-gradient(180deg,rgba(50,8,4,0.76),rgba(7,0,0,0.86))] text-[#ffe8a3]/82"
-            }`}
-          >
-            <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd979]/36 to-transparent" />
-            {autoMode ? (
-              <span
-                className="pointer-events-none absolute inset-0 bg-[#ffd979]/10"
-                style={{
-                  animation: "naganiSlotAutoPulse 900ms ease-in-out infinite",
-                }}
-              />
-            ) : null}
-            <span className="relative whitespace-nowrap text-[13px]">အော်တို</span>
-          </button>
+        <div className="relative z-10 mt-2.5 grid grid-cols-[68px_1fr_68px] items-center gap-2">
+<button
+  type="button"
+  disabled={controlsLocked}
+  aria-pressed={autoMode}
+  aria-label="အော်တို"
+  onClick={() => setAutoMode((current) => !current)}
+  className={`relative flex h-[58px] items-center justify-center overflow-visible rounded-[20px] bg-transparent text-[11px] font-black leading-none transition-transform active:scale-[0.96] disabled:opacity-[0.66] ${
+    autoMode ? "text-[#fff0b9]" : "text-[#ffe8a3]/90"
+  }`}
+>
+  <img
+    src={AUTO_BUTTON_SKIN_IMAGE}
+    alt=""
+    className={`pointer-events-none absolute left-1/2 top-1/2 z-0 h-[72px] w-[86px] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_8px_14px_rgba(0,0,0,0.5)] ${
+      autoMode ? "brightness-[1.12] saturate-[1.1]" : "brightness-[0.86] saturate-[0.82]"
+    }`}
+    draggable={false}
+  />
 
-          <div className="relative grid h-[66px] grid-cols-[42px_1fr_42px] items-center gap-1.5 rounded-[24px] border border-[#ffd979]/42 bg-[linear-gradient(180deg,rgba(22,0,0,0.7),rgba(83,9,4,0.42),rgba(8,0,0,0.78))] p-1 shadow-[inset_0_0_18px_rgba(0,0,0,0.82),0_10px_18px_rgba(0,0,0,0.42)]">
-            <button
-              type="button"
-onClick={onDecrease}
-disabled={!canDecreaseBet}
-              className="relative h-[50px] rounded-[18px] border border-[#ffd979]/46 bg-[linear-gradient(180deg,#f3d27a_0%,#bd7a2b_24%,#5c1508_66%,#120000_100%)] text-[23px] font-black text-[#5b0903] shadow-[0_7px_12px_rgba(0,0,0,0.46),inset_0_2px_0_rgba(255,244,195,0.46),inset_0_-10px_16px_rgba(55,0,0,0.42)] transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.62]"
-              aria-label="Decrease bet"
-            >
-              −
-            </button>
+  {autoMode ? (
+    <span
+      className="pointer-events-none absolute inset-0 z-10 rounded-[20px] bg-[#ffd979]/10"
+      style={{
+        animation: "naganiSlotAutoPulse 900ms ease-in-out infinite",
+      }}
+    />
+  ) : null}
+</button>
 
-            <button
-              type="button"
-onClick={onSpin}
-disabled={!canSpin}
-              className="relative h-[54px] overflow-hidden rounded-[22px] border border-[#fff0b9]/82 bg-[linear-gradient(180deg,#fff3b0_0%,#f0bd4c_13%,#e43a1f_45%,#a90d08_74%,#5b0202_100%)] text-[19px] font-black text-white shadow-[0_13px_24px_rgba(0,0,0,0.7),inset_0_2px_0_rgba(255,255,255,0.58),inset_0_-10px_16px_rgba(87,0,0,0.5)] transition-transform active:translate-y-1 active:scale-[0.95] disabled:opacity-[0.78]"
-              style={{
-                animation: readyToSpin
-                  ? "naganiSlotSpinBreathV8 1500ms ease-in-out infinite"
-                  : undefined,
-              }}
-              aria-label="Spin"
-            >
-              <span className="pointer-events-none absolute inset-x-5 top-1.5 h-4 rounded-full bg-white/34 blur-[2px]" />
-              <span className="pointer-events-none absolute inset-x-7 bottom-1.5 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/66 to-transparent" />
+          <div className="relative grid h-[66px] grid-cols-[42px_1fr_42px] items-center gap-1.5 p-1">
+<button
+  type="button"
+  onClick={onDecrease}
+  disabled={!canDecreaseBet}
+  aria-label="Decrease bet"
+  className="relative h-[50px] overflow-visible rounded-[18px] bg-transparent transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.62]"
+>
+  <img
+    src={REDUCE_BUTTON_SKIN_IMAGE}
+    alt=""
+    className={`pointer-events-none absolute left-1/2 top-1/2 z-0 h-[58px] w-[58px] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_7px_12px_rgba(0,0,0,0.46)] ${
+      canDecreaseBet ? "brightness-[1] saturate-[1]" : "brightness-[0.78] saturate-[0.82]"
+    }`}
+    draggable={false}
+  />
+</button>
 
-              {readyToSpin ? (
-                <span
-                  className="pointer-events-none absolute inset-y-0 left-0 w-[48%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent)]"
-                  style={{
-                    animation: "naganiSlotSpinSweepV8 1800ms ease-out infinite",
-                  }}
-                />
-              ) : null}
+<button
+  type="button"
+  onClick={onSpin}
+  disabled={!canSpin}
+  className="relative h-[54px] overflow-visible rounded-[22px] bg-transparent text-[19px] font-black text-white transition-transform active:translate-y-1 active:scale-[0.95] disabled:opacity-[0.78]"
+  style={{
+    animation: readyToSpin
+      ? "naganiSlotSpinBreathV8 1500ms ease-in-out infinite"
+      : undefined,
+  }}
+  aria-label="Spin"
+>
+  <img
+    src={SPIN_BUTTON_SKIN_IMAGE}
+    alt=""
+    className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[74px] w-[calc(100%+34px)] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_13px_24px_rgba(0,0,0,0.7)]"
+    draggable={false}
+  />
 
-              <span className="relative z-20 drop-shadow-[0_3px_6px_rgba(0,0,0,0.92)]">
-                {getSpinButtonText(gameState)}
-              </span>
-            </button>
+  {readyToSpin ? (
+    <span
+      className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[48%] rounded-[22px] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)]"
+      style={{
+        animation: "naganiSlotSpinSweepV8 1800ms ease-out infinite",
+      }}
+    />
+  ) : null}
+</button>
 
-            <button
-              type="button"
-onClick={onIncrease}
-disabled={!canIncreaseBet}
-              className="relative h-[50px] rounded-[18px] border border-[#ffd979]/46 bg-[linear-gradient(180deg,#f3d27a_0%,#bd7a2b_24%,#6f1b0a_66%,#120000_100%)] text-[22px] font-black text-[#5b0903] shadow-[0_7px_12px_rgba(0,0,0,0.46),inset_0_2px_0_rgba(255,244,195,0.46),inset_0_-10px_16px_rgba(55,0,0,0.42)] transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.62]"
-              aria-label="Increase bet"
-            >
-              +
-            </button>
+<button
+  type="button"
+  onClick={onIncrease}
+  disabled={!canIncreaseBet}
+  aria-label="Increase bet"
+  className="relative h-[50px] overflow-visible rounded-[18px] bg-transparent transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.62]"
+>
+  <img
+    src={ADD_BUTTON_SKIN_IMAGE}
+    alt=""
+    className={`pointer-events-none absolute left-1/2 top-1/2 z-0 h-[58px] w-[58px] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_7px_12px_rgba(0,0,0,0.46)] ${
+      canIncreaseBet ? "brightness-[1] saturate-[1]" : "brightness-[0.78] saturate-[0.82]"
+    }`}
+    draggable={false}
+  />
+</button>
           </div>
 
-          <button
-            type="button"
-disabled={!canUseMaxBet}
-onClick={onMaxBet}
-            className="relative flex h-[58px] items-center justify-center overflow-hidden rounded-[20px] border border-[#c9882f]/64 bg-[linear-gradient(180deg,rgba(73,15,7,0.86),rgba(8,0,0,0.88))] text-[11px] font-black leading-none text-[#fff0b9]/88 shadow-[inset_0_0_13px_rgba(0,0,0,0.76),0_8px_14px_rgba(0,0,0,0.34)] transition-transform active:scale-[0.96] disabled:opacity-[0.66]"
-          >
-            <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd979]/38 to-transparent" />
-            <span className="relative whitespace-nowrap text-[13px]">အားလုံး</span>
-          </button>
+<button
+  type="button"
+  disabled={!canUseMaxBet}
+  onClick={onMaxBet}
+  aria-label="အားလုံး"
+  className="relative flex h-[58px] items-center justify-center overflow-visible rounded-[20px] bg-transparent text-[11px] font-black leading-none text-[#fff0b9]/92 transition-transform active:scale-[0.96] disabled:opacity-[0.66]"
+>
+  <img
+    src={MAX_BUTTON_SKIN_IMAGE}
+    alt=""
+    className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[72px] w-[86px] -translate-x-1/2 -translate-y-1/2 object-fill brightness-[0.88] saturate-[0.88] drop-shadow-[0_8px_14px_rgba(0,0,0,0.5)]"
+    draggable={false}
+  />
+</button>
         </div>
       </div>
 
@@ -551,7 +666,7 @@ onClick={onMaxBet}
   လောင်းကြေးရွေးပါ
 </p>
 <p className="mt-1.5 text-[12px] font-bold leading-snug text-[#ffd979]/78">
-  စိတ်ကြိုက်ပမာဏကို နိပ်ပါ
+ခွင့်ပြုထားသော လောင်းကြေးကို ရွေးပါ
 </p>
               </div>
 
@@ -565,9 +680,9 @@ onClick={onMaxBet}
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {CUSTOM_BET_OPTIONS.map((option) => {
-                const disabled = controlsLocked || option > playableMaxBet;
+                const disabled = betControlsLocked || option > playableMaxBet;
                 const selected = betAmount === option;
 
                 return (

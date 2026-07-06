@@ -2,6 +2,9 @@
 
 "use server";
 
+import { createHash, randomUUID } from "crypto";
+
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "./server";
@@ -54,6 +57,127 @@ function getPhoneFromPlayerAuthEmail(email: string) {
   return email.replace("@nagani.local", "");
 }
 
+const NAGANI_DEVICE_COOKIE = "nagani_device_id";
+
+type RegistrationRiskResult = {
+  result: "allowed" | "blocked" | "review";
+  block_reason: string | null;
+  risk_level: "normal" | "watch" | "medium" | "high" | "blocked";
+  risk_score: number;
+  risk_reasons: string[];
+  same_device_profile_count: number;
+  same_ip_profile_count: number;
+};
+
+function getRiskHashPepper() {
+  return process.env.NAGANI_RISK_HASH_PEPPER || "nagani-risk-v1";
+}
+
+function hashRiskSignal(value: string) {
+  return createHash("sha256")
+    .update(`${getRiskHashPepper()}:${value}`)
+    .digest("hex");
+}
+
+function normalizeRegistrationRisk(value: unknown): RegistrationRiskResult {
+  const record =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+
+  const riskReasons = Array.isArray(record.risk_reasons)
+    ? record.risk_reasons.filter(
+        (reason): reason is string => typeof reason === "string",
+      )
+    : [];
+
+  const result =
+    record.result === "blocked" || record.result === "review"
+      ? record.result
+      : "allowed";
+
+  const riskLevel =
+    record.risk_level === "watch" ||
+    record.risk_level === "medium" ||
+    record.risk_level === "high" ||
+    record.risk_level === "blocked"
+      ? record.risk_level
+      : "normal";
+
+  return {
+    result,
+    block_reason:
+      typeof record.block_reason === "string" ? record.block_reason : null,
+    risk_level: riskLevel,
+    risk_score: Number(record.risk_score ?? 0) || 0,
+    risk_reasons: riskReasons,
+    same_device_profile_count:
+      Number(record.same_device_profile_count ?? 0) || 0,
+    same_ip_profile_count: Number(record.same_ip_profile_count ?? 0) || 0,
+  };
+}
+
+function isDeviceSignupLimitDisabledForTesting() {
+  // NOTE:
+  // Local testing helper only.
+  // Set NAGANI_DISABLE_REGISTRATION_DEVICE_LIMIT=true in .env.local
+  // when we need to create many test users from the same browser/device.
+  // Do NOT set this variable in Vercel production.
+  return process.env.NAGANI_DISABLE_REGISTRATION_DEVICE_LIMIT === "true";
+}
+
+function getEffectiveRegistrationRisk(
+  registrationRisk: RegistrationRiskResult,
+): RegistrationRiskResult {
+  if (
+    isDeviceSignupLimitDisabledForTesting() &&
+    registrationRisk.block_reason === "same_device_account_limit"
+  ) {
+    return {
+      ...registrationRisk,
+      result: "allowed",
+      block_reason: null,
+      risk_level: "normal",
+      risk_score: 0,
+      risk_reasons: registrationRisk.risk_reasons.filter(
+        (reason) => reason !== "same_device_account_limit",
+      ),
+    };
+  }
+
+  return registrationRisk;
+}
+
+async function getRegistrationSignals() {
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+
+  let deviceId = cookieStore.get(NAGANI_DEVICE_COOKIE)?.value ?? "";
+
+  if (!/^[a-zA-Z0-9-]{20,80}$/.test(deviceId)) {
+    deviceId = randomUUID();
+
+    cookieStore.set(NAGANI_DEVICE_COOKIE, deviceId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
+
+  const forwardedFor = headerStore.get("x-forwarded-for") ?? "";
+  const realIp = headerStore.get("x-real-ip") ?? "";
+  const ipAddress = forwardedFor.split(",")[0]?.trim() || realIp.trim();
+  const userAgent = headerStore.get("user-agent") ?? "";
+
+  return {
+    deviceHash: hashRiskSignal(`device:${deviceId}`),
+    ipHash: ipAddress ? hashRiskSignal(`ip:${ipAddress}`) : "",
+    userAgentHash: userAgent ? hashRiskSignal(`ua:${userAgent}`) : "",
+  };
+}
+
 function redirectWithRegisterError(message: string): never {
   redirect(`/register?error=${encodeURIComponent(message)}`);
 }
@@ -75,11 +199,11 @@ function redirectWithAgentLoginError(message: string): never {
 }
 
 export async function registerWithEmail(formData: FormData) {
-const email = normalizePlayerAuthEmail(getFormString(formData, "email"));
-const phoneNumber = getPhoneFromPlayerAuthEmail(email);
-const referralCode = getFormString(formData, "referralCode").toUpperCase();
-const password = getFormString(formData, "password");
-const confirmPassword = getFormString(formData, "confirmPassword");
+  const email = normalizePlayerAuthEmail(getFormString(formData, "email"));
+  const phoneNumber = getPhoneFromPlayerAuthEmail(email);
+  const referralCode = getFormString(formData, "referralCode").toUpperCase();
+  const password = getFormString(formData, "password");
+  const confirmPassword = getFormString(formData, "confirmPassword");
 
   if (!email) {
     redirectWithRegisterError("ဖုန်းနံပါတ် လိုအပ်ပါသည်။");
@@ -98,19 +222,65 @@ const confirmPassword = getFormString(formData, "confirmPassword");
   }
 
   const supabase = await createClient();
+  const registrationSignals = await getRegistrationSignals();
 
-const { data, error } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      referral_code: referralCode || null,
+  const { data: riskData, error: riskError } = await supabase.rpc(
+    "evaluate_registration_risk",
+    {
+      p_device_hash: registrationSignals.deviceHash,
+      p_ip_hash: registrationSignals.ipHash,
+      p_user_agent_hash: registrationSignals.userAgentHash,
     },
-  },
-});
+  );
+
+  if (riskError) {
+    console.error("Registration risk check error:", riskError.message);
+    redirectWithRegisterError("အကောင့်ဖွင့်မှု စစ်ဆေးမှု မအောင်မြင်ပါ။");
+  }
+
+const rawRegistrationRisk = normalizeRegistrationRisk(riskData);
+const registrationRisk = getEffectiveRegistrationRisk(rawRegistrationRisk);
+
+if (registrationRisk.result === "blocked") {
+    await supabase.rpc("record_registration_attempt", {
+      p_phone_number: phoneNumber || null,
+      p_device_hash: registrationSignals.deviceHash,
+      p_ip_hash: registrationSignals.ipHash,
+      p_user_agent_hash: registrationSignals.userAgentHash,
+      p_result: "blocked",
+      p_block_reason:
+        registrationRisk.block_reason || "same_device_account_limit",
+      p_created_profile_id: null,
+    });
+
+    redirectWithRegisterError(
+      "ဤစက်ပစ္စည်းမှ အကောင့်ဖွင့်မှု များနေပါသည်။ Support ကို ဆက်သွယ်ပါ။",
+    );
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        referral_code: referralCode || null,
+      },
+    },
+  });
 
   if (error) {
     console.error("Register error:", error.message);
+
+    await supabase.rpc("record_registration_attempt", {
+      p_phone_number: phoneNumber || null,
+      p_device_hash: registrationSignals.deviceHash,
+      p_ip_hash: registrationSignals.ipHash,
+      p_user_agent_hash: registrationSignals.userAgentHash,
+      p_result: "blocked",
+      p_block_reason: "auth_signup_failed",
+      p_created_profile_id: null,
+    });
+
     redirectWithRegisterError("အကောင့်ဖွင့်မှု မအောင်မြင်ပါ။");
   }
 
@@ -121,40 +291,70 @@ const { data, error } = await supabase.auth.signUp({
   }
 
   if (!data.session) {
+    await supabase.rpc("record_registration_attempt", {
+      p_phone_number: phoneNumber || null,
+      p_device_hash: registrationSignals.deviceHash,
+      p_ip_hash: registrationSignals.ipHash,
+      p_user_agent_hash: registrationSignals.userAgentHash,
+      p_result: "review",
+      p_block_reason: "signup_created_without_session",
+      p_created_profile_id: null,
+    });
+
     redirectWithRegisterMessage(
-      "အကောင့်ဖွင့်မှု အောင်မြင်ပါသည်။ ဖုန်းနံပါတ်ဖြင့် ဝင်ရောက်ပါ။"
+      "အကောင့်ဖွင့်မှု အောင်မြင်ပါသည်။ ဖုန်းနံပါတ်ဖြင့် ဝင်ရောက်ပါ။",
     );
   }
 
-const { error: profileError } = await supabase
-  .from("profiles")
-  .upsert(
+  const { error: completeProfileError } = await supabase.rpc(
+    "complete_player_registration_profile",
     {
-      id: userId,
-      phone_number: phoneNumber || null,
+      p_phone_number: phoneNumber || null,
+      p_device_hash: registrationSignals.deviceHash,
+      p_ip_hash: registrationSignals.ipHash,
+      p_user_agent_hash: registrationSignals.userAgentHash,
+      p_account_trust_status:
+        registrationRisk.risk_level === "blocked" ? "blocked" : "unverified",
+      p_manual_review_required:
+        registrationRisk.result === "review" ||
+        registrationRisk.risk_level === "high",
+      p_risk_level: registrationRisk.risk_level,
+      p_risk_score: registrationRisk.risk_score,
+      p_risk_reasons: registrationRisk.risk_reasons,
+      p_registration_result: registrationRisk.result,
+      p_block_reason: registrationRisk.block_reason,
     },
-    { onConflict: "id" }
   );
 
-if (profileError) {
-  console.error("Profile upsert error:", profileError.message);
-  redirectWithRegisterError("ပရိုဖိုင် ပြင်ဆင်မှု မအောင်မြင်ပါ။");
-}
+  if (completeProfileError) {
+    console.error(
+      "Complete player registration error:",
+      completeProfileError.message,
+    );
+    redirectWithRegisterError("ပရိုဖိုင် ပြင်ဆင်မှု မအောင်မြင်ပါ။");
+  }
 
 if (referralCode) {
-  const { error: referralError } = await supabase.rpc(
-    "assign_my_referral_by_code",
+  const { data: referralResult, error: referralError } = await supabase.rpc(
+    "assign_my_referral_code_v2",
     {
-      p_agent_code: referralCode,
+      p_referral_code: referralCode,
     },
   );
 
   if (referralError) {
     console.warn("Referral assign skipped:", referralError.message);
+  } else if (
+    referralResult &&
+    typeof referralResult === "object" &&
+    "success" in referralResult &&
+    referralResult.success === false
+  ) {
+    console.warn("Referral assign skipped:", referralResult);
   }
 }
 
-redirect("/");
+  redirect("/");
 }
 
 export async function loginWithEmail(formData: FormData) {

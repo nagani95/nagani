@@ -10,9 +10,16 @@ export type NaganiSlotSymbolKey =
   | "bagan"
   | "ever_stand"
   | "bonus"
+  | "crown"
+  | "star"
   | "wild";
 
-export type NaganiSlotSymbolTier = "low" | "mid" | "high" | "special";
+export type NaganiSlotSymbolTier =
+  | "low"
+  | "mid"
+  | "high"
+  | "top"
+  | "special";
 
 export type NaganiSlotSymbol = {
   key: NaganiSlotSymbolKey;
