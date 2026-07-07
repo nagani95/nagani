@@ -8,6 +8,7 @@ import NaganiSlotBoard from "./NaganiSlotBoard";
 import NaganiSlotControls from "./NaganiSlotControls";
 import NaganiSlotLoadingLayer from "./NaganiSlotLoadingLayer";
 import NaganiSlotTopBar from "./NaganiSlotTopBar";
+import { naganiSlotAudioEngine } from "./sound/NaganiSlotAudioEngine";
 import Lottie from "lottie-react";
 import win1Data from "../../../public/assets/nagani/slot/ui/win1.json";
 import win2Data from "../../../public/assets/nagani/slot/ui/win2.json";
@@ -30,8 +31,8 @@ const MIN_BET = 1000;
 const MAX_BET = 10000;
 const BET_STEP = 1000;
 
-const REEL_STOP_TIMINGS = [1200, 1450, 1700, 1950, 2250];
-const RESULT_REVEAL_DELAY = 2550;
+const REEL_STOP_TIMINGS = [920, 1140, 1360, 1580, 1840];
+const RESULT_REVEAL_DELAY = 2080;
 const RESULT_HOLD_BEFORE_COUNT_MS = 120;
 const WIN_COUNT_DURATION = 620;
 const READY_AGAIN_DELAY = 850;
@@ -47,6 +48,13 @@ const BIG_WIN_IMAGE = "/assets/nagani/slot/symbols/wildwild.png";
 type RewardTransferPhase = "idle" | "counting" | "holding" | "flying" | "landed";
 const REWARD_PLAQUE_SKIN = "/assets/nagani/slot/ui/reward-plaque-v1.png";
 const LOTTIE_SPARKLE_BG = "/assets/nagani/slot/ui/sparkle-burst.gif";
+const MILKY_REWARD_NUMBER_STYLE: CSSProperties = {
+  color: "#fffdf2",
+  WebkitTextFillColor: "#fffdf2",
+  WebkitTextStroke: "0.55px rgba(42, 10, 0, 0.72)",
+  textShadow:
+    "0 2px 0 rgba(42,10,0,0.9), 0 3px 7px rgba(0,0,0,0.95), 0 0 10px rgba(255,255,244,0.72), 0 0 22px rgba(255,240,185,0.46)",
+};
 
 type CrownFreeSpinNotice = {
   crownCount: number;
@@ -358,6 +366,11 @@ const [activeFreeSpinSession, setActiveFreeSpinSession] =
   const spinTimersRef = useRef<number[]>([]);
   const roomShellRef = useRef<HTMLDivElement | null>(null);
 const balanceTargetRef = useRef<HTMLDivElement | null>(null);
+const roomAudioUnlockedRef = useRef(false);
+const [isRoomAudioUnlocked, setIsRoomAudioUnlocked] = useState(false);
+const [isBackgroundMusicMuted, setIsBackgroundMusicMuted] = useState(() =>
+  naganiSlotAudioEngine.getBackgroundMuted()
+);
 
   const spinning = gameState === "spinning";
   const controlsLocked = gameState === "spinning" || gameState === "settling";
@@ -431,6 +444,7 @@ setCrownFreeSpinNotice(null);
     return () => {
       window.clearTimeout(bootTimer);
       clearSpinTimers();
+      naganiSlotAudioEngine.stopAll();
     };
   }, []);
 
@@ -472,6 +486,41 @@ function setMaxBetAmount() {
   setBetAmount(getPlayableMaxBet());
 }
 
+function unlockRoomAudio() {
+  if (roomAudioUnlockedRef.current) {
+    setIsRoomAudioUnlocked(true);
+    return;
+  }
+
+  roomAudioUnlockedRef.current = true;
+  setIsRoomAudioUnlocked(true);
+
+  void naganiSlotAudioEngine.unlockAudio();
+
+  if (roomReady) {
+    naganiSlotAudioEngine.startBackground();
+  }
+}
+
+function handleBackgroundMusicToggle() {
+  unlockRoomAudio();
+
+  const nextMuted = naganiSlotAudioEngine.toggleBackground();
+
+  setIsBackgroundMusicMuted(nextMuted);
+}
+
+useEffect(() => {
+  if (!roomReady) return;
+  if (!isRoomAudioUnlocked) return;
+
+  naganiSlotAudioEngine.startBackground();
+
+  return () => {
+    naganiSlotAudioEngine.stopBackground();
+  };
+}, [roomReady, isRoomAudioUnlocked]);
+
   function prepareRewardFlightPath() {
   const roomRect = roomShellRef.current?.getBoundingClientRect();
   const balanceRect = balanceTargetRef.current?.getBoundingClientRect();
@@ -499,6 +548,7 @@ function countWinAmount(
   options?: { suppressNoWinNotice?: boolean }
 ) {
 if (targetAmount <= 0) {
+  naganiSlotAudioEngine.stopCountLoop();
   setLastWin(0);
   setBalance(nextBalanceTotal);
   setRewardTransferPhase("idle");
@@ -511,6 +561,8 @@ if (targetAmount <= 0) {
 }
 
   const displayStartAmount = Math.min(targetAmount, 1000);
+
+  naganiSlotAudioEngine.startCountLoop();
 
   setGameState("settling");
   setLastWin(displayStartAmount);
@@ -531,11 +583,13 @@ if (targetAmount <= 0) {
 
     if (progress >= 1) {
       window.clearInterval(counterTimer);
+      naganiSlotAudioEngine.stopCountLoop();
       setLastWin(targetAmount);
       setRewardTransferPhase("holding");
 
       const holdTimer = window.setTimeout(() => {
         prepareRewardFlightPath();
+        naganiSlotAudioEngine.playFlyToBalance();
         setRewardTransferPhase("flying");
 
         const flyTimer = window.setTimeout(() => {
@@ -567,6 +621,8 @@ async function handleSpin() {
   if (isFreeSpin && !activeSessionId) return;
 
   clearSpinTimers();
+
+naganiSlotAudioEngine.playSpinStart();
 
 setLastWin(0);
 setWinEvaluation(null);
@@ -625,6 +681,7 @@ const shouldTriggerFreeSpins = !isFreeSpin && freeSpinsAwarded > 0;
 
     REEL_STOP_TIMINGS.forEach((delayMs, index) => {
       const timer = window.setTimeout(() => {
+        naganiSlotAudioEngine.playReelStop(index);
         setStoppedReelCount(index + 1);
       }, delayMs);
 
@@ -632,6 +689,13 @@ const shouldTriggerFreeSpins = !isFreeSpin && freeSpinsAwarded > 0;
     });
 
 const resultTimer = window.setTimeout(() => {
+  if (shouldTriggerFreeSpins) {
+    naganiSlotAudioEngine.playCrownStarReveal();
+    naganiSlotAudioEngine.playFreeSpinTrigger();
+  }
+
+  naganiSlotAudioEngine.playWinTier(evaluation.tier);
+
   setActiveFreeSpinSession(nextVisualFreeSpinSession);
 setCrownFreeSpinNotice(
   shouldTriggerFreeSpins
@@ -670,6 +734,7 @@ setWinEvaluation(evaluation);
 
   if (error) {
     console.error("Nagani slot spin RPC failed:", error);
+    naganiSlotAudioEngine.stopReelLoop();
     setStoppedReelCount(5);
     setGameState("ready");
     return;
@@ -687,6 +752,7 @@ setWinEvaluation(evaluation);
       "Nagani slot spin rejected:",
       spinResult?.code ?? spinResult?.error_code ?? spinResult?.error
     );
+    naganiSlotAudioEngine.stopReelLoop();
     setStoppedReelCount(5);
     setGameState("ready");
     return;
@@ -738,6 +804,7 @@ setWinEvaluation(evaluation);
 
   REEL_STOP_TIMINGS.forEach((delayMs, index) => {
     const timer = window.setTimeout(() => {
+      naganiSlotAudioEngine.playReelStop(index);
       setStoppedReelCount(index + 1);
     }, delayMs);
 
@@ -745,6 +812,13 @@ setWinEvaluation(evaluation);
   });
 
   const resultTimer = window.setTimeout(() => {
+    if (crownFreeSpinNoticeWithPositions) {
+      naganiSlotAudioEngine.playCrownStarReveal();
+      naganiSlotAudioEngine.playFreeSpinTrigger();
+    }
+
+    naganiSlotAudioEngine.playWinTier(evaluation.tier);
+
     setCrownFreeSpinNotice(crownFreeSpinNoticeWithPositions);
     setWinEvaluation(evaluation);
     setStoppedReelCount(5);
@@ -763,7 +837,10 @@ setWinEvaluation(evaluation);
 }
 
   return (
-    <main className="h-dvh overflow-hidden overscroll-none bg-[#050000] text-white">
+    <main
+      onPointerDownCapture={unlockRoomAudio}
+      className="h-dvh overflow-hidden overscroll-none bg-[#050000] text-white"
+    >
       <style>{`
         @keyframes naganiSlotSettlementIn {
           0% {
@@ -1049,20 +1126,14 @@ setWinEvaluation(evaluation);
           }
         }
 
-        @keyframes naganiSlotRewardAmountPulse {
-          0%, 100% {
-            filter: brightness(1);
-            text-shadow:
-              0 2px 8px rgba(0,0,0,0.9),
-              0 0 12px rgba(255,218,121,0.22);
-          }
-          50% {
-            filter: brightness(1.2);
-            text-shadow:
-              0 2px 8px rgba(0,0,0,0.9),
-              0 0 28px rgba(255,232,163,0.66);
-          }
-        }
+@keyframes naganiSlotRewardAmountPulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
                   @keyframes naganiSlotRewardPotFloat {
           0%, 100% {
             transform: translateY(0) scale(1);
@@ -1541,13 +1612,10 @@ setWinEvaluation(evaluation);
     </p>
 
     <p
-      className="relative mt-2 text-[22px] font-black leading-none text-transparent bg-clip-text drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]"
+      className="relative mt-2 text-[22px] font-black leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]"
       style={{
+        ...MILKY_REWARD_NUMBER_STYLE,
         animation: "naganiSlotFreeSpinNumberPulse 720ms ease-in-out infinite",
-        backgroundImage:
-          "linear-gradient(to bottom, #ffffff 0%, #fff7c7 36%, #ffe06f 62%, #ffb52e 100%)",
-        WebkitBackgroundClip: "text",
-        WebkitTextStroke: "0.35px rgba(80, 18, 0, 0.58)",
       }}
     >
       Free {crownFreeSpinNotice.freeSpinsAwarded} ကြိမ် ×{" "}
@@ -1620,15 +1688,10 @@ setWinEvaluation(evaluation);
         <div className="relative mx-auto my-2.5 h-[2px] w-[78%] bg-gradient-to-r from-transparent via-[#ffd979]/88 to-transparent" />
 
 <p
-  className="relative text-[30px] font-black leading-none text-transparent bg-clip-text drop-shadow-[0_2px_5px_rgba(0,0,0,0.86)]"
+  className="relative text-[30px] font-black leading-none drop-shadow-[0_2px_5px_rgba(0,0,0,0.86)]"
   style={{
+    ...MILKY_REWARD_NUMBER_STYLE,
     animation: "naganiSlotRewardAmountPulse 780ms ease-in-out infinite",
-    backgroundImage:
-      "linear-gradient(to bottom, #ffffff 0%, #fff7c7 36%, #ffe06f 62%, #ffb52e 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextStroke: "0.45px rgba(80, 18, 0, 0.62)",
-    textShadow:
-      "0 2px 5px rgba(0,0,0,0.9), 0 0 12px rgba(255,232,163,0.34)",
   }}
 >
   + {formatMMK(lastWin)}
@@ -1663,7 +1726,11 @@ setWinEvaluation(evaluation);
             <div className="pointer-events-none absolute inset-x-2 top-[58px] z-[12] h-[146px] rounded-b-[38px] border-x border-[#ffd979]/12 bg-[linear-gradient(180deg,rgba(255,218,121,0.08),rgba(108,18,8,0.12),transparent)] shadow-[inset_0_1px_0_rgba(255,240,185,0.08)]" />
             <div className="pointer-events-none absolute left-1/2 top-[66px] z-[13] h-[84px] w-[76%] -translate-x-1/2 rounded-full bg-[#ffd979]/10 blur-2xl" />
 
-<NaganiSlotTopBar gameState={gameState} />
+<NaganiSlotTopBar
+  gameState={gameState}
+  isBackgroundMusicMuted={isBackgroundMusicMuted}
+  onBackgroundMusicToggle={handleBackgroundMusicToggle}
+/>
 
             <div className="relative z-20 flex min-h-0 flex-1 flex-col pt-1">
               <div className="relative mx-auto h-[clamp(390px,60dvh,510px)] w-full max-w-[430px] shrink-0">

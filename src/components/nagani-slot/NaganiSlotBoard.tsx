@@ -516,20 +516,20 @@ function getWinTierLineStyle(tier: NaganiSlotWinTier) {
 }
 
 function getReelSpinDuration(columnIndex: number, anticipating: boolean) {
-  if (anticipating) return 760;
-  return 980 + columnIndex * 92;
+  if (anticipating) return 980;
+  return 1320 + columnIndex * 110;
 }
 
 function getReelSpinFilter(anticipating: boolean) {
   if (anticipating) {
-    return "blur(0.48px) brightness(1.2) saturate(1.14)";
+    return "brightness(0.86) contrast(0.94) saturate(0.86)";
   }
 
-  return "blur(0.34px) brightness(1.08) saturate(1.08)";
+  return "brightness(0.72) contrast(0.9) saturate(0.72)";
 }
 
 function getReelSpinOpacity(anticipating: boolean) {
-  return anticipating ? 0.96 : 0.92;
+  return anticipating ? 0.76 : 0.64;
 }
 
 function getReelStopAnimation(isLastReel: boolean) {
@@ -876,6 +876,63 @@ style={
   );
 }
 
+function SpinningReelSymbol({ symbol }: { symbol: NaganiSlotSymbol }) {
+  const symbolBoxClass = getSymbolBoxClass(symbol);
+
+  const spinScale =
+    symbol.key === "dragon"
+      ? 0.9
+      : symbol.key === "crown" || symbol.key === "star"
+        ? 0.94
+        : symbol.key === "buffalo"
+          ? 0.92
+          : 0.96;
+
+  const spinFilter =
+    "brightness(0.86) contrast(0.92) saturate(0.78) drop-shadow(0 5px 7px rgba(0,0,0,0.48))";
+
+  return (
+    <div className="relative flex h-full items-center justify-center">
+      <div
+        className={`grid ${symbolBoxClass} place-items-center overflow-visible`}
+      >
+        {symbol.imageSrc ? (
+          <img
+            src={symbol.imageSrc}
+            alt=""
+            className="h-full w-full max-w-none object-contain"
+            style={{
+              transform: `scale(${(symbol.imageScale ?? 1) * spinScale})`,
+              filter: spinFilter,
+            }}
+            draggable={false}
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+
+              const fallback = event.currentTarget
+                .nextElementSibling as HTMLElement | null;
+
+              if (fallback) {
+                fallback.style.display = "inline";
+              }
+            }}
+          />
+        ) : null}
+
+        <span
+          className={`${symbol.imageSrc ? "hidden" : ""} text-[clamp(44px,12vw,64px)] leading-none`}
+          style={{
+            transform: `scale(${spinScale})`,
+            filter: spinFilter,
+          }}
+        >
+          {symbol.emoji}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function SpinningReel({
   columnIndex,
   spinStrip,
@@ -907,7 +964,7 @@ style={{
               height: `${100 / spinStrip.length}%`,
             }}
           >
-            <ReelSymbol symbol={symbol} spinning />
+            <SpinningReelSymbol symbol={symbol} />
           </div>
         ))}
       </div>
@@ -1001,48 +1058,48 @@ const dimNonWinning = (hasWin || hasFreeSpinHighlight) && !spinning;
           }
         }
           
-        @keyframes naganiSlotReelMotionVeil {
+@keyframes naganiSlotReelMotionVeil {
   0%, 100% {
-    opacity: 0.12;
-    transform: translateY(-8%);
+    opacity: 0.04;
+    transform: translateY(-3%);
   }
   50% {
-    opacity: 0.32;
-    transform: translateY(8%);
+    opacity: 0.1;
+    transform: translateY(3%);
   }
 }
 
 @keyframes naganiSlotReelSpeedLines {
   0% {
-    opacity: 0.1;
-    transform: translate(-50%, -22%);
+    opacity: 0.02;
+    transform: translate(-50%, -10%);
   }
   42% {
-    opacity: 0.28;
+    opacity: 0.07;
   }
   100% {
-    opacity: 0.08;
-    transform: translate(-50%, 22%);
+    opacity: 0.02;
+    transform: translate(-50%, 10%);
   }
 }
 
 @keyframes naganiSlotSpinVignetteBreath {
   0%, 100% {
-    opacity: 0.34;
+    opacity: 0.16;
   }
   50% {
-    opacity: 0.58;
+    opacity: 0.26;
   }
 }
 
 @keyframes naganiSlotSpinPressureRing {
   0%, 100% {
-    opacity: 0.16;
-    transform: translate(-50%, -50%) scale(0.96);
+    opacity: 0.025;
+    transform: translate(-50%, -50%) scale(0.98);
   }
   50% {
-    opacity: 0.38;
-    transform: translate(-50%, -50%) scale(1.04);
+    opacity: 0.08;
+    transform: translate(-50%, -50%) scale(1.01);
   }
 }
 
@@ -1262,14 +1319,14 @@ const dimNonWinning = (hasWin || hasFreeSpinHighlight) && !spinning;
           }
         }
 
-        @keyframes naganiSlotBoardSpinGlow {
-          0%, 100% {
-            opacity: 0.18;
-          }
-          50% {
-            opacity: 0.42;
-          }
-        }
+@keyframes naganiSlotBoardSpinGlow {
+  0%, 100% {
+    opacity: 0.06;
+  }
+  50% {
+    opacity: 0.16;
+  }
+}
 
                 @keyframes naganiSlotIdleBoardBreath {
           0%, 100% {

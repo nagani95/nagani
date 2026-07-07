@@ -1,7 +1,8 @@
 // src/components/nagani-slot/NaganiSlotControls.tsx
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState, type CSSProperties, type RefObject } from "react";
 import type { NaganiSlotGameState } from "@/lib/naganiSlot/types";
+import { naganiSlotAudioEngine } from "./sound/NaganiSlotAudioEngine";
 
 type NaganiSlotControlsProps = {
   betAmount: number;
@@ -41,6 +42,15 @@ const BOTTOM_DOCK_SKIN_IMAGE = "/assets/nagani/slot/ui/bottom-dock-blackwood-v1.
 const VALUE_LABEL_SKIN_IMAGE = "/assets/nagani/slot/ui/value-card-redwood-v1.png";
 const BET_PICKER_BOARD_SKIN_IMAGE = "/assets/nagani/slot/ui/bet-picker-board-v1.png";
 const BET_PICKER_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/chip-button-skin-v1.png";
+const MILKY_VALUE_NUMBER_STYLE: CSSProperties = {
+  textShadow:
+    "0 1px 0 rgba(64,22,0,0.95), 0 0 9px rgba(255,253,238,0.42), 0 2px 8px rgba(0,0,0,0.94)",
+};
+
+const MILKY_CHIP_NUMBER_STYLE: CSSProperties = {
+  textShadow:
+    "0 1px 0 rgba(70,28,0,0.9), 0 0 7px rgba(255,250,228,0.34), 0 2px 7px rgba(0,0,0,0.9)",
+};
 
 const CUSTOM_BET_OPTIONS = [
   1000, 2000, 3000, 4000, 5000,
@@ -128,6 +138,47 @@ const canSpin =
     : quickPresetActive
       ? "လောင်းကြေး"
       : "စိတ်ကြိုက်";
+
+        function handleBetPickerOpen() {
+    naganiSlotAudioEngine.playUiTap();
+    setBetPickerOpen(true);
+  }
+
+  function handleBetPickerClose() {
+    naganiSlotAudioEngine.playUiTap();
+    setBetPickerOpen(false);
+  }
+
+  function handleQuickBetSelect(amount: number) {
+    naganiSlotAudioEngine.playChipSelect();
+    onSelectBetAmount(amount);
+  }
+
+  function handleCustomBetSelect(amount: number) {
+    naganiSlotAudioEngine.playChipSelect();
+    onSelectBetAmount(amount);
+    setBetPickerOpen(false);
+  }
+
+  function handleAutoToggle() {
+    naganiSlotAudioEngine.playAuto();
+    setAutoMode((current) => !current);
+  }
+
+  function handleDecreaseClick() {
+    naganiSlotAudioEngine.playBetDown();
+    onDecrease();
+  }
+
+  function handleIncreaseClick() {
+    naganiSlotAudioEngine.playBetUp();
+    onIncrease();
+  }
+
+  function handleMaxClick() {
+    naganiSlotAudioEngine.playMax();
+    onMaxBet();
+  }
 
   return (
     <section className="relative z-30 mx-auto mt-5 w-[calc(100%-10px)] max-w-[420px]">
@@ -361,7 +412,7 @@ const canSpin =
 <button
   type="button"
   disabled={betControlsLocked}
-  onClick={() => setBetPickerOpen(true)}
+  onClick={handleBetPickerOpen}
   className={`relative h-[46px] overflow-visible bg-transparent px-3 text-center transition-transform active:scale-[0.97] ${
     hasActiveFreeSpins ? "opacity-100" : "disabled:opacity-[0.72]"
   }`}
@@ -432,7 +483,10 @@ const canSpin =
 <div className="relative flex h-full items-center justify-center">
   {hasActiveFreeSpins ? (
     <div className="text-center">
-<p className="text-[18px] font-black leading-none text-[#fff8cf] drop-shadow-[0_2px_7px_rgba(0,0,0,0.9)]">
+<p
+  className="text-[18px] font-black leading-none text-[#fffdf2] drop-shadow-[0_2px_7px_rgba(0,0,0,0.9)]"
+  style={MILKY_VALUE_NUMBER_STYLE}
+>
   {formatMMK(freeSpinValue)}
 </p>
 <p className="mt-1 text-[9px] font-black leading-none text-[#fff0b9]/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.86)]">
@@ -441,7 +495,10 @@ const canSpin =
       </p>
     </div>
   ) : (
-    <p className="text-[18px] font-black leading-none text-[#fff1bd] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]">
+    <p
+      className="text-[18px] font-black leading-none text-[#fffdf2] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]"
+      style={MILKY_VALUE_NUMBER_STYLE}
+    >
       {formatMMK(betAmount)}
     </p>
   )}
@@ -516,8 +573,9 @@ const canSpin =
 ) : null}
 
 <p
-  className="text-[18px] font-black leading-none text-[#fff1bd] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]"
+  className="text-[18px] font-black leading-none text-[#fffdf2] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]"
   style={{
+    ...MILKY_VALUE_NUMBER_STYLE,
     animation: showWinCatch
       ? "naganiSlotDockBalanceNumberPop 620ms ease-out both"
       : undefined,
@@ -567,9 +625,9 @@ const chipDisabled = betControlsLocked || chip.amount > playableMaxBet;
   type="button"
   disabled={chipDisabled}
   aria-pressed={selected}
-  onClick={() => onSelectBetAmount(chip.amount)}
+  onClick={() => handleQuickBetSelect(chip.amount)}
 className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-extrabold tracking-[0.01em] transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.58] ${
-  selected ? "text-[#fff3bd]" : "text-[#f0c876]/90"
+  selected ? "text-[#fffdf2]" : "text-[#fff7df]/92"
 }`}
   style={{
     animation: selected
@@ -604,10 +662,7 @@ className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-
 
 <span
   className="relative z-20 block text-[12px] leading-none drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]"
-  style={{
-    textShadow:
-      "0 1px 0 rgba(80,32,0,0.85), 0 2px 7px rgba(0,0,0,0.86)",
-  }}
+  style={MILKY_CHIP_NUMBER_STYLE}
 >
   {chip.label}
 </span>
@@ -623,7 +678,7 @@ className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-
   disabled={controlsLocked}
   aria-pressed={autoMode}
   aria-label="အော်တို"
-  onClick={() => setAutoMode((current) => !current)}
+  onClick={handleAutoToggle}
   className={`relative flex h-[58px] items-center justify-center overflow-visible rounded-[20px] bg-transparent text-[11px] font-black leading-none transition-transform active:scale-[0.96] disabled:opacity-[0.66] ${
     autoMode ? "text-[#fff0b9]" : "text-[#ffe8a3]/90"
   }`}
@@ -650,7 +705,7 @@ className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-
           <div className="relative grid h-[66px] grid-cols-[42px_1fr_42px] items-center gap-1.5 p-1">
 <button
   type="button"
-  onClick={onDecrease}
+  onClick={handleDecreaseClick}
   disabled={!canDecreaseBet}
   aria-label="Decrease bet"
   className="relative h-[50px] overflow-visible rounded-[18px] bg-transparent transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.62]"
@@ -696,7 +751,7 @@ className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-
 
 <button
   type="button"
-  onClick={onIncrease}
+  onClick={handleIncreaseClick}
   disabled={!canIncreaseBet}
   aria-label="Increase bet"
   className="relative h-[50px] overflow-visible rounded-[18px] bg-transparent transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.62]"
@@ -715,7 +770,7 @@ className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-
 <button
   type="button"
   disabled={!canUseMaxBet}
-  onClick={onMaxBet}
+  onClick={handleMaxClick}
   aria-label="အားလုံး"
   className="relative flex h-[58px] items-center justify-center overflow-visible rounded-[20px] bg-transparent text-[11px] font-black leading-none text-[#fff0b9]/92 transition-transform active:scale-[0.96] disabled:opacity-[0.66]"
 >
@@ -734,7 +789,7 @@ className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-
           <button
             type="button"
             className="absolute inset-0 cursor-default"
-            onClick={() => setBetPickerOpen(false)}
+            onClick={handleBetPickerClose}
             aria-label="Close bet picker"
           />
 
@@ -782,12 +837,9 @@ className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-
   key={option}
   type="button"
   disabled={disabled}
-  onClick={() => {
-    onSelectBetAmount(option);
-    setBetPickerOpen(false);
-  }}
+  onClick={() => handleCustomBetSelect(option)}
 className={`relative h-[46px] overflow-visible rounded-[16px] bg-transparent text-[14px] font-extrabold tracking-[0.01em] transition-transform active:scale-[0.96] disabled:opacity-[0.38] ${
-  selected ? "text-[#fff6d0]" : "text-[#f0c876]/92"
+  selected ? "text-[#fffdf2]" : "text-[#fff7df]/92"
 }`}
 >
   <img
@@ -812,10 +864,7 @@ className={`relative h-[46px] overflow-visible rounded-[16px] bg-transparent tex
 
 <span
   className="relative z-20 block translate-y-[1px]"
-  style={{
-    textShadow:
-      "0 1px 0 rgba(80,32,0,0.9), 0 2px 7px rgba(0,0,0,0.86)",
-  }}
+  style={MILKY_CHIP_NUMBER_STYLE}
 >
   {formatMMK(option)}
 </span>

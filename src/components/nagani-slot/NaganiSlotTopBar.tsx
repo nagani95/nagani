@@ -8,6 +8,8 @@ import type { NaganiSlotGameState } from "@/lib/naganiSlot/types";
 
 type NaganiSlotTopBarProps = {
   gameState: NaganiSlotGameState;
+  isBackgroundMusicMuted?: boolean;
+  onBackgroundMusicToggle?: () => void;
 };
 
 const SLOT_TOP_BAR_SKIN =
@@ -26,7 +28,11 @@ function getRoomStateLabel(gameState: NaganiSlotGameState) {
   return "အသင့်";
 }
 
-export default function NaganiSlotTopBar({ gameState }: NaganiSlotTopBarProps) {
+export default function NaganiSlotTopBar({
+  gameState,
+  isBackgroundMusicMuted = false,
+  onBackgroundMusicToggle,
+}: NaganiSlotTopBarProps) {
   const router = useRouter();
 
   return (
@@ -106,8 +112,19 @@ export default function NaganiSlotTopBar({ gameState }: NaganiSlotTopBarProps) {
           </div>
         </div>
 
-        <div className="flex w-[92px] flex-col items-end gap-1.5 pr-1">
-          <div className="flex items-center gap-1.5 rounded-full border border-[#ffd979]/30 bg-black/30 px-2.5 py-1 shadow-[inset_0_1px_0_rgba(255,232,163,0.1)]">
+        <div className="flex w-[104px] flex-col items-end gap-1.5 pr-1">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onBackgroundMusicToggle}
+              disabled={!onBackgroundMusicToggle}
+              aria-label={isBackgroundMusicMuted ? "အသံဖွင့်ရန်" : "အသံပိတ်ရန်"}
+              className="grid h-[24px] w-[24px] place-items-center rounded-full border border-[#ffd979]/28 bg-black/34 text-[11px] font-black text-[#fff0b9] shadow-[inset_0_1px_0_rgba(255,232,163,0.1)] transition-transform active:scale-90 disabled:opacity-50"
+            >
+              {isBackgroundMusicMuted ? "🔇" : "🔊"}
+            </button>
+
+            <div className="flex items-center gap-1.5 rounded-full border border-[#ffd979]/30 bg-black/30 px-2.5 py-1 shadow-[inset_0_1px_0_rgba(255,232,163,0.1)]">
             <span
               className="h-1.5 w-1.5 rounded-full bg-[#fff0b9] shadow-[0_0_8px_rgba(255,232,163,0.9)]"
               style={{
@@ -117,6 +134,7 @@ export default function NaganiSlotTopBar({ gameState }: NaganiSlotTopBarProps) {
             <span className="text-[8px] font-black leading-none tracking-[0.08em] text-[#fff0b9] drop-shadow-[0_1px_3px_rgba(0,0,0,0.82)]">
               Live
             </span>
+            </div>
           </div>
 
           <div className="min-w-[50px] rounded-full border border-[#ffd979]/24 bg-[linear-gradient(180deg,rgba(66,10,5,0.72),rgba(5,0,0,0.72))] px-2.5 py-1 text-center shadow-[inset_0_1px_0_rgba(255,232,163,0.1)]">
