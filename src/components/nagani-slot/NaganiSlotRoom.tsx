@@ -8,6 +8,9 @@ import NaganiSlotBoard from "./NaganiSlotBoard";
 import NaganiSlotControls from "./NaganiSlotControls";
 import NaganiSlotLoadingLayer from "./NaganiSlotLoadingLayer";
 import NaganiSlotTopBar from "./NaganiSlotTopBar";
+import Lottie from "lottie-react";
+import win1Data from "../../../public/assets/nagani/slot/ui/win1.json";
+import win2Data from "../../../public/assets/nagani/slot/ui/win2.json";
 import {
   buildSlotColumnsFromBackendGrid,
   createDemoSpinResultColumns,
@@ -42,10 +45,14 @@ const BONUS_IMAGE = "/assets/nagani/slot/symbols/bonus.png";
 const WILD_IMAGE = "/assets/nagani/slot/symbols/wild.png";
 const BIG_WIN_IMAGE = "/assets/nagani/slot/symbols/wildwild.png";
 type RewardTransferPhase = "idle" | "counting" | "holding" | "flying" | "landed";
+const REWARD_PLAQUE_SKIN = "/assets/nagani/slot/ui/reward-plaque-v1.png";
+const LOTTIE_SPARKLE_BG = "/assets/nagani/slot/ui/sparkle-burst.gif";
+
 type CrownFreeSpinNotice = {
   crownCount: number;
   freeSpinsAwarded: number;
   betAmount: number;
+  positions: NaganiSlotPosition[];
 };
 type BackendNaganiSlotBalance = {
   cash?: number | string | null;
@@ -250,6 +257,16 @@ function getVisualDraftCrownCount(columns: NaganiSlotSymbol[][]) {
   return columns.flat().filter((symbol) => symbol.key === "crown").length;
 }
 
+function getCrownPositionsFromColumns(columns: NaganiSlotSymbol[][]) {
+  return columns.flatMap((column, columnIndex) =>
+    column
+      .map((symbol, rowIndex) =>
+        symbol.key === "crown" ? { columnIndex, rowIndex } : null
+      )
+      .filter((position): position is NaganiSlotPosition => Boolean(position))
+  );
+}
+
 function getVisualDraftFreeSpinsAwarded(crownCount: number) {
   return Math.min(
     VISUAL_DRAFT_MAX_FREE_SPINS_AWARDED,
@@ -295,11 +312,12 @@ function getBackendCrownFreeSpinNotice({
 
   if (crownCount <= 0 || freeSpinsAwarded <= 0) return null;
 
-  return {
-    crownCount,
-    freeSpinsAwarded,
-    betAmount: fallbackBetAmount,
-  };
+return {
+  crownCount,
+  freeSpinsAwarded,
+  betAmount: fallbackBetAmount,
+  positions: normalizeBackendPositions(scatterResult.positions),
+};
 }
 
 type NaganiSlotRoomProps = {
@@ -366,6 +384,8 @@ const showRoomSpinAtmosphere = roomReady && spinning;
 
 const rewardTone = getRewardOverlayTone(winEvaluation);
 const rewardIconImage = rewardTone === "big" ? BIG_WIN_IMAGE : WILD_IMAGE;
+const shouldShakeRoomForBigWin =
+  winEvaluation?.tier === "big" && rewardTransferPhase === "counting";
 const crownTriggerSparkCount = crownFreeSpinNotice
   ? crownFreeSpinNotice.freeSpinsAwarded >= 2
     ? 14
@@ -613,16 +633,17 @@ const shouldTriggerFreeSpins = !isFreeSpin && freeSpinsAwarded > 0;
 
 const resultTimer = window.setTimeout(() => {
   setActiveFreeSpinSession(nextVisualFreeSpinSession);
-  setCrownFreeSpinNotice(
-    shouldTriggerFreeSpins
-      ? {
-          crownCount,
-          freeSpinsAwarded,
-          betAmount,
-        }
-      : null
-  );
-  setWinEvaluation(evaluation);
+setCrownFreeSpinNotice(
+  shouldTriggerFreeSpins
+    ? {
+        crownCount,
+        freeSpinsAwarded,
+        betAmount,
+        positions: getCrownPositionsFromColumns(nextColumns),
+      }
+    : null
+);
+setWinEvaluation(evaluation);
   setStoppedReelCount(5);
   setGameState("settling");
 
@@ -694,6 +715,15 @@ const resultTimer = window.setTimeout(() => {
     fallbackBetAmount: backendBetAmount,
     isFreeSpin,
   });
+  const crownFreeSpinNoticeWithPositions = backendCrownFreeSpinNotice
+  ? {
+      ...backendCrownFreeSpinNotice,
+      positions:
+        backendCrownFreeSpinNotice.positions.length > 0
+          ? backendCrownFreeSpinNotice.positions
+          : getCrownPositionsFromColumns(nextColumns),
+    }
+  : null;
 
   const winningLines = Array.isArray(spinResult.winning_lines)
     ? spinResult.winning_lines
@@ -715,14 +745,14 @@ const resultTimer = window.setTimeout(() => {
   });
 
   const resultTimer = window.setTimeout(() => {
-    setCrownFreeSpinNotice(backendCrownFreeSpinNotice);
+    setCrownFreeSpinNotice(crownFreeSpinNoticeWithPositions);
     setWinEvaluation(evaluation);
     setStoppedReelCount(5);
     setGameState("settling");
 
     const countStartTimer = window.setTimeout(() => {
       countWinAmount(payoutAmount, nextBalanceTotal, {
-        suppressNoWinNotice: Boolean(backendCrownFreeSpinNotice),
+        suppressNoWinNotice: Boolean(crownFreeSpinNoticeWithPositions),
       });
     }, RESULT_HOLD_BEFORE_COUNT_MS);
 
@@ -969,6 +999,30 @@ const resultTimer = window.setTimeout(() => {
             filter: blur(0) brightness(1);
           }
         }
+
+        @keyframes naganiSlotBigWinRoomShake {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  10% {
+    transform: translate3d(-2px, 1px, 0) rotate(-0.18deg);
+  }
+  22% {
+    transform: translate3d(2px, -1px, 0) rotate(0.18deg);
+  }
+  34% {
+    transform: translate3d(-3px, 1px, 0) rotate(-0.2deg);
+  }
+  48% {
+    transform: translate3d(3px, -1px, 0) rotate(0.2deg);
+  }
+  62% {
+    transform: translate3d(-2px, 1px, 0) rotate(-0.12deg);
+  }
+  78% {
+    transform: translate3d(1px, -1px, 0) rotate(0.08deg);
+  }
+}
 
         @keyframes naganiSlotRewardOverlayAura {
           0%, 100% {
@@ -1248,7 +1302,15 @@ const resultTimer = window.setTimeout(() => {
       `}</style>
 
       <div className="mx-auto h-dvh w-full max-w-[430px] overflow-hidden bg-[#080101]">
-        <div ref={roomShellRef} className="relative h-full overflow-hidden">
+        <div
+  ref={roomShellRef}
+  className="relative h-full overflow-hidden"
+  style={{
+    animation: shouldShakeRoomForBigWin
+      ? "naganiSlotBigWinRoomShake 620ms ease-in-out both"
+      : undefined,
+  }}
+>
           {!roomReady ? <NaganiSlotLoadingLayer /> : null}
 <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
   <img
@@ -1417,158 +1479,161 @@ const resultTimer = window.setTimeout(() => {
       />
     ))}
 
+<div
+  className="relative z-20 flex min-h-[154px] w-[286px] max-w-[92%] flex-col items-center justify-center overflow-visible"
+  style={{
+    animation:
+      "naganiSlotRewardOverlayIn 420ms ease-out both, naganiSlotRewardCardHoldBreath 980ms ease-in-out 420ms infinite",
+  }}
+>
+  <img
+    src={REWARD_PLAQUE_SKIN}
+    alt=""
+    className="pointer-events-none absolute inset-0 z-0 h-full w-full object-fill drop-shadow-[0_18px_38px_rgba(0,0,0,0.9)] drop-shadow-[0_0_24px_rgba(255,190,74,0.24)]"
+    draggable={false}
+  />
+
+  <div className="pointer-events-none absolute inset-[14px] z-[1] rounded-[16px] border border-[#fff0b9]/26 bg-[radial-gradient(circle_at_50%_0%,rgba(255,232,163,0.16),rgba(140,18,12,0.12)_34%,transparent_72%)] shadow-[inset_0_1px_0_rgba(255,240,185,0.34),inset_0_-14px_24px_rgba(62,0,0,0.28)]" />
+
+  <div className="pointer-events-none absolute inset-x-10 top-[18px] z-[2] h-px bg-gradient-to-r from-transparent via-[#fff0b9]/86 to-transparent" />
+
+  <div className="pointer-events-none absolute inset-x-12 bottom-[18px] z-[2] h-px bg-gradient-to-r from-transparent via-[#c9872f]/76 to-transparent" />
+
+  <div
+    className="pointer-events-none absolute inset-y-2 left-0 z-[3] w-[46%] bg-[linear-gradient(90deg,transparent,rgba(255,240,185,0.16),transparent)]"
+    style={{
+      animation: "naganiSlotRewardMedallionSweep 1280ms ease-out infinite",
+    }}
+  />
+
+  <div className="relative z-10 flex w-full flex-col items-center px-7 pb-5 pt-4">
     <div
-      className="relative min-w-[248px] max-w-[88%] overflow-hidden rounded-[44px] border border-[#fff0b9]/88 bg-[radial-gradient(circle_at_50%_0%,rgba(255,246,208,0.42),rgba(154,34,9,0.97)_38%,rgba(42,3,2,0.99))] px-6 pb-4 pt-5 text-center shadow-[0_26px_62px_rgba(0,0,0,0.86),0_0_48px_rgba(255,218,121,0.3),inset_0_1px_0_rgba(255,240,185,0.42),inset_0_-22px_34px_rgba(54,0,0,0.48)]"
+      className="relative mx-auto -mt-9 mb-1 grid h-[62px] w-[78px] place-items-center"
       style={{
-        animation:
-          "naganiSlotRewardOverlayIn 420ms ease-out both, naganiSlotRewardCardHoldBreath 900ms ease-in-out 420ms infinite",
+        animation: "naganiSlotFreeSpinPotFloat 1300ms ease-in-out infinite",
       }}
     >
-      <div className="pointer-events-none absolute inset-1 rounded-[40px] border border-[#ffd979]/20" />
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/80 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d69a37]/72 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-7 top-2 h-9 rounded-full bg-white/17 blur-md" />
+      <div className="absolute inset-x-2 bottom-1 h-5 rounded-full bg-[#ffd979]/28 blur-lg" />
 
-      <div
-        className="relative mx-auto -mt-2 mb-1 grid h-[64px] w-[82px] place-items-center"
-        style={{
-          animation: "naganiSlotFreeSpinPotFloat 1300ms ease-in-out infinite",
-        }}
-      >
-        <div className="absolute inset-x-2 bottom-1 h-5 rounded-full bg-[#ffd979]/24 blur-lg" />
-        <img
-          src={BONUS_IMAGE}
-          alt=""
-          className="relative h-full w-full object-contain drop-shadow-[0_0_18px_rgba(255,232,163,0.52)]"
-          draggable={false}
-        />
-      </div>
-
-      <p className="relative text-[15px] font-black leading-none text-[#fff4c7] drop-shadow-[0_2px_8px_rgba(0,0,0,0.86)]">
-        အခမဲ့လှည့်ခွင့်
-      </p>
-
-      <div className="relative mx-auto mt-2 h-px w-[70%] bg-gradient-to-r from-transparent via-[#ffd979]/54 to-transparent" />
-
-      <p className="relative mt-2 text-[18px] font-black leading-none text-[#fff4c7] drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-        Scatter {crownFreeSpinNotice.crownCount} ခု
-      </p>
-
-      <p
-        className="relative mt-2 text-[19px] font-black leading-none text-[#ffe08a] drop-shadow-[0_2px_7px_rgba(0,0,0,0.88)]"
-        style={{
-          animation: "naganiSlotFreeSpinNumberPulse 720ms ease-in-out infinite",
-        }}
-      >
-        Free {crownFreeSpinNotice.freeSpinsAwarded} ကြိမ် ×{" "}
-        {crownFreeSpinNotice.betAmount.toLocaleString("en-US")}
-      </p>
-
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-[48%] bg-[linear-gradient(90deg,transparent,rgba(255,240,185,0.18),transparent)]"
-        style={{
-          animation: "naganiSlotRewardMedallionSweep 1280ms ease-out infinite",
-        }}
+      <img
+        src={BONUS_IMAGE}
+        alt=""
+        className="relative h-full w-full object-contain drop-shadow-[0_0_18px_rgba(255,232,163,0.54)] drop-shadow-[0_9px_9px_rgba(0,0,0,0.72)]"
+        draggable={false}
       />
     </div>
+
+    <p
+      className="relative text-[15px] font-black leading-none text-transparent bg-clip-text drop-shadow-[0_2px_7px_rgba(0,0,0,0.88)]"
+      style={{
+        backgroundImage:
+          "linear-gradient(to bottom, #fffaf0, #ffe08a 48%, #c47a10)",
+        WebkitBackgroundClip: "text",
+      }}
+    >
+      အခမဲ့လှည့်ခွင့်
+    </p>
+
+    <div className="relative mx-auto my-2 h-[2px] w-[76%] bg-gradient-to-r from-transparent via-[#ffd979]/82 to-transparent" />
+
+    <p className="relative text-[17px] font-black leading-none text-[#fff4c7] drop-shadow-[0_2px_7px_rgba(0,0,0,0.9)]">
+      Scatter {crownFreeSpinNotice.crownCount} ခု
+    </p>
+
+    <p
+      className="relative mt-2 text-[22px] font-black leading-none text-transparent bg-clip-text drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]"
+      style={{
+        animation: "naganiSlotFreeSpinNumberPulse 720ms ease-in-out infinite",
+        backgroundImage:
+          "linear-gradient(to bottom, #ffffff 0%, #fff7c7 36%, #ffe06f 62%, #ffb52e 100%)",
+        WebkitBackgroundClip: "text",
+        WebkitTextStroke: "0.35px rgba(80, 18, 0, 0.58)",
+      }}
+    >
+      Free {crownFreeSpinNotice.freeSpinsAwarded} ကြိမ် ×{" "}
+      {crownFreeSpinNotice.betAmount.toLocaleString("en-US")}
+    </p>
+  </div>
+</div>
   </div>
 ) : null}
 
 {showRewardOverlay && winEvaluation ? (
   <div className="pointer-events-none absolute inset-x-0 bottom-[188px] top-[76px] z-[55] flex items-center justify-center px-6">
-    <div
-  className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(0,0,0,0.22),transparent_58%)]"
-  style={{
-    animation: "naganiSlotRewardBackdropPulse 980ms ease-in-out infinite",
-  }}
-/>
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_46%,rgba(0,0,0,0.18),rgba(0,0,0,0.58)_72%)]" />
+
+    <div className="absolute inset-0 z-0 flex items-center justify-center opacity-80">
+      <Lottie animationData={win1Data} loop={true} className="absolute inset-0" />
+      <Lottie animationData={win2Data} loop={true} className="absolute inset-0" />
+    </div>
+
+    <div className="absolute left-1/2 top-1/2 z-[1] h-[260px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,240,185,0.24),rgba(255,184,66,0.12)_38%,transparent_72%)] blur-xl" />
 
     <div
-      className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,232,163,0.28),rgba(255,184,66,0.12)_36%,transparent_70%)]"
+      className="relative z-20 flex min-h-[154px] w-[286px] max-w-[92%] flex-col items-center justify-center overflow-visible"
       style={{
-        animation: "naganiSlotRewardOverlayAura 1180ms ease-in-out infinite",
+        animation:
+          rewardTransferPhase === "flying"
+            ? "naganiSlotRewardMedallionTransferOut 520ms ease-in forwards"
+            : "naganiSlotRewardOverlayIn 420ms ease-out both, naganiSlotRewardCardHoldBreath 980ms ease-in-out 420ms infinite",
       }}
-    />
-
-    {Array.from({
-      length: rewardTone === "big" ? 20 : rewardTone === "medium" ? 13 : 8,
-    }).map((_, index) => (
-      <span
-        key={`nagani-slot-floating-reward-coin-${index}`}
-        className="absolute h-1.5 w-1.5 rounded-full bg-[#fff0b9]"
-        style={{
-          left: `${16 + ((index * 17) % 68)}%`,
-          top: `${40 + ((index * 23) % 30)}%`,
-          animation: `naganiSlotRewardCoinFloat ${
-            760 + (index % 5) * 90
-          }ms ease-out ${index * 48}ms infinite`,
-          boxShadow:
-            "0 0 10px rgba(255,232,163,0.88), 0 0 18px rgba(255,184,66,0.42)",
-        }}
-      />
-    ))}
-
-    <div
-      className={`relative min-w-[248px] max-w-[88%] overflow-hidden rounded-[44px] border px-6 pb-4 pt-5 text-center shadow-[0_26px_62px_rgba(0,0,0,0.86),0_0_48px_rgba(255,218,121,0.3),inset_0_1px_0_rgba(255,240,185,0.42),inset_0_-22px_34px_rgba(54,0,0,0.48)] ${
-        rewardTone === "big"
-          ? "border-[#fff0b9]/90 bg-[radial-gradient(circle_at_50%_0%,rgba(255,246,208,0.48),rgba(174,42,10,0.97)_36%,rgba(55,3,2,0.99))]"
-          : rewardTone === "medium"
-            ? "border-[#ffe08a]/78 bg-[radial-gradient(circle_at_50%_0%,rgba(255,232,163,0.36),rgba(126,24,7,0.97)_42%,rgba(42,3,2,0.99))]"
-            : "border-[#ffd979]/66 bg-[radial-gradient(circle_at_50%_0%,rgba(255,218,121,0.26),rgba(92,16,6,0.97)_42%,rgba(31,2,2,0.99))]"
-      }`}
-style={{
-  animation:
-    rewardTransferPhase === "flying"
-      ? "naganiSlotRewardMedallionTransferOut 520ms ease-in forwards"
-      : rewardTransferPhase === "holding"
-        ? "naganiSlotRewardOverlayIn 420ms ease-out both, naganiSlotRewardCardHoldBreath 900ms ease-in-out 420ms infinite"
-        : "naganiSlotRewardOverlayIn 420ms ease-out both",
-}}
     >
-      <div className="pointer-events-none absolute inset-1 rounded-[40px] border border-[#ffd979]/20" />
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/80 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d69a37]/72 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-7 top-2 h-9 rounded-full bg-white/17 blur-md" />
+      <img
+        src={REWARD_PLAQUE_SKIN}
+        alt=""
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-fill drop-shadow-[0_18px_38px_rgba(0,0,0,0.9)] drop-shadow-[0_0_24px_rgba(255,190,74,0.24)]"
+        draggable={false}
+      />
 
+      <div className="pointer-events-none absolute inset-[14px] z-[1] rounded-[16px] border border-[#fff0b9]/26 bg-[radial-gradient(circle_at_50%_0%,rgba(255,232,163,0.16),rgba(140,18,12,0.12)_34%,transparent_72%)] shadow-[inset_0_1px_0_rgba(255,240,185,0.34),inset_0_-14px_24px_rgba(62,0,0,0.28)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-[18px] z-[2] h-px bg-gradient-to-r from-transparent via-[#fff0b9]/86 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-12 bottom-[18px] z-[2] h-px bg-gradient-to-r from-transparent via-[#c9872f]/76 to-transparent" />
       <div
-        className="relative mx-auto -mt-2 mb-1 grid h-[54px] w-[72px] place-items-center"
-        style={{
-          animation: "naganiSlotRewardPotFloat 1300ms ease-in-out infinite",
-        }}
-      >
-        <div className="absolute inset-x-1 bottom-0 h-5 rounded-full bg-[#ffd979]/24 blur-lg" />
-<img
-  src={rewardIconImage}
-  alt=""
-  className="relative h-full w-full object-contain drop-shadow-[0_0_18px_rgba(255,232,163,0.48)]"
-  draggable={false}
-/>
-      </div>
-
-      <p className="relative text-[15px] font-black leading-none text-[#fff4c7] drop-shadow-[0_2px_8px_rgba(0,0,0,0.86)]">
-        {getRewardOverlayTitle(winEvaluation)}
-      </p>
-
-      <div className="relative mx-auto mt-2 h-px w-[70%] bg-gradient-to-r from-transparent via-[#ffd979]/54 to-transparent" />
-
-<p
-  className="relative mt-2 text-[30px] font-black leading-none text-[#fff4c7] drop-shadow-[0_3px_9px_rgba(0,0,0,0.9)]"
-  style={{
-    animation:
-      gameState === "settling"
-        ? "naganiSlotRewardAmountPop 260ms ease-out both, naganiSlotRewardAmountPulse 520ms ease-in-out 260ms infinite"
-        : undefined,
-  }}
->
-  + {formatMMK(lastWin)}
-</p>
-
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-[48%] bg-[linear-gradient(90deg,transparent,rgba(255,240,185,0.18),transparent)]"
+        className="pointer-events-none absolute inset-y-2 left-0 z-[3] w-[46%] bg-[linear-gradient(90deg,transparent,rgba(255,240,185,0.16),transparent)]"
         style={{
           animation: "naganiSlotRewardMedallionSweep 1280ms ease-out infinite",
         }}
       />
+
+      <div className="relative z-10 flex w-full flex-col items-center px-7 pb-5 pt-4">
+        <div className="relative mx-auto -mt-9 mb-1 grid h-[62px] w-[78px] place-items-center">
+          <div className="absolute inset-x-2 bottom-1 h-5 rounded-full bg-[#ffd979]/28 blur-lg" />
+          <img
+            src={rewardIconImage}
+            alt=""
+            className="relative h-full w-full object-contain drop-shadow-[0_0_18px_rgba(255,232,163,0.54)] drop-shadow-[0_9px_9px_rgba(0,0,0,0.72)]"
+            draggable={false}
+          />
+        </div>
+
+        <p
+          className="relative text-[15px] font-black leading-none text-transparent bg-clip-text drop-shadow-[0_2px_7px_rgba(0,0,0,0.88)]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to bottom, #fffaf0, #ffe08a 48%, #c47a10)",
+            WebkitBackgroundClip: "text",
+          }}
+        >
+          {getRewardOverlayTitle(winEvaluation)}
+        </p>
+
+        <div className="relative mx-auto my-2.5 h-[2px] w-[78%] bg-gradient-to-r from-transparent via-[#ffd979]/88 to-transparent" />
+
+<p
+  className="relative text-[30px] font-black leading-none text-transparent bg-clip-text drop-shadow-[0_2px_5px_rgba(0,0,0,0.86)]"
+  style={{
+    animation: "naganiSlotRewardAmountPulse 780ms ease-in-out infinite",
+    backgroundImage:
+      "linear-gradient(to bottom, #ffffff 0%, #fff7c7 36%, #ffe06f 62%, #ffb52e 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextStroke: "0.45px rgba(80, 18, 0, 0.62)",
+    textShadow:
+      "0 2px 5px rgba(0,0,0,0.9), 0 0 12px rgba(255,232,163,0.34)",
+  }}
+>
+  + {formatMMK(lastWin)}
+</p>
+      </div>
     </div>
   </div>
 ) : null}
@@ -1607,6 +1672,7 @@ style={{
   spinning={spinning}
   stoppedReelCount={stoppedReelCount}
   winEvaluation={winEvaluation?.tier === "none" ? null : winEvaluation}
+  freeSpinHighlightPositions={crownFreeSpinNotice?.positions ?? []}
 />
               </div>
 

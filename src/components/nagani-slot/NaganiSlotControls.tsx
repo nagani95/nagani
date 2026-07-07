@@ -21,10 +21,10 @@ type NaganiSlotControlsProps = {
 };
 
 const QUICK_BETS = [
-  { amount: 1000, label: "1K" },
-  { amount: 2000, label: "2K" },
-  { amount: 5000, label: "5K" },
-  { amount: 10000, label: "10K" },
+  { amount: 1000, label: "1,000" },
+  { amount: 2000, label: "2,000" },
+  { amount: 5000, label: "5,000" },
+  { amount: 7000, label: "7,000" },
 ];
 
 const MIN_BET = 1000;
@@ -39,6 +39,8 @@ const REDUCE_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/reduce-v1.png";
 const ADD_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/add-v1.png";
 const BOTTOM_DOCK_SKIN_IMAGE = "/assets/nagani/slot/ui/bottom-dock-blackwood-v1.png";
 const VALUE_LABEL_SKIN_IMAGE = "/assets/nagani/slot/ui/value-card-redwood-v1.png";
+const BET_PICKER_BOARD_SKIN_IMAGE = "/assets/nagani/slot/ui/bet-picker-board-v1.png";
+const BET_PICKER_BUTTON_SKIN_IMAGE = "/assets/nagani/slot/ui/chip-button-skin-v1.png";
 
 const CUSTOM_BET_OPTIONS = [
   1000, 2000, 3000, 4000, 5000,
@@ -317,6 +319,42 @@ const canSpin =
             opacity: 0;
           }
         }
+
+        @keyframes naganiSlotFreeSpinCardAlive {
+  0%, 100% {
+    filter: brightness(1.06) saturate(1.06);
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    filter: brightness(1.22) saturate(1.14);
+    transform: translateY(-1px) scale(1.018);
+  }
+}
+
+@keyframes naganiSlotFreeSpinCardSweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-135%) skewX(-18deg);
+  }
+  24% {
+    opacity: 0.52;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(135%) skewX(-18deg);
+  }
+}
+
+@keyframes naganiSlotFreeSpinCardSpark {
+  0%, 100% {
+    opacity: 0.22;
+    transform: scale(0.72);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
       `}</style>
 
       <div className="absolute inset-x-6 -top-[25px] z-40 grid grid-cols-2 gap-2">
@@ -324,15 +362,53 @@ const canSpin =
   type="button"
   disabled={betControlsLocked}
   onClick={() => setBetPickerOpen(true)}
-  className="relative h-[46px] overflow-visible bg-transparent px-3 text-center transition-transform active:scale-[0.97] disabled:opacity-[0.72]"
+  className={`relative h-[46px] overflow-visible bg-transparent px-3 text-center transition-transform active:scale-[0.97] ${
+    hasActiveFreeSpins ? "opacity-100" : "disabled:opacity-[0.72]"
+  }`}
+  style={{
+    animation: hasActiveFreeSpins
+      ? "naganiSlotFreeSpinCardAlive 1500ms ease-in-out infinite"
+      : undefined,
+  }}
   aria-label="Choose bet amount"
 >
-  <img
-    src={VALUE_CARD_SKIN_IMAGE}
-    alt=""
-    className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[56px] w-[calc(100%+12px)] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_10px_18px_rgba(0,0,0,0.58)]"
-    draggable={false}
-  />
+<img
+  src={VALUE_CARD_SKIN_IMAGE}
+  alt=""
+  className={`pointer-events-none absolute left-1/2 top-1/2 z-0 h-[56px] w-[calc(100%+12px)] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_10px_18px_rgba(0,0,0,0.58)] ${
+    hasActiveFreeSpins ? "brightness-[1.18] saturate-[1.16]" : ""
+  }`}
+  draggable={false}
+/>
+
+{hasActiveFreeSpins ? (
+  <>
+    <span className="pointer-events-none absolute inset-[1px] z-10 rounded-[22px] border border-[#fff0b9]/42 shadow-[0_0_16px_rgba(255,218,121,0.26)]" />
+
+    <span
+      className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[46%] rounded-[22px] bg-[linear-gradient(90deg,transparent,rgba(255,248,214,0.18),transparent)]"
+      style={{
+        animation: "naganiSlotFreeSpinCardSweep 1550ms ease-out infinite",
+      }}
+    />
+
+    {Array.from({ length: 3 }).map((_, index) => (
+      <span
+        key={`active-free-spin-card-spark-${index}`}
+        className="pointer-events-none absolute z-20 h-1 w-1 rounded-full bg-[#fff0b9]"
+        style={{
+          left: `${24 + index * 26}%`,
+          top: `${18 + ((index * 19) % 32)}%`,
+          animation: `naganiSlotFreeSpinCardSpark ${
+            1200 + index * 220
+          }ms ease-in-out ${index * 160}ms infinite`,
+          boxShadow:
+            "0 0 7px rgba(255,240,185,0.86), 0 0 12px rgba(255,184,66,0.34)",
+        }}
+      />
+    ))}
+  </>
+) : null}
 
   <div className="relative z-10 flex h-full items-center justify-center">
 
@@ -356,10 +432,10 @@ const canSpin =
 <div className="relative flex h-full items-center justify-center">
   {hasActiveFreeSpins ? (
     <div className="text-center">
-      <p className="text-[18px] font-black leading-none text-[#fff4c7] drop-shadow-[0_2px_7px_rgba(0,0,0,0.84)]">
-        {formatMMK(freeSpinValue)}
-      </p>
-      <p className="mt-1 text-[9px] font-black leading-none text-[#ffd979]/82 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+<p className="text-[18px] font-black leading-none text-[#fff8cf] drop-shadow-[0_2px_7px_rgba(0,0,0,0.9)]">
+  {formatMMK(freeSpinValue)}
+</p>
+<p className="mt-1 text-[9px] font-black leading-none text-[#fff0b9]/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.86)]">
         ကျန် {activeFreeSpinsRemaining}/
         {freeSpinTotal || activeFreeSpinsRemaining}
       </p>
@@ -492,9 +568,9 @@ const chipDisabled = betControlsLocked || chip.amount > playableMaxBet;
   disabled={chipDisabled}
   aria-pressed={selected}
   onClick={() => onSelectBetAmount(chip.amount)}
-  className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-black transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.58] ${
-    selected ? "text-[#fff7d4]" : "text-[#ffe8a3]/82"
-  }`}
+className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-extrabold tracking-[0.01em] transition-transform active:translate-y-0.5 active:scale-[0.94] disabled:opacity-[0.58] ${
+  selected ? "text-[#fff3bd]" : "text-[#f0c876]/90"
+}`}
   style={{
     animation: selected
       ? "naganiSlotSelectedCoinPulse 1350ms ease-in-out infinite"
@@ -526,9 +602,15 @@ const chipDisabled = betControlsLocked || chip.amount > playableMaxBet;
     <span className="pointer-events-none absolute inset-[2px] z-10 rounded-full border border-[#ffd979]/12" />
   )}
 
-  <span className="relative z-20 block text-[13px] leading-none drop-shadow-[0_2px_5px_rgba(0,0,0,0.86)]">
-    {chip.label}
-  </span>
+<span
+  className="relative z-20 block text-[12px] leading-none drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]"
+  style={{
+    textShadow:
+      "0 1px 0 rgba(80,32,0,0.85), 0 2px 7px rgba(0,0,0,0.86)",
+  }}
+>
+  {chip.label}
+</span>
 </button>
               );
             })}
@@ -656,17 +738,27 @@ const chipDisabled = betControlsLocked || chip.amount > playableMaxBet;
             aria-label="Close bet picker"
           />
 
-          <div className="relative w-full max-w-[360px] overflow-hidden rounded-[28px] border border-[#ffd979]/62 bg-[radial-gradient(circle_at_50%_0%,rgba(255,232,163,0.22),rgba(65,7,4,0.98)_42%,rgba(8,0,0,0.98))] p-4 shadow-[0_26px_70px_rgba(0,0,0,0.92),0_0_36px_rgba(255,190,74,0.16),inset_0_1px_0_rgba(255,240,185,0.22)]">
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#fff0b9]/78 to-transparent" />
-            <div className="pointer-events-none absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[#b97823]/58 to-transparent" />
+<div className="relative w-full max-w-[360px] overflow-visible px-5 pb-5 pt-5">
+  <img
+    src={BET_PICKER_BOARD_SKIN_IMAGE}
+    alt=""
+    className="pointer-events-none absolute inset-0 z-0 h-full w-full object-fill drop-shadow-[0_26px_70px_rgba(0,0,0,0.92)]"
+    draggable={false}
+  />
 
-            <div className="mb-3 flex items-center justify-between">
+            <div className="relative z-10 mb-3 flex items-center justify-between">
               <div>
-<p className="text-[18px] font-black leading-none text-[#fff0b9] drop-shadow-[0_2px_5px_rgba(0,0,0,0.86)]">
-  လောင်းကြေးရွေးပါ
+<p
+  className="text-[17px] font-extrabold leading-none tracking-[0.01em] text-[#fff1bd] drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]"
+  style={{
+    textShadow:
+      "0 1px 0 rgba(92,36,0,0.9), 0 2px 8px rgba(0,0,0,0.86)",
+  }}
+>
+  လောင်းကြေး ရွေးရန်
 </p>
-<p className="mt-1.5 text-[12px] font-bold leading-snug text-[#ffd979]/78">
-ခွင့်ပြုထားသော လောင်းကြေးကို ရွေးပါ
+<p className="mt-1.5 text-[11px] font-semibold leading-snug tracking-[0.01em] text-[#d9aa5a]/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.78)]">
+  ကစားမည့် ပမာဏကို ရွေးပါ
 </p>
               </div>
 
@@ -680,30 +772,54 @@ const chipDisabled = betControlsLocked || chip.amount > playableMaxBet;
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="relative z-10 grid grid-cols-2 gap-2">
               {CUSTOM_BET_OPTIONS.map((option) => {
                 const disabled = betControlsLocked || option > playableMaxBet;
                 const selected = betAmount === option;
 
                 return (
-                  <button
-                    key={option}
-                    type="button"
-                    disabled={disabled}
-onClick={() => {
-  onSelectBetAmount(option);
-  setBetPickerOpen(false);
-}}
-                    className={`relative h-[46px] overflow-hidden rounded-[16px] border text-[15px] font-black transition-transform active:scale-[0.96] disabled:opacity-[0.38] ${
-                      selected
-                        ? "border-[#fff0b9]/86 bg-[linear-gradient(180deg,#ffe08a_0%,#d78b2d_22%,#bd2012_58%,#590302_100%)] text-white shadow-[0_0_18px_rgba(255,218,121,0.32),inset_0_1px_0_rgba(255,255,255,0.34)]"
-                        : "border-[#a66a20]/56 bg-[linear-gradient(180deg,rgba(70,14,7,0.92),rgba(13,0,0,0.95))] text-[#ffe8a3]/86"
-                    }`}
-                  >
-                    <span className="relative z-10">
-                      {formatMMK(option)}
-                    </span>
-                  </button>
+<button
+  key={option}
+  type="button"
+  disabled={disabled}
+  onClick={() => {
+    onSelectBetAmount(option);
+    setBetPickerOpen(false);
+  }}
+className={`relative h-[46px] overflow-visible rounded-[16px] bg-transparent text-[14px] font-extrabold tracking-[0.01em] transition-transform active:scale-[0.96] disabled:opacity-[0.38] ${
+  selected ? "text-[#fff6d0]" : "text-[#f0c876]/92"
+}`}
+>
+  <img
+    src={BET_PICKER_BUTTON_SKIN_IMAGE}
+    alt=""
+    className={`pointer-events-none absolute left-1/2 top-1/2 z-0 h-[52px] w-[calc(100%+10px)] -translate-x-1/2 -translate-y-1/2 object-fill drop-shadow-[0_7px_13px_rgba(0,0,0,0.58)] ${
+      selected
+        ? "brightness-[1.24] saturate-[1.18]"
+        : "brightness-[0.74] saturate-[0.86]"
+    }`}
+    draggable={false}
+  />
+
+  {selected ? (
+    <>
+      <span className="pointer-events-none absolute inset-[-1px] z-10 rounded-[16px] border border-[#fff0b9]/70 shadow-[0_0_16px_rgba(255,218,121,0.34)]" />
+      <span className="pointer-events-none absolute inset-x-4 top-[5px] z-10 h-px bg-gradient-to-r from-transparent via-white/48 to-transparent" />
+    </>
+  ) : (
+    <span className="pointer-events-none absolute inset-[2px] z-10 rounded-[15px] border border-[#ffd979]/14" />
+  )}
+
+<span
+  className="relative z-20 block translate-y-[1px]"
+  style={{
+    textShadow:
+      "0 1px 0 rgba(80,32,0,0.9), 0 2px 7px rgba(0,0,0,0.86)",
+  }}
+>
+  {formatMMK(option)}
+</span>
+</button>
                 );
               })}
             </div>

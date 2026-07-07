@@ -15,6 +15,7 @@ type NaganiSlotBoardProps = {
   spinning: boolean;
   stoppedReelCount: number;
   winEvaluation: NaganiSlotWinEvaluation | null;
+  freeSpinHighlightPositions?: NaganiSlotPosition[];
 };
 
 function shouldShowSymbolLabel(_symbol: NaganiSlotSymbol) {
@@ -23,22 +24,22 @@ function shouldShowSymbolLabel(_symbol: NaganiSlotSymbol) {
 
 function getSymbolGlow(symbol: NaganiSlotSymbol) {
   if (symbol.key === "crown") {
-    return "drop-shadow-[0_0_22px_rgba(255,240,185,0.76)] drop-shadow-[0_0_14px_rgba(255,184,66,0.32)]";
+    return "drop-shadow-[0_0_24px_rgba(255,244,194,0.82)] drop-shadow-[0_0_14px_rgba(255,194,82,0.38)] drop-shadow-[0_10px_10px_rgba(0,0,0,0.6)]";
   }
 
   if (symbol.key === "star") {
-    return "drop-shadow-[0_0_20px_rgba(255,218,121,0.72)] drop-shadow-[0_0_14px_rgba(255,42,42,0.28)]";
+    return "drop-shadow-[0_0_22px_rgba(255,230,150,0.76)] drop-shadow-[0_0_12px_rgba(255,72,72,0.28)] drop-shadow-[0_10px_10px_rgba(0,0,0,0.6)]";
   }
 
-  if (symbol.tier === "high") {
-    return "drop-shadow-[0_0_16px_rgba(255,202,96,0.55)]";
+  if (symbol.key === "dragon") {
+    return "drop-shadow-[0_0_15px_rgba(255,194,94,0.42)] drop-shadow-[0_8px_8px_rgba(0,0,0,0.58)]";
   }
 
-  if (symbol.tier === "mid") {
-    return "drop-shadow-[0_0_14px_rgba(226,154,72,0.42)]";
+  if (isGoldPotSymbol(symbol)) {
+    return "drop-shadow-[0_0_14px_rgba(255,214,112,0.38)] drop-shadow-[0_8px_8px_rgba(0,0,0,0.56)]";
   }
 
-  return "drop-shadow-[0_0_12px_rgba(184,104,44,0.34)]";
+  return "drop-shadow-[0_7px_8px_rgba(0,0,0,0.54)]";
 }
 
 function getSymbolBoxClass(symbol: NaganiSlotSymbol) {
@@ -79,31 +80,183 @@ function getWinningSymbolScale(symbol: NaganiSlotSymbol) {
   return 1.08;
 }
 
-function getSpecialSymbolAuraClass(symbol: NaganiSlotSymbol) {
+function isGoldPotSymbol(symbol: NaganiSlotSymbol) {
+  return symbol.key === "gold_pot";
+}
+
+function isLuxurySpotlightSymbol(symbol: NaganiSlotSymbol) {
+  return symbol.key === "crown" || symbol.key === "star";
+}
+
+function shouldAnimateBonusSymbol(symbol: NaganiSlotSymbol, spinning: boolean) {
+  return !spinning && (symbol.key === "crown" || symbol.key === "star");
+}
+
+function shouldAnimatePremiumSymbol(symbol: NaganiSlotSymbol, spinning: boolean) {
+  return !spinning && (symbol.key === "dragon" || symbol.key === "gold_pot");
+}
+
+function isPremiumWarmSpotlightSymbol(symbol: NaganiSlotSymbol) {
+  return symbol.key === "dragon" || isGoldPotSymbol(symbol);
+}
+
+function isCommonCalmSymbol(symbol: NaganiSlotSymbol) {
+  return symbol.key === "buffalo" || symbol.key === "ever_stand";
+}
+
+function getSymbolSpotlightStyle(symbol: NaganiSlotSymbol) {
   if (symbol.key === "crown") {
-    return "h-[76%] w-[92%] bg-[radial-gradient(circle,rgba(255,240,185,0.24),rgba(255,184,66,0.12)_42%,transparent_72%)]";
+    return {
+      opacity: 0.82,
+      background:
+        "radial-gradient(ellipse at 50% 48%, rgba(255,250,214,0.32), rgba(255,204,92,0.18) 34%, rgba(255,156,42,0.08) 52%, transparent 74%)",
+      boxShadow:
+        "0 0 18px rgba(255,232,163,0.16), inset 0 0 18px rgba(255,240,185,0.08)",
+    };
   }
 
   if (symbol.key === "star") {
-    return "h-[74%] w-[92%] bg-[radial-gradient(circle,rgba(255,232,163,0.24),rgba(255,35,35,0.12)_42%,transparent_72%)]";
+    return {
+      opacity: 0.78,
+      background:
+        "radial-gradient(ellipse at 50% 48%, rgba(255,238,172,0.28), rgba(255,68,68,0.16) 34%, rgba(255,184,66,0.08) 54%, transparent 74%)",
+      boxShadow:
+        "0 0 16px rgba(255,184,66,0.14), inset 0 0 16px rgba(255,240,185,0.06)",
+    };
+  }
+
+  if (symbol.key === "dragon") {
+    return {
+      opacity: 0.46,
+      background:
+        "radial-gradient(ellipse at 50% 50%, rgba(255,214,122,0.18), rgba(190,72,24,0.1) 38%, transparent 70%)",
+      boxShadow: "0 0 10px rgba(255,184,66,0.08)",
+    };
+  }
+
+  if (isGoldPotSymbol(symbol)) {
+    return {
+      opacity: 0.44,
+      background:
+        "radial-gradient(ellipse at 50% 50%, rgba(255,232,163,0.18), rgba(184,124,24,0.09) 38%, transparent 70%)",
+      boxShadow: "0 0 10px rgba(255,184,66,0.08)",
+    };
+  }
+
+  return {
+    opacity: 0,
+    background: "transparent",
+    boxShadow: "none",
+  };
+}
+
+function getSymbolPrestigeLevel(symbol: NaganiSlotSymbol) {
+  if (symbol.key === "crown") return "sacred";
+  if (symbol.key === "star") return "sacred";
+  if (symbol.key === "dragon") return "royal";
+  if (isGoldPotSymbol(symbol)) return "royal";
+  if (symbol.key === "ruby") return "fine";
+  return "simple";
+}
+
+function getPremiumShrineSpec(symbol: NaganiSlotSymbol) {
+  if (symbol.key === "crown") {
+    return {
+      beam:
+        "linear-gradient(180deg, rgba(255,248,214,0.0), rgba(255,236,170,0.22) 18%, rgba(255,194,82,0.18) 52%, rgba(110,28,10,0.0) 100%)",
+      halo:
+        "radial-gradient(circle, rgba(255,248,214,0.34), rgba(255,205,92,0.16) 40%, transparent 74%)",
+      ring:
+        "radial-gradient(circle, rgba(255,240,185,0.18), rgba(255,184,66,0.08) 52%, transparent 74%)",
+      sparkle: "rgba(255,240,185,0.95)",
+      beamOpacity: 1,
+      haloOpacity: 1,
+      ringOpacity: 1,
+      sparkleCount: 4,
+    };
+  }
+
+  if (symbol.key === "star") {
+    return {
+      beam:
+        "linear-gradient(180deg, rgba(255,242,186,0.0), rgba(255,230,150,0.18) 18%, rgba(255,72,72,0.14) 52%, rgba(110,18,10,0.0) 100%)",
+      halo:
+        "radial-gradient(circle, rgba(255,238,172,0.28), rgba(255,72,72,0.14) 42%, transparent 74%)",
+      ring:
+        "radial-gradient(circle, rgba(255,232,163,0.14), rgba(255,184,66,0.08) 52%, transparent 74%)",
+      sparkle: "rgba(255,232,163,0.92)",
+      beamOpacity: 1,
+      haloOpacity: 1,
+      ringOpacity: 1,
+      sparkleCount: 4,
+    };
+  }
+
+  if (symbol.key === "dragon") {
+    return {
+      beam:
+        "linear-gradient(180deg, rgba(255,214,122,0.0), rgba(255,202,96,0.12) 22%, rgba(190,72,24,0.1) 58%, rgba(90,20,10,0.0) 100%)",
+      halo:
+        "radial-gradient(circle, rgba(255,214,122,0.18), rgba(188,74,20,0.08) 42%, transparent 72%)",
+      ring:
+        "radial-gradient(circle, rgba(255,214,122,0.08), rgba(255,184,66,0.04) 52%, transparent 74%)",
+      sparkle: "rgba(255,214,122,0.78)",
+      beamOpacity: 1,
+      haloOpacity: 1,
+      ringOpacity: 1,
+      sparkleCount: 2,
+    };
+  }
+
+  if (symbol.key === "gold_pot") {
+    return {
+      beam:
+        "linear-gradient(180deg, rgba(255,228,146,0.0), rgba(255,220,128,0.12) 22%, rgba(184,124,24,0.1) 58%, rgba(90,20,10,0.0) 100%)",
+      halo:
+        "radial-gradient(circle, rgba(255,228,146,0.18), rgba(184,124,24,0.08) 42%, transparent 72%)",
+      ring:
+        "radial-gradient(circle, rgba(255,228,146,0.08), rgba(255,184,66,0.04) 52%, transparent 74%)",
+      sparkle: "rgba(255,228,146,0.74)",
+      beamOpacity: 1,
+      haloOpacity: 1,
+      ringOpacity: 1,
+      sparkleCount: 2,
+    };
+  }
+
+  return null;
+}
+
+function getSpecialSymbolAuraClass(symbol: NaganiSlotSymbol) {
+  if (symbol.key === "crown") {
+    return "h-[82%] w-[104%] bg-[radial-gradient(circle,rgba(255,248,214,0.34),rgba(255,204,98,0.18)_40%,transparent_74%)]";
+  }
+
+  if (symbol.key === "star") {
+    return "h-[82%] w-[104%] bg-[radial-gradient(circle,rgba(255,238,172,0.3),rgba(255,68,68,0.14)_40%,transparent_74%)]";
+  }
+
+  if (symbol.key === "dragon") {
+    return "h-[66%] w-[82%] bg-[radial-gradient(circle,rgba(255,214,122,0.14),rgba(188,74,20,0.08)_42%,transparent_72%)]";
+  }
+
+  if (isGoldPotSymbol(symbol)) {
+    return "h-[62%] w-[76%] bg-[radial-gradient(circle,rgba(255,228,146,0.14),rgba(184,124,24,0.07)_42%,transparent_72%)]";
   }
 
   return "";
 }
 
 function getSymbolFootShadowStyle(symbol: NaganiSlotSymbol) {
-  const isPremium =
-    symbol.key === "crown" ||
-    symbol.key === "star" ||
-    symbol.key === "dragon" ||
-    symbol.tier === "high";
+  const hasPrestigeShadow =
+    isLuxurySpotlightSymbol(symbol) || isPremiumWarmSpotlightSymbol(symbol);
 
   return {
-    width: isPremium ? "78%" : "68%",
-    height: isPremium ? "13%" : "10%",
-    opacity: isPremium ? 0.46 : 0.34,
+    width: hasPrestigeShadow ? "78%" : "66%",
+    height: hasPrestigeShadow ? "13%" : "9%",
+    opacity: hasPrestigeShadow ? 0.44 : 0.28,
     background:
-      "radial-gradient(ellipse, rgba(0,0,0,0.82), rgba(0,0,0,0.38) 46%, transparent 72%)",
+      "radial-gradient(ellipse, rgba(0,0,0,0.86), rgba(0,0,0,0.38) 46%, transparent 74%)",
     filter: "blur(5px)",
   };
 }
@@ -115,57 +268,166 @@ function getSymbolImageStyle(symbol: NaganiSlotSymbol) {
     symbol.key === "dragon"
       ? 0.94
       : symbol.key === "star"
-        ? 0.96
+        ? 0.97
         : symbol.key === "crown"
-          ? 0.96
+          ? 0.97
           : symbol.key === "buffalo"
-            ? 0.95
+            ? 0.96
             : 1;
 
   const yOffset =
     symbol.key === "dragon"
       ? "1.5%"
-: symbol.key === "bagan"
-  ? "-1%"
+      : symbol.key === "bagan"
+        ? "-1%"
         : symbol.key === "crown"
           ? "-1%"
           : "0%";
 
-  const brightness =
-    symbol.key === "star" || symbol.key === "crown"
-      ? "brightness(1.08) contrast(1.05) saturate(1.08)"
-      : symbol.tier === "high"
-        ? "brightness(1.05) contrast(1.04) saturate(1.04)"
-        : "brightness(1.02) contrast(1.03) saturate(1.02)";
+  const paintFilter = isLuxurySpotlightSymbol(symbol)
+    ? "brightness(1.13) contrast(1.1) saturate(1.16)"
+    : isPremiumWarmSpotlightSymbol(symbol)
+      ? "brightness(1.08) contrast(1.07) saturate(1.1)"
+      : isCommonCalmSymbol(symbol)
+        ? "brightness(1.01) contrast(1.03) saturate(1.02)"
+        : "brightness(1.04) contrast(1.05) saturate(1.05)";
+
+  const auraDrop = isLuxurySpotlightSymbol(symbol)
+    ? "drop-shadow(0 0 8px rgba(255,232,163,0.46))"
+    : isPremiumWarmSpotlightSymbol(symbol)
+      ? "drop-shadow(0 0 5px rgba(255,202,96,0.24))"
+      : "drop-shadow(0 0 2px rgba(184,104,44,0.08))";
 
   return {
     transform: `translateY(${yOffset}) scale(${baseScale * fitScale})`,
-    filter: `${brightness} drop-shadow(0 10px 10px rgba(0,0,0,0.52))`,
+    filter: `${paintFilter} drop-shadow(0 2px 0 rgba(255,240,185,0.12)) drop-shadow(0 11px 11px rgba(0,0,0,0.62)) ${auraDrop}`,
   };
 }
 
 function getSymbolBackplateStyle(symbol: NaganiSlotSymbol) {
-  const isPremium =
-    symbol.key === "crown" ||
-    symbol.key === "star" ||
-    symbol.key === "dragon" ||
-    symbol.tier === "high";
+  if (symbol.key === "crown") {
+    return {
+      opacity: 0.36,
+      background:
+        "radial-gradient(circle, rgba(255,246,202,0.28), rgba(255,190,74,0.08) 40%, transparent 72%)",
+    };
+  }
+
+  if (symbol.key === "star") {
+    return {
+      opacity: 0.34,
+      background:
+        "radial-gradient(circle, rgba(255,238,172,0.22), rgba(255,68,68,0.07) 42%, transparent 72%)",
+    };
+  }
+
+  if (symbol.key === "dragon") {
+    return {
+      opacity: 0.14,
+      background:
+        "radial-gradient(circle, rgba(255,214,122,0.16), rgba(178,76,26,0.05) 42%, transparent 72%)",
+    };
+  }
+
+  if (isGoldPotSymbol(symbol)) {
+    return {
+      opacity: 0.13,
+      background:
+        "radial-gradient(circle, rgba(255,228,146,0.16), rgba(184,124,24,0.05) 42%, transparent 72%)",
+    };
+  }
 
   return {
-    opacity: isPremium ? 0.2 : 0.12,
-    background: isPremium
-      ? "radial-gradient(circle, rgba(255,230,151,0.3), rgba(255,170,58,0.08) 42%, transparent 70%)"
-      : "radial-gradient(circle, rgba(255,214,122,0.18), rgba(255,170,58,0.05) 42%, transparent 72%)",
+    opacity: 0.04,
+    background:
+      "radial-gradient(circle, rgba(255,214,122,0.05), rgba(255,170,58,0.015) 42%, transparent 74%)",
   };
 }
 
-function getWinningSymbolSparkCount(tier?: NaganiSlotWinTier) {
-  if (tier === "big") return 5;
-  if (tier === "medium") return 4;
+function getSymbolRimLightStyle(symbol: NaganiSlotSymbol) {
+  if (isLuxurySpotlightSymbol(symbol)) {
+    return {
+      opacity: 0.2,
+      border: "1px solid rgba(255,240,185,0.18)",
+      boxShadow:
+        "inset 0 0 10px rgba(255,240,185,0.06), 0 0 10px rgba(255,184,66,0.08)",
+      background:
+        "linear-gradient(180deg, rgba(255,240,185,0.06), transparent 28%, transparent 72%, rgba(120,42,12,0.05))",
+    };
+  }
+
+  if (isPremiumWarmSpotlightSymbol(symbol)) {
+    return {
+      opacity: 0.12,
+      border: "1px solid rgba(255,217,121,0.1)",
+      boxShadow:
+        "inset 0 0 8px rgba(255,217,121,0.04), 0 0 8px rgba(255,184,66,0.05)",
+      background:
+        "linear-gradient(180deg, rgba(255,240,185,0.04), transparent 30%, transparent 72%, rgba(120,42,12,0.04))",
+    };
+  }
+
+  return {
+    opacity: 0.03,
+    border: "1px solid rgba(255,217,121,0.03)",
+    boxShadow: "inset 0 0 5px rgba(255,217,121,0.01)",
+    background:
+      "linear-gradient(180deg, rgba(255,240,185,0.01), transparent 32%, transparent 72%, rgba(120,42,12,0.02))",
+  };
+}
+
+function getWinningSymbolSparkCount(
+  symbol: NaganiSlotSymbol,
+  tier?: NaganiSlotWinTier
+) {
+  const prestige = getSymbolPrestigeLevel(symbol);
+
+  if (prestige === "sacred") {
+    if (tier === "big") return 8;
+    if (tier === "medium") return 7;
+    return 6;
+  }
+
+  if (prestige === "royal") {
+    if (tier === "big") return 6;
+    if (tier === "medium") return 5;
+    return 4;
+  }
+
+  if (prestige === "fine") {
+    if (tier === "big") return 5;
+    return 4;
+  }
+
+  if (tier === "big") return 4;
   return 3;
 }
 
-function getWinningSymbolHalo(tier?: NaganiSlotWinTier) {
+function getWinningSymbolHalo(
+  symbol: NaganiSlotSymbol,
+  tier?: NaganiSlotWinTier
+) {
+    const prestige = getSymbolPrestigeLevel(symbol);
+
+  if (prestige === "sacred") {
+    return {
+      border: "1px solid rgba(255,246,202,0.72)",
+      boxShadow:
+        "0 0 28px rgba(255,246,202,0.86), 0 0 62px rgba(255,184,66,0.46), 0 0 26px rgba(255,42,42,0.18), inset 0 0 24px rgba(255,240,185,0.24)",
+      background:
+        "radial-gradient(circle at 50% 50%, rgba(255,250,214,0.34), rgba(255,190,74,0.16) 40%, rgba(255,42,42,0.08) 58%, transparent 74%)",
+    };
+  }
+
+  if (prestige === "royal") {
+    return {
+      border: "1px solid rgba(255,232,163,0.58)",
+      boxShadow:
+        "0 0 22px rgba(255,224,138,0.68), 0 0 42px rgba(255,184,66,0.3), inset 0 0 20px rgba(255,218,121,0.18)",
+      background:
+        "radial-gradient(circle at 50% 50%, rgba(255,240,185,0.25), rgba(255,184,66,0.11) 42%, transparent 70%)",
+    };
+  }
   if (tier === "big") {
     return {
       border: "1px solid rgba(255,240,185,0.58)",
@@ -291,15 +553,18 @@ function ReelSymbol({
   dimmed?: boolean;
   winTier?: NaganiSlotWinTier;
 }) {
-  const sparkCount = getWinningSymbolSparkCount(winTier);
+  const sparkCount = getWinningSymbolSparkCount(symbol, winTier);
   const symbolBoxClass = getSymbolBoxClass(symbol);
   const winningScale = getWinningSymbolScale(symbol);
   const specialAuraClass = getSpecialSymbolAuraClass(symbol);
   const symbolImageStyle = getSymbolImageStyle(symbol);
+  const animateBonusSymbol = shouldAnimateBonusSymbol(symbol, spinning);
+  const animatePremiumSymbol = shouldAnimatePremiumSymbol(symbol, spinning);
+  const premiumShrineSpec = getPremiumShrineSpec(symbol);
 
-  return (
+return (
     <div
-      className="relative flex h-full items-center justify-center transition duration-300"
+      className={`relative flex h-full items-center justify-center transition duration-300 ${winning ? "z-50" : "z-10"}`}
       style={{
         ...(winning
           ? {
@@ -309,8 +574,8 @@ function ReelSymbol({
           : {}),
         ...(dimmed
           ? {
-              opacity: 0.42,
-              filter: "saturate(0.56) brightness(0.58)",
+              opacity: 0.25,
+              filter: "saturate(0.3) brightness(0.4)",
             }
           : {}),
       }}
@@ -322,7 +587,7 @@ function ReelSymbol({
             style={{
               inset: "-5px",
               animation: "naganiSlotWinningHaloBreath 980ms ease-in-out infinite",
-              ...getWinningSymbolHalo(winTier),
+              ...getWinningSymbolHalo(symbol, winTier),
             }}
           />
 
@@ -360,11 +625,61 @@ function ReelSymbol({
       ) : null}
 
       <div className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd979]/14 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,214,122,0.075),transparent_54%)]" />
+      {premiumShrineSpec ? (
+  <>
+    <div
+      className="pointer-events-none absolute left-1/2 top-1/2 z-[7] h-[88%] w-[62%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] blur-[1px]"
+      style={{
+        background: premiumShrineSpec.beam,
+        opacity: premiumShrineSpec.beamOpacity,
+        animation: "naganiSlotShrineBreath 2600ms ease-in-out infinite",
+      }}
+    />
+
+    <div
+      className="pointer-events-none absolute left-1/2 top-1/2 z-[8] h-[80%] w-[84%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-md"
+      style={{
+        background: premiumShrineSpec.halo,
+        opacity: premiumShrineSpec.haloOpacity,
+      }}
+    />
+
+    <div
+      className="pointer-events-none absolute left-1/2 top-1/2 z-[8] h-[86%] w-[90%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+      style={{
+        background: premiumShrineSpec.ring,
+        opacity: premiumShrineSpec.ringOpacity,
+      }}
+    />
+
+    {Array.from({ length: premiumShrineSpec.sparkleCount }).map((_, index) => (
+      <span
+        key={`premium-shrine-spark-${symbol.key}-${index}`}
+        className="pointer-events-none absolute z-[9] h-1 w-1 rounded-full"
+        style={{
+          left: `${28 + ((index * 17) % 44)}%`,
+          top: `${24 + ((index * 21) % 40)}%`,
+          background: premiumShrineSpec.sparkle,
+          boxShadow: `0 0 8px ${premiumShrineSpec.sparkle}`,
+          animation: `naganiSlotShrineSparkle ${1800 + index * 220}ms ease-in-out ${index * 140}ms infinite`,
+        }}
+      />
+    ))}
+  </>
+) : null}
 
 <div
-  className="pointer-events-none absolute left-1/2 top-1/2 z-[9] h-[76%] w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-md"
+  className="pointer-events-none absolute left-1/2 top-1/2 z-[8] h-[86%] w-[94%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] blur-[2px]"
+  style={getSymbolSpotlightStyle(symbol)}
+/>
+<div
+  className="pointer-events-none absolute left-1/2 top-1/2 z-[9] h-[78%] w-[90%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-md"
   style={getSymbolBackplateStyle(symbol)}
+/>
+
+<div
+  className="pointer-events-none absolute left-1/2 top-1/2 z-[10] h-[78%] w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-[999px]"
+  style={getSymbolRimLightStyle(symbol)}
 />
 
 <div
@@ -387,8 +702,49 @@ function ReelSymbol({
   )} ${spinning ? "opacity-95" : ""} transition-transform duration-300`}
   style={{
     transform: winning ? `scale(${winningScale})` : undefined,
+    animation: animateBonusSymbol
+      ? "naganiSlotBonusSymbolAlive 1850ms ease-in-out infinite"
+      : animatePremiumSymbol
+        ? "naganiSlotPremiumSymbolAlive 2400ms ease-in-out infinite"
+        : undefined,
   }}
 >
+  {animateBonusSymbol ? (
+  <>
+    <div
+      className="pointer-events-none absolute inset-y-[12%] left-0 z-30 w-[42%] bg-[linear-gradient(90deg,transparent,rgba(255,248,214,0.34),transparent)] blur-[1px]"
+      style={{
+        animation: "naganiSlotBonusSymbolSheen 2600ms ease-out infinite",
+      }}
+    />
+
+    {Array.from({ length: 3 }).map((_, index) => (
+      <span
+        key={`bonus-symbol-alive-spark-${symbol.key}-${index}`}
+        className="pointer-events-none absolute z-30 h-1 w-1 rounded-full bg-[#fff0b9]"
+        style={{
+          left: `${26 + index * 22}%`,
+          top: `${20 + ((index * 27) % 52)}%`,
+          animation: `naganiSlotBonusSymbolSparkAlive ${
+            1400 + index * 260
+          }ms ease-in-out ${index * 180}ms infinite`,
+          boxShadow:
+            "0 0 7px rgba(255,240,185,0.9), 0 0 12px rgba(255,184,66,0.38)",
+        }}
+      />
+    ))}
+  </>
+) : null}
+
+{animatePremiumSymbol ? (
+  <div
+    className="pointer-events-none absolute inset-y-[16%] left-0 z-30 w-[36%] bg-[linear-gradient(90deg,transparent,rgba(255,236,170,0.18),transparent)] blur-[1px]"
+    style={{
+      animation: "naganiSlotPremiumSymbolSheen 3200ms ease-out infinite",
+    }}
+  />
+) : null}
+
         {symbol.imageSrc ? (
           <>
             <img
@@ -454,7 +810,7 @@ winTier,
 }) {
   return (
     <div
-      className="relative h-full overflow-hidden"
+      className={`relative h-full ${reelJustStopped ? "overflow-hidden" : "overflow-visible"}`}
 style={
   reelJustStopped
     ? {
@@ -501,7 +857,7 @@ style={
         return (
           <div
             key={`${symbol.key}-stopped-${columnIndex}-${rowIndex}`}
-            className="absolute left-0 right-0"
+            className={`absolute left-0 right-0 ${winning ? "z-50" : "z-10"}`}
             style={{
               top: `${rowIndex * 33.3333}%`,
               height: "33.3333%",
@@ -615,6 +971,7 @@ export default function NaganiSlotBoard({
   spinning,
   stoppedReelCount,
   winEvaluation,
+  freeSpinHighlightPositions = [],
 }: NaganiSlotBoardProps) {
   const hasResult = Boolean(winEvaluation);
   const hasWin = Boolean(winEvaluation && winEvaluation.tier !== "none");
@@ -622,10 +979,14 @@ export default function NaganiSlotBoard({
 const isMediumWin = winEvaluation?.tier === "medium";
 const isBigWin = winEvaluation?.tier === "big";
 const showMajorCelebration = Boolean(isMediumWin || isBigWin);
+const hasFreeSpinHighlight = freeSpinHighlightPositions.length > 0;
 const showBoardCelebrationAura = hasWin && !spinning;
-const isIdleReady = !spinning && !winEvaluation;
-  const winningPositions = winEvaluation?.winningPositions ?? [];
-  const dimNonWinning = hasWin && !spinning;
+const isIdleReady = !spinning && !winEvaluation && !hasFreeSpinHighlight;
+const winningPositions = [
+  ...(winEvaluation?.winningPositions ?? []),
+  ...freeSpinHighlightPositions,
+];
+const dimNonWinning = (hasWin || hasFreeSpinHighlight) && !spinning;
   const boardGoldDustCount = isBigWin ? 18 : isMediumWin ? 12 : hasWin ? 6 : 0;
 
   return (
@@ -697,6 +1058,91 @@ const isIdleReady = !spinning && !winEvaluation;
             filter: brightness(1.16);
           }
         }
+
+        @keyframes naganiSlotBonusSymbolAlive {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1.08) saturate(1.08);
+  }
+  50% {
+    transform: translateY(-1.5px) scale(1.035);
+    filter: brightness(1.24) saturate(1.18);
+  }
+}
+
+@keyframes naganiSlotBonusSymbolSheen {
+  0% {
+    opacity: 0;
+    transform: translateX(-135%) skewX(-18deg);
+  }
+  22% {
+    opacity: 0.65;
+  }
+  46%, 100% {
+    opacity: 0;
+    transform: translateX(135%) skewX(-18deg);
+  }
+}
+
+@keyframes naganiSlotBonusSymbolSparkAlive {
+  0%, 100% {
+    opacity: 0.22;
+    transform: scale(0.72);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes naganiSlotPremiumSymbolAlive {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1.02) saturate(1.03);
+  }
+  50% {
+    transform: translateY(-0.8px) scale(1.018);
+    filter: brightness(1.1) saturate(1.06);
+  }
+}
+
+@keyframes naganiSlotPremiumSymbolSheen {
+  0% {
+    opacity: 0;
+    transform: translateX(-130%) skewX(-18deg);
+  }
+  20% {
+    opacity: 0.28;
+  }
+  40%, 100% {
+    opacity: 0;
+    transform: translateX(130%) skewX(-18deg);
+  }
+}
+
+        @keyframes naganiSlotShrineBreath {
+  0%, 100% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) scale(0.98);
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.03);
+    filter: brightness(1.12);
+  }
+}
+
+@keyframes naganiSlotShrineSparkle {
+  0%, 100% {
+    opacity: 0.24;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.88;
+    filter: brightness(1.28);
+  }
+}
 
 @keyframes naganiSlotReelStopBounce {
   0% {
