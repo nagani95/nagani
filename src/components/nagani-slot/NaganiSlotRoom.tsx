@@ -328,16 +328,33 @@ return {
 };
 }
 
+function mapLegacyBackendSymbolForPaintedSkin(symbolKey: string) {
+  const legacyDisplayMap: Partial<Record<string, NaganiSlotSymbolKey>> = {
+    bonus: "ruby",
+    wild: "dragon",
+  };
+
+  return legacyDisplayMap[symbolKey] ?? symbolKey;
+}
+
+function mapBackendGridForPaintedSkin(grid: string[][]) {
+  return grid.map((column) =>
+    column.map((symbolKey) => mapLegacyBackendSymbolForPaintedSkin(symbolKey))
+  );
+}
+
 type NaganiSlotRoomProps = {
   initialBalance: number;
   initialFreeSpinSession?: NaganiSlotFreeSpinSession | null;
   visualDraftMode?: boolean;
+  paintedAssetSkin?: boolean;
 };
 
 export default function NaganiSlotRoom({
   initialBalance,
   initialFreeSpinSession = null,
   visualDraftMode = false,
+  paintedAssetSkin = false,
 }: NaganiSlotRoomProps) {
   const supabase = createClient();
   const [roomReady, setRoomReady] = useState(false);
@@ -772,7 +789,11 @@ setWinEvaluation(evaluation);
     setActiveFreeSpinSession(null);
   }
 
-  const nextColumns = buildSlotColumnsFromBackendGrid(spinResult.result_grid);
+  const displayResultGrid = paintedAssetSkin
+  ? mapBackendGridForPaintedSkin(spinResult.result_grid)
+  : spinResult.result_grid;
+
+const nextColumns = buildSlotColumnsFromBackendGrid(displayResultGrid);
   const payoutAmount = toSafeNumber(spinResult.payout_amount);
   const nextBalanceTotal = toSafeNumber(spinResult.balance?.total);
   const backendBetAmount = toSafeNumber(spinResult.bet_amount) || betAmount;

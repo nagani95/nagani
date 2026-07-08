@@ -16,7 +16,7 @@ import NaganiInstallPrompt from "@/components/nagani-v2/NaganiInstallPrompt";
 import { naganiAssets } from "@/lib/naganiAssets";
 import { createClient } from "@/lib/supabase/server";
 
-const SIX_ANIMAL_MIN_BALANCE = 1000;
+const GAME_LOBBY_MIN_BALANCE = 1000;
 
 function toSafeBalance(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
@@ -67,22 +67,22 @@ promoSeenAt = profile?.promo_welcome_recharge_seen_at ?? null;
 
 const playableBalance = walletBalance + walletBonusBalance;
 
-const canEnterSixAnimal =
-  Boolean(user) && playableBalance >= SIX_ANIMAL_MIN_BALANCE;
+const canEnterGameLobby =
+  Boolean(user) && playableBalance >= GAME_LOBBY_MIN_BALANCE;
 
   const memberIdLabel = user ? memberCode ?? "------" : "ဧည့်သည်";
 
-  const playHref = !user
-    ? "/login"
-    : canEnterSixAnimal
-      ? "/six-animal"
-      : "/cashier";
+const playHref = !user
+  ? "/login"
+  : canEnterGameLobby
+    ? "/games"
+    : "/cashier";
 
-  const playLabel = !user
-    ? "စတင်ရန်"
-    : canEnterSixAnimal
-      ? "ကစားပွဲသို့"
-      : "ပိုက်ဆံအိတ်သို့";
+const playLabel = !user
+  ? "စတင်ရန်"
+  : canEnterGameLobby
+    ? "ကစားပွဲသို့"
+    : "ပိုက်ဆံအိတ်သို့";
 
         async function markPromoSeen() {
     "use server";
