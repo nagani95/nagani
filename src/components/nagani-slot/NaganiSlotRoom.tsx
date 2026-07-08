@@ -17,6 +17,7 @@ import {
   createDemoSpinResultColumns,
   evaluateNaganiSlotResult,
   getInitialSlotColumns,
+  naganiSlotSymbols,
 } from "@/lib/naganiSlot/symbols";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -37,7 +38,8 @@ const RESULT_HOLD_BEFORE_COUNT_MS = 120;
 const WIN_COUNT_DURATION = 620;
 const READY_AGAIN_DELAY = 850;
 const FREE_SPIN_TRIGGER_HOLD_MS = 1900;
-const ROOM_BOOT_MS = 1150;
+const SLOT_ASSET_PRELOAD_MIN_MS = 700;
+const SLOT_ASSET_PRELOAD_TIMEOUT_MS = 6200;
 const REWARD_AMOUNT_READ_MS = 700;
 const REWARD_FLY_MS = 520;
 const ROOM_BG_IMAGE = "/assets/nagani/slot/ui/room-bg-v1.png";
@@ -45,6 +47,10 @@ const GOLD_POT_IMAGE = "/assets/nagani/slot/symbols/gold-pot.png";
 const BONUS_IMAGE = "/assets/nagani/slot/symbols/bonus.png";
 const WILD_IMAGE = "/assets/nagani/slot/symbols/wild.png";
 const BIG_WIN_IMAGE = "/assets/nagani/slot/symbols/wildwild.png";
+const BOARD_CABINET_SKIN_IMAGE =
+  "/assets/nagani/slot/ui/board-cabinet-skin-v2.png";
+const REEL_BLACKWOOD_IMAGE =
+  "/assets/nagani/slot/ui/reel-blackwood-v1.png";
 type RewardTransferPhase = "idle" | "counting" | "holding" | "flying" | "landed";
 const REWARD_PLAQUE_SKIN = "/assets/nagani/slot/ui/reward-plaque-v1.png";
 const LOTTIE_SPARKLE_BG = "/assets/nagani/slot/ui/sparkle-burst.gif";
@@ -135,6 +141,56 @@ function formatMMK(amount: number) {
 function toSafeNumber(value: number | string | null | undefined) {
   const parsedValue = Number(value ?? 0);
   return Number.isFinite(parsedValue) ? parsedValue : 0;
+}
+
+function waitMs(delayMs: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
+}
+
+function isNonEmptyAssetUrl(
+  value: string | null | undefined
+): value is string {
+  return Boolean(value);
+}
+
+function preloadImage(src: string) {
+  return new Promise<void>((resolve) => {
+    const image = new window.Image();
+
+    image.onload = () => resolve();
+    image.onerror = () => resolve();
+    image.src = src;
+  });
+}
+
+function getCriticalSlotAssetUrls() {
+  return Array.from(
+    new Set(
+      [
+        ROOM_BG_IMAGE,
+        GOLD_POT_IMAGE,
+        BONUS_IMAGE,
+        WILD_IMAGE,
+        BIG_WIN_IMAGE,
+        REWARD_PLAQUE_SKIN,
+        LOTTIE_SPARKLE_BG,
+        BOARD_CABINET_SKIN_IMAGE,
+        REEL_BLACKWOOD_IMAGE,
+        ...naganiSlotSymbols.map((symbol) => symbol.imageSrc),
+      ].filter(isNonEmptyAssetUrl)
+    )
+  );
+}
+
+async function preloadCriticalSlotAssets() {
+  const assetUrls = getCriticalSlotAssetUrls();
+
+  await Promise.race([
+    Promise.allSettled(assetUrls.map((assetUrl) => preloadImage(assetUrl))),
+    waitMs(SLOT_ASSET_PRELOAD_TIMEOUT_MS),
+  ]);
 }
 
 function getBackendWinTier(
@@ -453,17 +509,28 @@ setCrownFreeSpinNotice(null);
     spinTimersRef.current.push(readyTimer);
   }
 
-  useEffect(() => {
-    const bootTimer = window.setTimeout(() => {
-      setRoomReady(true);
-    }, ROOM_BOOT_MS);
+useEffect(() => {
+  let cancelled = false;
 
-    return () => {
-      window.clearTimeout(bootTimer);
-      clearSpinTimers();
-      naganiSlotAudioEngine.stopAll();
-    };
-  }, []);
+  async function bootRoomAfterAssetsReady() {
+    await Promise.all([
+      preloadCriticalSlotAssets(),
+      waitMs(SLOT_ASSET_PRELOAD_MIN_MS),
+    ]);
+
+    if (!cancelled) {
+      setRoomReady(true);
+    }
+  }
+
+  void bootRoomAfterAssetsReady();
+
+  return () => {
+    cancelled = true;
+    clearSpinTimers();
+    naganiSlotAudioEngine.stopAll();
+  };
+}, []);
 
 function getPlayableMaxBet() {
   if (balance < MIN_BET) return MIN_BET;
