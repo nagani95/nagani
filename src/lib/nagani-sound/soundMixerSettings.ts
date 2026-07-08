@@ -494,9 +494,10 @@ export function getNaganiMixedVolume(
 
   if (!Number.isFinite(baseVolume)) return 0;
 
-  return clampNaganiVolume(
-    master.volume *
-      (channelSetting?.volume ?? 1) *
-      (itemSetting?.volume ?? 1)
-  );
+return clampNaganiVolume(
+  master.volume *
+    clampNaganiVolume(baseVolume) *
+    (channelSetting?.volume ?? 1) *
+    (itemSetting?.volume ?? 1)
+);
 }

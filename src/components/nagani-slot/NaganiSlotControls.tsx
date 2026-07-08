@@ -180,6 +180,11 @@ const canSpin =
     onMaxBet();
   }
 
+  function handleSpinClick() {
+  naganiSlotAudioEngine.playUiTap();
+  onSpin();
+}
+
   return (
     <section className="relative z-30 mx-auto mt-5 w-[calc(100%-10px)] max-w-[420px]">
       <style>{`
@@ -722,7 +727,7 @@ className={`relative h-[38px] overflow-visible rounded-full bg-transparent font-
 
 <button
   type="button"
-  onClick={onSpin}
+  onClick={handleSpinClick}
   disabled={!canSpin}
   className="relative h-[54px] overflow-visible rounded-[22px] bg-transparent text-[19px] font-black text-white transition-transform active:translate-y-1 active:scale-[0.95] disabled:opacity-[0.78]"
   style={{
