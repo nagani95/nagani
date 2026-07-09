@@ -9,6 +9,7 @@ import {
   NaganiPageShell,
   NaganiVideoBackground,
 } from "@/components/nagani-v2";
+import NaganiButtonClickSound from "@/components/nagani-v2/NaganiButtonClickSound";
 import NaganiHomeTopControls from "@/components/nagani-v2/NaganiHomeTopControls";
 import NaganiLobbyBgm from "@/components/nagani-v2/NaganiLobbyBgm";
 import { createClient } from "@/lib/supabase/server";
@@ -93,8 +94,12 @@ export default async function GamesLobbyPage() {
   contentClassName="relative z-10 h-[100svh] overflow-hidden"
 >
   <NaganiLobbyBgm />
+  <NaganiButtonClickSound />
 
-  <section className="relative h-[100svh] overflow-hidden px-4 pb-28 pt-[env(safe-area-inset-top)] text-white">
+  <section
+    data-nagani-button-sound-root
+    className="relative h-[100svh] overflow-hidden px-4 pb-28 pt-[env(safe-area-inset-top)] text-white"
+  >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(255,215,122,0.16),transparent_34%),linear-gradient(180deg,rgba(0,0,0,0.08),rgba(0,0,0,0.42)_46%,rgba(0,0,0,0.86))]" />
 
         {/* Home-style ID / balance card */}

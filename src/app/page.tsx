@@ -8,6 +8,7 @@ import {
   NaganiPromoPopup,
   NaganiVideoBackground,
 } from "@/components/nagani-v2";
+import NaganiButtonClickSound from "@/components/nagani-v2/NaganiButtonClickSound";
 import NaganiHomeTopControls from "@/components/nagani-v2/NaganiHomeTopControls";
 import NaganiLobbyBgm from "@/components/nagani-v2/NaganiLobbyBgm";
 import NaganiHomeWelcomeAnnouncement from "@/components/nagani-v2/NaganiHomeWelcomeAnnouncement";
@@ -111,9 +112,10 @@ const playLabel = !user
         bottomNav={<NaganiBottomNav />}
         contentClassName="relative z-10 h-[100svh] overflow-hidden"
       >
-        <NaganiInstallPrompt />
-        <NaganiLobbyBgm />
-        <NaganiHomeWelcomeAnnouncement />
+<NaganiInstallPrompt />
+<NaganiLobbyBgm />
+<NaganiButtonClickSound />
+<NaganiHomeWelcomeAnnouncement />
 
 {!TEMP_HIDE_HOME_PROMO_POPUP && (
   <NaganiPromoPopup
@@ -123,7 +125,10 @@ const playLabel = !user
   />
 )}
 
-        <section className="relative h-[100svh] overflow-hidden">
+<section
+  data-nagani-button-sound-root
+  className="relative h-[100svh] overflow-hidden"
+>
           <div className="absolute left-[1.4%] top-[2.7%] z-30 h-[7.25rem] w-[7.35rem]">
             <img
               src="/assets/nagani/v2/home-id-balance-card.png"

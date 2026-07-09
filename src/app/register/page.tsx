@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import NaganiButtonClickSound from "@/components/nagani-v2/NaganiButtonClickSound";
 import {
   NaganiPageShell,
   NaganiRoyalButton,
@@ -33,8 +34,13 @@ const loginHref = referralCode
   : "/login";
 
   return (
-    <NaganiPageShell contentClassName="relative z-10 min-h-[100svh]">
-      <section className="relative flex min-h-[100svh] items-start justify-center px-5 pb-8 pt-6">
+<NaganiPageShell contentClassName="relative z-10 min-h-[100svh]">
+  <NaganiButtonClickSound />
+
+  <section
+    data-nagani-button-sound-root
+    className="relative flex min-h-[100svh] items-start justify-center px-5 pb-8 pt-6"
+  >
         <div className="w-full max-w-[360px]">
           <div className="text-center">
             <div

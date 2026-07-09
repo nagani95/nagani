@@ -5,6 +5,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import NaganiButtonClickSound from "@/components/nagani-v2/NaganiButtonClickSound";
+
 type NavItem = {
   href: string;
   label: string;
@@ -42,8 +44,14 @@ export default function NaganiBottomNav() {
       : "opacity-95 drop-shadow-[0_8px_16px_rgba(0,0,0,0.76)] group-hover:scale-[1.03] group-hover:opacity-100";
   }
 
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-2 pb-[calc(0.22rem+env(safe-area-inset-bottom))]">
+return (
+  <>
+    <NaganiButtonClickSound rootSelector="[data-nagani-bottom-nav-sound-root]" />
+
+    <nav
+      data-nagani-bottom-nav-sound-root
+      className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-2 pb-[calc(0.22rem+env(safe-area-inset-bottom))]"
+    >
       <div className="relative h-[7.25rem] overflow-visible">
         <img
           src="/assets/nagani/v2/nav-bar-parabaik-red.png"
@@ -87,5 +95,6 @@ export default function NaganiBottomNav() {
         </div>
       </div>
     </nav>
-  );
+  </>
+);
 }

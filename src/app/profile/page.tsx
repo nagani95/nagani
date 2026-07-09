@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import AppShell from "@/components/layout/AppShell";
+import NaganiButtonClickSound from "@/components/nagani-v2/NaganiButtonClickSound";
 import { logout } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -58,9 +59,11 @@ export default async function ProfilePage() {
   const accountLabel = getAccountLabel(user.email);
   const memberCode = profile?.member_code || user.id.slice(0, 6).toUpperCase();
 
-  return (
-    <AppShell>
-      <div className="pointer-events-none fixed inset-0 z-0 mx-auto w-full max-w-md overflow-hidden bg-[#080101]">
+return (
+  <AppShell>
+    <NaganiButtonClickSound />
+
+    <div className="pointer-events-none fixed inset-0 z-0 mx-auto w-full max-w-md overflow-hidden bg-[#080101]">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${TEMP_PALACE_BACKGROUND})` }}
@@ -69,7 +72,10 @@ export default async function ProfilePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_7%,rgba(255,215,122,0.12),transparent_31%),radial-gradient(circle_at_50%_100%,rgba(86,13,6,0.72),transparent_50%)]" />
       </div>
 
-      <div className="fixed inset-0 z-10 mx-auto flex h-[100svh] w-full max-w-md flex-col overflow-y-auto overflow-x-hidden overscroll-none px-5 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+  data-nagani-button-sound-root
+  className="fixed inset-0 z-10 mx-auto flex h-[100svh] w-full max-w-md flex-col overflow-y-auto overflow-x-hidden overscroll-none px-5 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+>
         <header className="flex h-8 shrink-0 items-center justify-between">
           <Link href="/" className="text-sm font-bold text-[#ffd77a]">
             မူလသို့

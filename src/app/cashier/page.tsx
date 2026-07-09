@@ -7,6 +7,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import CashierHero from "@/components/cashier/CashierHero";
 import CashierRequestForm from "@/components/cashier/CashierRequestForm";
+import NaganiButtonClickSound from "@/components/nagani-v2/NaganiButtonClickSound";
 import { NaganiBottomNav, NaganiPageShell } from "@/components/nagani-v2";
 import { createClient } from "@/lib/supabase/client";
 
@@ -296,12 +297,17 @@ async function handleRefreshWallet() {
     router.replace("/cashier?message=1");
   }
 
-  return (
-    <NaganiPageShell
-      bottomNav={<NaganiBottomNav />}
-      contentClassName="relative z-10 min-h-screen"
+return (
+  <NaganiPageShell
+    bottomNav={<NaganiBottomNav />}
+    contentClassName="relative z-10 min-h-screen"
+  >
+    <NaganiButtonClickSound />
+
+    <main
+      data-nagani-button-sound-root
+      className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+7.45rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)]"
     >
-      <main className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+7.45rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)]">
 <CashierHero
   balanceLabel={`${formatMMK(walletBalance)} ကျပ်`}
   historyHref="/cashier/history"

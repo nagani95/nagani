@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import NaganiAuthTopControls from "@/components/nagani-v2/NaganiAuthTopControls";
+import NaganiButtonClickSound from "@/components/nagani-v2/NaganiButtonClickSound";
 import {
   NaganiPageShell,
   NaganiRoyalButton,
@@ -31,10 +33,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     ? `/register?ref=${encodeURIComponent(referralCode)}`
     : "/register";
 
-  return (
-    <NaganiPageShell contentClassName="relative z-10 min-h-[100svh]">
-      <section className="relative flex min-h-[100svh] items-center justify-center px-5 pb-8 pt-8">
-        <div className="w-full max-w-[360px]">
+return (
+  <NaganiPageShell contentClassName="relative z-10 min-h-[100svh]">
+    <NaganiButtonClickSound />
+
+<section
+  data-nagani-button-sound-root
+  className="relative flex min-h-[100svh] items-center justify-center px-5 pb-8 pt-8"
+>
+  <NaganiAuthTopControls />
+
+  <div className="w-full max-w-[360px]">
           <div className="text-center">
             <div
               className="mx-auto h-24 w-24 bg-contain bg-center bg-no-repeat drop-shadow-[0_10px_28px_rgba(0,0,0,0.85)]"

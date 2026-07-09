@@ -334,15 +334,15 @@ if (restoredActiveBets.length > 0) {
   setActiveBets(restoredActiveBets);
 }
 
-  if (
-    isQuittingRef.current &&
-    joinedRoundIdRef.current &&
-    joinedRoundIdRef.current !== round.id &&
-    isJoinableBettingRound
-  ) {
-    router.push("/");
-    return;
-  }
+if (
+  isQuittingRef.current &&
+  joinedRoundIdRef.current &&
+  joinedRoundIdRef.current !== round.id &&
+  isJoinableBettingRound
+) {
+  router.push("/games");
+  return;
+}
 
 if (isJoinableBettingRound) {
   setShowRoomIntro(false);
@@ -938,7 +938,7 @@ async function handleLobbyClick() {
   playRoomSound("ui-click");
   setShowExitConfirm(false);
   await exitFullscreenIfNeeded();
-  router.push("/");
+  router.push("/games");
 }
 
 const fetchAndSyncPlayableWalletBalance = useCallback(async () => {
