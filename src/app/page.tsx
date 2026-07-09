@@ -17,6 +17,7 @@ import { naganiAssets } from "@/lib/naganiAssets";
 import { createClient } from "@/lib/supabase/server";
 
 const GAME_LOBBY_MIN_BALANCE = 1000;
+const TEMP_HIDE_HOME_PROMO_POPUP = true;
 
 function toSafeBalance(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
@@ -114,11 +115,13 @@ const playLabel = !user
         <NaganiLobbyBgm />
         <NaganiHomeWelcomeAnnouncement />
 
-        <NaganiPromoPopup
-          isLoggedIn={Boolean(user)}
-          showForLoggedInUser={Boolean(user) && !promoSeenAt}
-          markSeenAction={markPromoSeen}
-        />
+{!TEMP_HIDE_HOME_PROMO_POPUP && (
+  <NaganiPromoPopup
+    isLoggedIn={Boolean(user)}
+    showForLoggedInUser={Boolean(user) && !promoSeenAt}
+    markSeenAction={markPromoSeen}
+  />
+)}
 
         <section className="relative h-[100svh] overflow-hidden">
           <div className="absolute left-[1.4%] top-[2.7%] z-30 h-[7.25rem] w-[7.35rem]">
