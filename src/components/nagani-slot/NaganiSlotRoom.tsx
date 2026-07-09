@@ -1821,7 +1821,7 @@ const nextColumns = buildSlotColumnsFromBackendGrid(displayResultGrid);
 />
 
             <div className="relative z-20 flex min-h-0 flex-1 flex-col pt-1">
-              <div className="relative mx-auto h-[clamp(390px,60dvh,510px)] w-full max-w-[430px] shrink-0">
+              <div className="relative mx-auto h-[clamp(360px,60dvh,510px)] w-full max-w-[430px] shrink-0 [@media(max-height:640px)]:h-[clamp(318px,55dvh,360px)]">
 <NaganiSlotBoard
   columns={slotColumns}
   spinning={spinning}

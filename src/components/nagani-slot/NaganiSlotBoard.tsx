@@ -4,6 +4,7 @@ import { getReelSpinStrip } from "@/lib/naganiSlot/symbols";
 import type {
   NaganiSlotPosition,
   NaganiSlotSymbol,
+  NaganiSlotSymbolKey,
   NaganiSlotWinEvaluation,
   NaganiSlotWinTier,
 } from "@/lib/naganiSlot/types";
@@ -17,6 +18,142 @@ type NaganiSlotBoardProps = {
   winEvaluation: NaganiSlotWinEvaluation | null;
   freeSpinHighlightPositions?: NaganiSlotPosition[];
 };
+
+type SymbolVisualConfig = {
+  boxClass: string;
+  fitScale: number;
+  yOffset: string;
+  transformOrigin: string;
+  spinScale: number;
+  spinYOffset: string;
+  shadowBottom: string;
+  shadowHeight: string;
+  shadowOpacity: number;
+  shadowWidth: string;
+};
+
+const DEFAULT_SYMBOL_VISUAL_CONFIG: SymbolVisualConfig = {
+  boxClass: "h-[86%] w-[112%]",
+  fitScale: 1,
+  yOffset: "0%",
+  transformOrigin: "50% 50%",
+  spinScale: 0.96,
+  spinYOffset: "0%",
+  shadowBottom: "12%",
+  shadowHeight: "8%",
+  shadowOpacity: 0.22,
+  shadowWidth: "62%",
+};
+
+const SYMBOL_VISUAL_CONFIG: Partial<
+  Record<NaganiSlotSymbolKey, Partial<SymbolVisualConfig>>
+> = {
+  crown: {
+    boxClass: "h-[88%] w-[108%]",
+    fitScale: 0.96,
+    yOffset: "-2%",
+    spinScale: 0.94,
+    spinYOffset: "-1%",
+    shadowBottom: "10%",
+    shadowHeight: "12%",
+    shadowOpacity: 0.38,
+    shadowWidth: "74%",
+  },
+  star: {
+    boxClass: "h-[86%] w-[110%]",
+    fitScale: 0.96,
+    yOffset: "-2%",
+    spinScale: 0.94,
+    spinYOffset: "-1%",
+    shadowBottom: "10%",
+    shadowHeight: "12%",
+    shadowOpacity: 0.36,
+    shadowWidth: "72%",
+  },
+  dragon: {
+    boxClass: "h-[90%] w-[116%]",
+    fitScale: 0.92,
+    yOffset: "1%",
+    spinScale: 0.9,
+    shadowBottom: "10%",
+    shadowHeight: "12%",
+    shadowOpacity: 0.38,
+    shadowWidth: "78%",
+  },
+  gold_pot: {
+    boxClass: "h-[86%] w-[108%]",
+    fitScale: 0.96,
+    spinScale: 0.94,
+    shadowBottom: "10%",
+    shadowHeight: "11%",
+    shadowOpacity: 0.34,
+    shadowWidth: "72%",
+  },
+  buffalo: {
+    boxClass: "h-[84%] w-[112%]",
+    fitScale: 0.94,
+    spinScale: 0.92,
+    shadowWidth: "64%",
+  },
+  bell: {
+    boxClass: "h-[84%] w-[108%]",
+    fitScale: 0.95,
+    yOffset: "-3%",
+    spinScale: 0.93,
+    spinYOffset: "-2%",
+    shadowBottom: "11%",
+    shadowOpacity: 0.2,
+    shadowWidth: "58%",
+  },
+  harp: {
+    boxClass: "h-[86%] w-[110%]",
+    fitScale: 0.95,
+    yOffset: "-7%",
+    transformOrigin: "50% 45%",
+    spinScale: 0.93,
+    spinYOffset: "-4%",
+    shadowBottom: "10%",
+    shadowOpacity: 0.19,
+    shadowWidth: "54%",
+  },
+  bagan: {
+    boxClass: "h-[86%] w-[108%]",
+    fitScale: 0.92,
+    yOffset: "-9%",
+    transformOrigin: "50% 44%",
+    spinScale: 0.92,
+    spinYOffset: "-5%",
+    shadowBottom: "9%",
+    shadowOpacity: 0.18,
+    shadowWidth: "52%",
+  },
+  ruby: {
+    boxClass: "h-[86%] w-[110%]",
+    fitScale: 0.98,
+    yOffset: "-6%",
+    transformOrigin: "50% 46%",
+    spinScale: 0.94,
+    spinYOffset: "-3%",
+    shadowBottom: "10%",
+    shadowHeight: "9%",
+    shadowOpacity: 0.24,
+    shadowWidth: "64%",
+  },
+  ever_stand: {
+    boxClass: "h-[84%] w-[108%]",
+    fitScale: 0.96,
+    spinScale: 0.94,
+    shadowOpacity: 0.2,
+    shadowWidth: "54%",
+  },
+};
+
+function getSymbolVisualConfig(symbol: NaganiSlotSymbol): SymbolVisualConfig {
+  return {
+    ...DEFAULT_SYMBOL_VISUAL_CONFIG,
+    ...SYMBOL_VISUAL_CONFIG[symbol.key],
+  };
+}
 
 function shouldShowSymbolLabel(_symbol: NaganiSlotSymbol) {
   return false;
@@ -43,35 +180,7 @@ function getSymbolGlow(symbol: NaganiSlotSymbol) {
 }
 
 function getSymbolBoxClass(symbol: NaganiSlotSymbol) {
-  if (symbol.key === "crown") {
-    return "h-[91%] w-[112%]";
-  }
-
-  if (symbol.key === "star") {
-    return "h-[88%] w-[112%]";
-  }
-
-  if (symbol.key === "dragon") {
-    return "h-[91%] w-[118%]";
-  }
-
-  if (symbol.key === "buffalo") {
-    return "h-[86%] w-[116%]";
-  }
-
-  if (symbol.key === "harp") {
-    return "h-[86%] w-[112%]";
-  }
-
-  if (symbol.key === "bell") {
-    return "h-[88%] w-[112%]";
-  }
-
-if (symbol.key === "bagan") {
-  return "h-[90%] w-[112%]";
-}
-
-  return "h-[86%] w-[114%]";
+  return getSymbolVisualConfig(symbol).boxClass;
 }
 
 function getWinningSymbolScale(symbol: NaganiSlotSymbol) {
@@ -102,6 +211,15 @@ function isPremiumWarmSpotlightSymbol(symbol: NaganiSlotSymbol) {
 
 function isCommonCalmSymbol(symbol: NaganiSlotSymbol) {
   return symbol.key === "buffalo" || symbol.key === "ever_stand";
+}
+
+function getTransparentSymbolAuraStyle() {
+  return {
+    opacity: 0,
+    background: "transparent",
+    boxShadow: "none",
+    border: "none",
+  };
 }
 
 function getSymbolSpotlightStyle(symbol: NaganiSlotSymbol) {
@@ -140,6 +258,15 @@ function getSymbolSpotlightStyle(symbol: NaganiSlotSymbol) {
       background:
         "radial-gradient(ellipse at 50% 50%, rgba(255,232,163,0.18), rgba(184,124,24,0.09) 38%, transparent 70%)",
       boxShadow: "0 0 10px rgba(255,184,66,0.08)",
+    };
+  }
+
+  if (symbol.key === "ruby") {
+    return {
+      opacity: 0.14,
+      background:
+        "radial-gradient(ellipse at 50% 48%, rgba(255,214,122,0.11), rgba(179,20,28,0.07) 38%, transparent 70%)",
+      boxShadow: "none",
     };
   }
 
@@ -248,13 +375,13 @@ function getSpecialSymbolAuraClass(symbol: NaganiSlotSymbol) {
 }
 
 function getSymbolFootShadowStyle(symbol: NaganiSlotSymbol) {
-  const hasPrestigeShadow =
-    isLuxurySpotlightSymbol(symbol) || isPremiumWarmSpotlightSymbol(symbol);
+  const visualConfig = getSymbolVisualConfig(symbol);
 
   return {
-    width: hasPrestigeShadow ? "78%" : "66%",
-    height: hasPrestigeShadow ? "13%" : "9%",
-    opacity: hasPrestigeShadow ? 0.44 : 0.28,
+    bottom: visualConfig.shadowBottom,
+    width: visualConfig.shadowWidth,
+    height: visualConfig.shadowHeight,
+    opacity: visualConfig.shadowOpacity,
     background:
       "radial-gradient(ellipse, rgba(0,0,0,0.86), rgba(0,0,0,0.38) 46%, transparent 74%)",
     filter: "blur(5px)",
@@ -263,26 +390,7 @@ function getSymbolFootShadowStyle(symbol: NaganiSlotSymbol) {
 
 function getSymbolImageStyle(symbol: NaganiSlotSymbol) {
   const baseScale = symbol.imageScale ?? 1;
-
-  const fitScale =
-    symbol.key === "dragon"
-      ? 0.94
-      : symbol.key === "star"
-        ? 0.97
-        : symbol.key === "crown"
-          ? 0.97
-          : symbol.key === "buffalo"
-            ? 0.96
-            : 1;
-
-  const yOffset =
-    symbol.key === "dragon"
-      ? "1.5%"
-      : symbol.key === "bagan"
-        ? "-1%"
-        : symbol.key === "crown"
-          ? "-1%"
-          : "0%";
+  const visualConfig = getSymbolVisualConfig(symbol);
 
   const paintFilter = isLuxurySpotlightSymbol(symbol)
     ? "brightness(1.13) contrast(1.1) saturate(1.16)"
@@ -296,11 +404,16 @@ function getSymbolImageStyle(symbol: NaganiSlotSymbol) {
     ? "drop-shadow(0 0 8px rgba(255,232,163,0.46))"
     : isPremiumWarmSpotlightSymbol(symbol)
       ? "drop-shadow(0 0 5px rgba(255,202,96,0.24))"
-      : "drop-shadow(0 0 2px rgba(184,104,44,0.08))";
+      : symbol.key === "ruby"
+        ? "drop-shadow(0 0 4px rgba(255,76,68,0.16))"
+        : "drop-shadow(0 0 1px rgba(184,104,44,0.05))";
 
   return {
-    transform: `translateY(${yOffset}) scale(${baseScale * fitScale})`,
-    filter: `${paintFilter} drop-shadow(0 2px 0 rgba(255,240,185,0.12)) drop-shadow(0 11px 11px rgba(0,0,0,0.62)) ${auraDrop}`,
+    transform: `translateY(${visualConfig.yOffset}) scale(${
+      baseScale * visualConfig.fitScale
+    })`,
+    transformOrigin: visualConfig.transformOrigin,
+    filter: `${paintFilter} drop-shadow(0 2px 0 rgba(255,240,185,0.12)) drop-shadow(0 10px 10px rgba(0,0,0,0.6)) ${auraDrop}`,
   };
 }
 
@@ -337,10 +450,17 @@ function getSymbolBackplateStyle(symbol: NaganiSlotSymbol) {
     };
   }
 
+  if (symbol.key === "ruby") {
+    return {
+      opacity: 0.06,
+      background:
+        "radial-gradient(circle, rgba(255,214,122,0.1), rgba(179,20,28,0.04) 42%, transparent 72%)",
+    };
+  }
+
   return {
-    opacity: 0.04,
-    background:
-      "radial-gradient(circle, rgba(255,214,122,0.05), rgba(255,170,58,0.015) 42%, transparent 74%)",
+    opacity: 0,
+    background: "transparent",
   };
 }
 
@@ -368,11 +488,10 @@ function getSymbolRimLightStyle(symbol: NaganiSlotSymbol) {
   }
 
   return {
-    opacity: 0.03,
-    border: "1px solid rgba(255,217,121,0.03)",
-    boxShadow: "inset 0 0 5px rgba(255,217,121,0.01)",
-    background:
-      "linear-gradient(180deg, rgba(255,240,185,0.01), transparent 32%, transparent 72%, rgba(120,42,12,0.02))",
+    opacity: 0,
+    border: "none",
+    boxShadow: "none",
+    background: "transparent",
   };
 }
 
@@ -560,7 +679,10 @@ function ReelSymbol({
   const symbolImageStyle = getSymbolImageStyle(symbol);
   const animateBonusSymbol = shouldAnimateBonusSymbol(symbol, spinning);
   const animatePremiumSymbol = shouldAnimatePremiumSymbol(symbol, spinning);
-  const premiumShrineSpec = getPremiumShrineSpec(symbol);
+  const shouldShowBackgroundAura = winning;
+const premiumShrineSpec = shouldShowBackgroundAura
+  ? getPremiumShrineSpec(symbol)
+  : null;
 
 return (
     <div
@@ -670,24 +792,36 @@ return (
 
 <div
   className="pointer-events-none absolute left-1/2 top-1/2 z-[8] h-[86%] w-[94%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] blur-[2px]"
-  style={getSymbolSpotlightStyle(symbol)}
+  style={
+    shouldShowBackgroundAura
+      ? getSymbolSpotlightStyle(symbol)
+      : getTransparentSymbolAuraStyle()
+  }
 />
 <div
   className="pointer-events-none absolute left-1/2 top-1/2 z-[9] h-[78%] w-[90%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-md"
-  style={getSymbolBackplateStyle(symbol)}
+  style={
+    shouldShowBackgroundAura
+      ? getSymbolBackplateStyle(symbol)
+      : getTransparentSymbolAuraStyle()
+  }
 />
 
 <div
   className="pointer-events-none absolute left-1/2 top-1/2 z-[10] h-[78%] w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-[999px]"
-  style={getSymbolRimLightStyle(symbol)}
+  style={
+    shouldShowBackgroundAura
+      ? getSymbolRimLightStyle(symbol)
+      : getTransparentSymbolAuraStyle()
+  }
 />
 
 <div
-  className="pointer-events-none absolute left-1/2 bottom-[13%] z-[11] -translate-x-1/2 rounded-full"
+  className="pointer-events-none absolute left-1/2 z-[11] -translate-x-1/2 rounded-full"
   style={getSymbolFootShadowStyle(symbol)}
 />
 
-{specialAuraClass ? (
+{specialAuraClass && shouldShowBackgroundAura ? (
   <div
     className={`pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full blur-md ${specialAuraClass}`}
     style={{
@@ -855,14 +989,16 @@ style={
         });
 
         return (
-          <div
-            key={`${symbol.key}-stopped-${columnIndex}-${rowIndex}`}
-            className={`absolute left-0 right-0 ${winning ? "z-50" : "z-10"}`}
-            style={{
-              top: `${rowIndex * 33.3333}%`,
-              height: "33.3333%",
-            }}
-          >
+<div
+  key={`${symbol.key}-stopped-${columnIndex}-${rowIndex}`}
+  className={`absolute left-0 right-0 ${
+    winning ? "z-50 overflow-visible" : "z-10 overflow-hidden"
+  }`}
+  style={{
+    top: `${rowIndex * 33.3333}%`,
+    height: "33.3333%",
+  }}
+>
 <ReelSymbol
   symbol={symbol}
   winning={winning}
@@ -878,15 +1014,8 @@ style={
 
 function SpinningReelSymbol({ symbol }: { symbol: NaganiSlotSymbol }) {
   const symbolBoxClass = getSymbolBoxClass(symbol);
-
-  const spinScale =
-    symbol.key === "dragon"
-      ? 0.9
-      : symbol.key === "crown" || symbol.key === "star"
-        ? 0.94
-        : symbol.key === "buffalo"
-          ? 0.92
-          : 0.96;
+  const visualConfig = getSymbolVisualConfig(symbol);
+  const spinScale = visualConfig.spinScale;
 
   const spinFilter =
     "brightness(0.86) contrast(0.92) saturate(0.78) drop-shadow(0 5px 7px rgba(0,0,0,0.48))";
@@ -902,7 +1031,10 @@ function SpinningReelSymbol({ symbol }: { symbol: NaganiSlotSymbol }) {
             alt=""
             className="h-full w-full max-w-none object-contain"
             style={{
-              transform: `scale(${(symbol.imageScale ?? 1) * spinScale})`,
+              transform: `translateY(${visualConfig.spinYOffset}) scale(${
+                (symbol.imageScale ?? 1) * spinScale
+              })`,
+              transformOrigin: visualConfig.transformOrigin,
               filter: spinFilter,
             }}
             draggable={false}
@@ -922,7 +1054,8 @@ function SpinningReelSymbol({ symbol }: { symbol: NaganiSlotSymbol }) {
         <span
           className={`${symbol.imageSrc ? "hidden" : ""} text-[clamp(44px,12vw,64px)] leading-none`}
           style={{
-            transform: `scale(${spinScale})`,
+            transform: `translateY(${visualConfig.spinYOffset}) scale(${spinScale})`,
+            transformOrigin: visualConfig.transformOrigin,
             filter: spinFilter,
           }}
         >
@@ -1918,8 +2051,8 @@ style={{
   />
 ) : null}
 
-<div className="pointer-events-none absolute left-0 right-0 top-[33.333%] z-20 h-px bg-gradient-to-r from-transparent via-[#ffd979]/13 to-transparent" />
-<div className="pointer-events-none absolute left-0 right-0 top-[66.666%] z-20 h-px bg-gradient-to-r from-transparent via-[#ffd979]/13 to-transparent" />
+<div className="pointer-events-none absolute left-[12%] right-[12%] top-[33.333%] z-20 h-px bg-gradient-to-r from-transparent via-[#ffd979]/5 to-transparent" />
+<div className="pointer-events-none absolute left-[12%] right-[12%] top-[66.666%] z-20 h-px bg-gradient-to-r from-transparent via-[#ffd979]/5 to-transparent" />
 
 <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-[15%] bg-gradient-to-b from-black/68 via-black/28 to-transparent" />
 <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[15%] bg-gradient-to-t from-black/70 via-black/28 to-transparent" />
